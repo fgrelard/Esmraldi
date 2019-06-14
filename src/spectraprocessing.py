@@ -2,6 +2,7 @@ import scipy.signal as signal
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def spectra_sum(spectra):
     spectra_sum = [0 for i in range(len(spectra[0][0]))]
     for x, y in spectra:
@@ -14,6 +15,12 @@ def spectra_mean(spectra):
         spectra_mean = np.add(spectra_mean, y)
     spectra_mean /= len(spectra)
     return spectra_mean
+
+def spectra_max(spectra):
+    spectra_max = [0 for i in range(len(spectra[0][0]))]
+    for x, y in spectra:
+        spectra_max = np.maximum(spectra_max, y)
+    return spectra_max
 
 def spectra_peak_indices(spectra, prominence=50):
     indices = []
@@ -33,7 +40,7 @@ def peak_indices(data, prominence=50):
 def peak_reference_indices(indices):
     counts = np.bincount(indices)
     max_value = counts.max()
-    indices_second = peak_indices(counts,max_value/10)
+    indices_second = peak_indices(counts,4)
     return indices_second
 
 def peak_selection(x, y):
