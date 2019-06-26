@@ -10,13 +10,13 @@ from skimage import measure
 from sklearn.decomposition import PCA
 
 from skimage.filters import gaussian
-from skimage.morphology import binary_erosion, closing, disk
+from skimage.morphology import binary_erosion, opening, disk
 from skimage.filters import threshold_otsu, rank
 from sklearn import manifold
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-t", "--threshold", help="Lower threshold for region growing")
+parser.add_argument("-t", "--threshold", help="Lower threshold for region growing", default=60)
 args = parser.parse_args()
 
 threshold = args.threshold
@@ -40,10 +40,18 @@ seeds = set(((int(coord[0]), int(coord[1])) for coord in regionprop.coords))
 list_end = seg.region_growing(similar_images, seeds, threshold)
 x = [elem[0] for elem in list_end]
 y = [elem[1] for elem in list_end]
-new_image = np.zeros_like(mean_image)
-new_image[x, y] = 1
-new_image = closing(new_image, selem)
+mask = np.ones_like(mean_image)
+mask[x, y] = 0
+mask = opening(mask, selem)
+
+masked_mean_image = np.ma.array(mean_image, mask=mask)
+masked_mean_image = masked_mean_image.filled(0)
+
 fig, ax = plt.subplots(1,2)
 ax[0].imshow(mean_image.T)
-ax[1].imshow(new_image.T)
+ax[1].imshow(masked_mean_image.T)
 plt.show()
+
+
+nibimg = nib.Nifti1Image(masked_mean_image, np.eye(4))
+nibimg.to_filename("/mnt/d/MALDI/imzML/MSI_20190419_01/00/segmented_regiongrowing_t" + threshold + ".nii")
