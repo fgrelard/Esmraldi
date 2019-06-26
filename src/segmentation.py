@@ -9,6 +9,21 @@ import cv2 as cv
 import SimpleITK as sitk
 
 def max_variance_sort(image_maldi):
+    """
+    Sort a stack image along the z-axis
+    according to the maximum intensity variation
+
+    Parameters
+    ----------
+    image_maldi: numpy.ndarray
+        input image
+
+    Returns
+    ----------
+    numpy.ndarray
+        the sorted image stack
+
+    """
     x, y = image_maldi.getspectrum(0)
     image_list = []
     for mz in x:
@@ -21,6 +36,21 @@ def max_variance_sort(image_maldi):
         plt.show()
 
 def normalize(image_maldi):
+    """
+    Normalizes a stack image
+    with OpenCV
+
+    Parameters
+    ----------
+    image_maldi: numpy.ndarray
+        input image
+
+    Returns
+    ----------
+    numpy.ndarray
+        normalized image
+
+    """
     x = image_maldi.shape[0]
     y = image_maldi.shape[1]
     z = image_maldi.shape[2]
@@ -34,17 +64,70 @@ def normalize(image_maldi):
     return norm_img
 
 def properties_largest_area_cc(ccs):
+    """
+    Extracts the connected component
+    with the largest area
+
+    Parameters
+    ----------
+    ccs: numpy.ndarray
+        connected components
+
+    Returns
+    ----------
+    RegionProperties
+        connected component with largest area
+
+    """
     regionprops = measure.regionprops(ccs)
     areas = lambda r: r.area
     argmax = max(regionprops, key=areas)
     return argmax
 
 def region_property_to_cc(ccs, regionprop):
+    """
+    Extracts the connected component associated
+    with the region
+
+    Parameters
+    ----------
+    ccs: numpy.ndarray
+        connected components
+    regionprop: RegionProperties
+        desired region
+
+    Returns
+    ----------
+    numpy.ndarray
+        the binary image (mask) of the desired region
+    """
     label = regionprop.label
     cc = np.where(ccs == label, 0, 255)
     return cc
 
 def region_growing(images, seedList, lower_threshold):
+    """
+    Region growing in an image stack
+    with ITK
+    All the images in the stack are processed sequentially
+    and the seeds at step n depends on the segmentation
+    by region growing at step n-1
+
+    Parameters
+    ----------
+    images: numpy.ndarray
+        image stack
+    seedList: list
+        list of 2D points to initialize the region growing
+    lower_threshold: int
+        lower threshold for the region growing
+
+    Returns
+    ----------
+    list
+        seeds as 2d points
+
+    """
     seeds = seedList.copy()
     for index in np.ndindex(images.shape[2:]):
         current_index = (slice(None), slice(None)) + (index)
@@ -63,6 +146,22 @@ def region_growing(images, seedList, lower_threshold):
     return list(seeds)
 
 def find_similar_images(image_maldi):
+    """
+    Performs a PCA to group similar images based on
+    their intensities
+
+    Selects the first cluster
+
+    Parameters
+    ----------
+    image_maldi: numpy.ndarray
+        image stack
+
+    Returns
+    ----------
+    numpy.ndarray
+        trimmed stack with images of high similarity
+    """
     norm = normalize(image_maldi)
     pca = PCA(n_components=5)
     X_r = pca.fit(norm).transform(norm)
@@ -71,14 +170,3 @@ def find_similar_images(image_maldi):
     y_kmeans = kmeans.predict(X_r)
     similar_images = image_maldi[..., y_kmeans==0]
     return similar_images
-
-def extraction_roi_contour(image_maldi):
-    mean = np.average(image_maldi, axis=2)
-    binary = np.zeros_like(mean)
-    binary[mean > 0] = 255.0
-    edges = find_contours(binary, 0.0)[0]
-    return edges
-
-
-def segmentation(image_maldi):
-    max_variance_sort(image_maldi)
