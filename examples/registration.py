@@ -1,6 +1,7 @@
 import argparse
 import SimpleITK as sitk
 import matplotlib.pyplot as plt
+import math
 
 
 def command_iteration(method) :
@@ -26,26 +27,30 @@ gradient_filter = sitk.GradientMagnitudeImageFilter()
 # fixed = gradient_filter.Execute(fixed)
 # moving = gradient_filter.Execute(moving)
 
-
-numberOfBins = 24
-samplingPercentage = 0.6
+width = fixed.GetWidth()
+height = fixed.GetHeight()
+numberOfBins = int(math.sqrt(height * width / 5))
+print(numberOfBins)
+samplingPercentage = 0.1
 moving.SetSpacing(fixed.GetSpacing())
 
+
+
+
 R = sitk.ImageRegistrationMethod()
-R.SetMetricAsMattesMutualInformation()
 R.SetMetricAsMattesMutualInformation(numberOfBins)
+#R.SetMetricAsMeanSquares()
 R.SetMetricSamplingPercentage(samplingPercentage,sitk.sitkWallClock)
-#R.SetMetricSamplingStrategy(R.RANDOM)
-R.SetOptimizerAsRegularStepGradientDescent(1.0,.0001,2000)
-tx = sitk.TranslationTransform(fixed.GetDimension())
-
-#R.SetMovingInitialTransform(tx)
+#R.SetOptimizerAsGradientDescent(5.0, 200)
+R.SetOptimizerAsRegularStepGradientDescent(1.0,.001,2000)
+tx = sitk.AffineTransform(fixed.GetDimension())
+tx = sitk.CenteredTransformInitializer(fixed, moving, sitk.Similarity2DTransform(), sitk.CenteredTransformInitializerFilter.GEOMETRY)
 R.SetInitialTransform(tx)
-R.SetInterpolator(sitk.sitkLinear)
 
-R.AddCommand( sitk.sitkIterationEvent, lambda: command_iteration(R) )
+
 
 outTx = R.Execute(fixed, moving)
+
 resampler = sitk.ResampleImageFilter()
 resampler.SetReferenceImage(fixed);
 resampler.SetInterpolator(sitk.sitkLinear)
@@ -54,26 +59,27 @@ resampler.SetTransform(outTx)
 outTranslation = resampler.Execute(moving)
 
 
-R2 = sitk.ImageRegistrationMethod()
-#R2.SetMetricAsMattesMutualInformation()
-R2.SetMetricAsMeanSquares()
-R2.SetMetricSamplingPercentage(samplingPercentage,sitk.sitkWallClock)
-R2.SetOptimizerAsRegularStepGradientDescent(2.0,.001,2000)
-tx2 = sitk.AffineTransform(fixed.GetDimension())
-tx2 = sitk.CenteredTransformInitializer(fixed, moving, sitk.Similarity2DTransform(), sitk.CenteredTransformInitializerFilter.MOMENTS)
-R2.SetInitialTransform(tx2)
+# R = sitk.ImageRegistrationMethod()
+# R.SetMetricAsMattesMutualInformation()
+# R.SetMetricAsMattesMutualInformation(numberOfBins)
+# R.SetMetricSamplingPercentage(samplingPercentage,sitk.sitkWallClock)
+# #R.SetMetricSamplingStrategy(R.RANDOM)
+# R.SetOptimizerAsRegularStepGradientDescent(1.0,.0001,2000)
+# tx = sitk.TranslationTransform(fixed.GetDimension())
+
+# #R.SetMovingInitialTransform(tx)
+# R.SetInitialTransform(tx)
+# R.SetInterpolator(sitk.sitkLinear)
+
+# R.AddCommand( sitk.sitkIterationEvent, lambda: command_iteration(R) )
 
 
 
-outTx2 = R2.Execute(fixed, outTranslation)
+# compositeTransform = sitk.Transform(2, sitk.sitkComposite)
+# compositeTransform.AddTransform(outTx)
+# compositeTransform.AddTransform(outTx2)
 
-compositeTransform = sitk.Transform(2, sitk.sitkComposite)
-compositeTransform.AddTransform(outTx)
-compositeTransform.AddTransform(outTx2)
 
-print(fixed.GetSpacing())
-print(moving.GetSpacing())
-print(outTranslation.GetSpacing())
 print("-------")
 print(outTx)
 print("Optimizer stop condition: {0}".format(R.GetOptimizerStopConditionDescription()))
@@ -84,9 +90,8 @@ resampler = sitk.ResampleImageFilter()
 resampler.SetReferenceImage(fixed);
 resampler.SetInterpolator(sitk.sitkLinear)
 resampler.SetDefaultPixelValue(1)
-resampler.SetTransform(tx2)
+resampler.SetTransform(outTx)
 out = resampler.Execute(moving)
-
 
 simg1 = sitk.Cast(sitk.RescaleIntensity(fixed), sitk.sitkUInt8)
 simg2 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
