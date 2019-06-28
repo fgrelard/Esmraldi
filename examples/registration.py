@@ -45,10 +45,7 @@ if registername:
 gradient_filter = sitk.GradientMagnitudeImageFilter()
 gaussian = sitk.SmoothingRecursiveGaussianImageFilter()
 gaussian.SetSigma ( 1.0 )
-#fixed = gaussian.Execute ( fixed )
 moving = gaussian.Execute(moving)
-# fixed = gradient_filter.Execute(fixed)
-# moving = gradient_filter.Execute(moving)
 
 width = fixed.GetWidth()
 height = fixed.GetHeight()
@@ -62,14 +59,10 @@ moving.SetSpacing(fixed.GetSpacing())
 
 R = sitk.ImageRegistrationMethod()
 R.SetMetricAsMattesMutualInformation(numberOfBins)
-#R.SetMetricAsANTSNeighborhoodCorrelation(bins)
-#R.SetMetricAsDemons()
 R.SetMetricSamplingPercentage(samplingPercentage, sitk.sitkWallClock)
-
 #R.SetOptimizerAsGradientDescent(1.0, 2000)
 R.SetOptimizerAsRegularStepGradientDescent(1.0,.001,2000)
 tx = sitk.CenteredTransformInitializer(fixed, moving, sitk.Similarity2DTransform(), sitk.CenteredTransformInitializerFilter.GEOMETRY)
-#tx = sitk.DisplacementFieldTransform(moving)
 R.SetInitialTransform(tx)
 
 outTx = R.Execute(fixed, moving)
@@ -80,28 +73,6 @@ resampler.SetDefaultPixelValue(1)
 resampler.SetTransform(outTx)
 outTranslation = resampler.Execute(moving)
 
-
-# R2 = sitk.ImageRegistrationMethod()
-# R2.SetMetricAsMattesMutualInformation(numberOfBins)
-# R2.SetMetricSamplingPercentage(samplingPercentage, sitk.sitkWallClock)
-# #R2.SetMetricSamplingStrategy(R.RANDOM)
-# R2.SetOptimizerAsRegularStepGradientDescent(1.0,.001,2000)
-# #R2.SetOptimizerAsGradientDescent(5.0, 200)
-
-# tx2 = sitk.AffineTransform(fixed.GetDimension())
-
-# R2.SetMovingInitialTransform(tx)
-# R2.SetInitialTransform(tx2)
-# R2.SetInterpolator(sitk.sitkLinear)
-
-# R2.AddCommand( sitk.sitkIterationEvent, lambda: command_iteration(R) )
-
-# outTx2 = R2.Execute(fixed, outTranslation)
-
-
-# compositeTransform = sitk.Transform(2, sitk.sitkComposite)
-# compositeTransform.AddTransform(outTx)
-# compositeTransform.AddTransform(outTx2)
 
 
 print("-------")
@@ -121,26 +92,21 @@ register.SetDirection( (1.0, 0.0, 0.0,
                         0.0, 1.0, 0.0,
                         0.0, 0.0, 1.0))
 size = register.GetSize()
-array_register = sitk.GetArrayFromImage(register)
-outRegister = np.zeros(shape=(width, height, array_register.T.shape[2]))
-print(outRegister.shape)
+outRegister = sitk.Image(width, height, size[2], sitk.sitkUInt8 )
 sx = fixed.GetSpacing()[0]
-#outRegister.SetSpacing((sx, sx, sx))
+outRegister.SetSpacing((sx, sx, sx))
+print(outRegister.GetDirection())
 
-for i in range(outRegister.shape[2]):
+for i in range(size[2]):
     slice = register[:,:,i]
-    slice.SetSpacing(moving.GetSpacing())
+    slice.SetSpacing(fixed.GetSpacing())
     outSlice = resampler.Execute(slice)
-    # plt.imshow(sitk.GetArrayFromImage(outSlice))
-    # plt.show()
-    outSlice = sitk.GetArrayFromImage(outSlice)
-    outRegister[:,:,i] = outSlice.T
-    # outSlice = sitk.Cast(sitk.RescaleIntensity(slice), sitk.sitkUInt8)
-    # outSlice = sitk.JoinSeries(outSlice)
-    #outRegister = sitk.Paste(outRegister, outSlice, outSlice.GetSize(), destinationIndex=[0,0,i])
+    outSlice = outSlice[::,::-1]
+    outSlice = sitk.Cast(sitk.RescaleIntensity(outSlice), sitk.sitkUInt8)
+    outSlice = sitk.JoinSeries(outSlice)
+    outRegister = sitk.Paste(outRegister, outSlice, outSlice.GetSize(), destinationIndex=[0,0,i])
 
-imzmlio.to_nifti(outRegister, outputname)
-#sitk.WriteImage(outRegister, outputname)
+sitk.WriteImage(outRegister, outputname)
 
 simg1 = sitk.Cast(sitk.RescaleIntensity(fixed), sitk.sitkUInt8)
 simg2 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
