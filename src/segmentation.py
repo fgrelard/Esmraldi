@@ -35,10 +35,10 @@ def max_variance_sort(image_maldi):
         plt.imshow(elem["im"], cmap='jet').set_interpolation('nearest')
         plt.show()
 
-def normalize(image_maldi):
+def preprocess_pca(image_maldi):
     """
-    Normalizes a stack image
-    with OpenCV
+    Preprocess for PCA : normalizes and flattens
+    a stack image with OpenCV
 
     Parameters
     ----------
@@ -53,12 +53,17 @@ def normalize(image_maldi):
     """
     x = image_maldi.shape[0]
     y = image_maldi.shape[1]
-    z = image_maldi.shape[2]
-    norm_img = np.zeros(shape=(x*y, z))
-    for index in np.ndindex(image_maldi.shape[2:]):
-        current_index = (slice(None), slice(None)) + (index,)
-        norm_slice = cv.normalize(image_maldi[current_index], None, 0.0, 1.0, cv.NORM_MINMAX)
-        norm_img[..., index[0]] = norm_slice.flatten()
+    z = image_maldi.shape[2] if len(image_maldi.shape) > 2 else 0
+
+    if z > 0:
+        norm_img = np.zeros(shape=(x*y,z))
+        for index in np.ndindex(image_maldi.shape[2:]):
+            current_index = (slice(None), slice(None)) + (index,)
+            norm_slice = cv.normalize(image_maldi[current_index], None, 0.0, 1.0, cv.NORM_MINMAX)
+            norm_img[..., index[0]] = norm_slice.flatten()
+    else:
+        norm_img = np.zeros(shape=(x*y, 1))
+        norm_img[..., 0] = cv.normalize(image_maldi, None, 0.0, 1.0, cv.NORM_MINMAX).flatten()
 
     norm_img = norm_img.transpose()
     return norm_img
