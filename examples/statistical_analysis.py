@@ -58,7 +58,12 @@ mriname = args.mri
 outname = args.output
 top = int(args.top)
 
-image = sitk.GetArrayFromImage(sitk.ReadImage(inputname, sitk.sitkFloat32)).T
+if inputname.endswith(".imzML"):
+    imzml = imzmlio.open_imzml(inputname)
+    print(imzml.coordinates)
+    image = imzmlio.to_image_array(imzml)
+else:
+    image = sitk.GetArrayFromImage(sitk.ReadImage(inputname, sitk.sitkFloat32)).T
 
 image_mri = sitk.GetArrayFromImage(sitk.ReadImage(mriname, sitk.sitkFloat32))
 

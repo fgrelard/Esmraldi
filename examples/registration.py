@@ -119,7 +119,12 @@ print(" Iteration: {0}".format(R.GetOptimizerIteration()))
 print(" Metric value: {0}".format(R.GetMetricValue()))
 
 if registername:
-    register = sitk.ReadImage(registername, sitk.sitkFloat32)
+    if registername.endswidth(".imzML"):
+        imzml = imzmlio.open_imzml(registername)
+        array = imzmlio.to_image_array(imzml)
+        register = sitk.GetImageFromArray(array)
+    else:
+        register = sitk.ReadImage(registername, sitk.sitkFloat32)
     register.SetDirection( (1.0, 0.0, 0.0,
                         0.0, 1.0, 0.0,
                         0.0, 0.0, 1.0))
@@ -136,4 +141,9 @@ if registername:
         outSlice = sitk.JoinSeries(outSlice)
         outRegister = sitk.Paste(outRegister, outSlice, outSlice.GetSize(), destinationIndex=[0,0,i])
 
-    sitk.WriteImage(outRegister, outputname)
+    if registername.endswith(".imzML"):
+        coords = imzml.coordinates
+        mz, y = imzml.getspectrum(0)
+
+    else:
+        sitk.WriteImage(outRegister, outputname)

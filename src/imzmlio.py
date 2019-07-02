@@ -12,6 +12,22 @@ def write_imzml(mzs, intensities, coordinates, filename):
         for i in range(len(mzs)):
             writer.addSpectrum(mzs[i], intensities[i], coordinates[i])
 
+def get_spectra_from_images(images):
+    shape = images.shape
+    coordinates = []
+    intensities = []
+    for index in np.ndindex(shape[:-1]):
+        xy_index = index + (slice(None),)
+        I = images[xy_index]
+        if I.any():
+            index_3D = index if len(index) == 3 else index + (0, )
+            add_tuple = (1, 1, 1)
+            imzml_index = tuple(map(sum, zip(index_3D, add_tuple)))
+            intensities.append(I)
+            coordinates.append(imzml_index)
+    return intensities, coordinates
+
+
 def to_image_array(image):
     x, y = image.getspectrum(0)
     image_list = []
