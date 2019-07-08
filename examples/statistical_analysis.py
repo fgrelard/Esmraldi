@@ -8,6 +8,7 @@ import argparse
 import nibabel as nib
 import SimpleITK as sitk
 import math
+import os
 
 def plot_clustering(X, labels):
     n_clusters = len(np.unique(labels))
@@ -31,7 +32,7 @@ def pca(image):
 def weighted_distance(X, weights):
     return np.sqrt(np.sum(X**2 * weights))
 
-def select_images(images, clustering, top=1):
+def select_images(images, mzs, clustering, weights, top=1):
     labels = clustering.labels_
     centers = clustering.cluster_centers_
     point = fit_pca.transform(mri_norm)
@@ -42,7 +43,8 @@ def select_images(images, clustering, top=1):
     indices = np.array(indices)
     condition = np.any(np.array([labels == indices[i] for i in range(top)]), axis=0)
     similar_images = image[..., condition].T
-    return similar_images
+    similar_mzs = mzs[condition]
+    return np.float32(similar_images), similar_mzs
 
 
 
@@ -58,26 +60,30 @@ mriname = args.mri
 outname = args.output
 top = int(args.top)
 
-if inputname.endswith(".imzML"):
+if inputname.lower().endswith(".imzml"):
     imzml = imzmlio.open_imzml(inputname)
-    print(imzml.coordinates)
-    image = imzmlio.to_image_array(imzml)
+    image = imzmlio.get_all_array_images(imzml)
+    mzs, intensities = imzml.getspectrum(0)
 else:
     image = sitk.GetArrayFromImage(sitk.ReadImage(inputname, sitk.sitkFloat32)).T
+    mzs = [i for i in range(len(image.shape[2]))]
 
-image_mri = sitk.GetArrayFromImage(sitk.ReadImage(mriname, sitk.sitkFloat32))
+image_mri = sitk.GetArrayFromImage(sitk.ReadImage(mriname, sitk.sitkFloat32)).T
 
 image_norm = seg.preprocess_pca(image)
 mri_norm = seg.preprocess_pca(image_mri)
-
+print(image_norm.shape)
 fit_pca = pca(image_norm)
 weights = fit_pca.explained_variance_ratio_ / np.sum(fit_pca.explained_variance_ratio_)
 weights = [1 for i in range(len(weights))]
 X_r, af = clustering(image_norm, fit_pca)
 
-similar_images = select_images(image, af, top)
+similar_images, similar_mzs = select_images(image, mzs, af, weights, top)
 itk_similar_images = sitk.GetImageFromArray(similar_images)
 sitk.WriteImage(itk_similar_images, outname)
+
+outname_csv = os.path.splitext(outname)[0] + ".csv"
+np.savetxt(outname_csv, similar_mzs, delimiter=";")
 
 point = fit_pca.transform(mri_norm)
 labels = af.labels_

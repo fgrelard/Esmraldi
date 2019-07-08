@@ -84,7 +84,7 @@ R = sitk.ImageRegistrationMethod()
 R.SetMetricAsMattesMutualInformation(numberOfBins)
 R.SetMetricSamplingPercentage(samplingPercentage, sitk.sitkWallClock)
 # R.SetOptimizerAsRegularStepGradientDescent(1.0,.001,2000)
-R.SetOptimizerAsOnePlusOneEvolutionary(2000)
+R.SetOptimizerAsOnePlusOneEvolutionary(5000)
 tx = sitk.CenteredTransformInitializer(fixed, moving, sitk.Similarity2DTransform(), sitk.CenteredTransformInitializerFilter.GEOMETRY)
 R.SetInitialTransform(tx)
 
@@ -119,9 +119,10 @@ print(" Iteration: {0}".format(R.GetOptimizerIteration()))
 print(" Metric value: {0}".format(R.GetMetricValue()))
 
 if registername:
-    if registername.endswidth(".imzML"):
+    is_imzml = registername.lower().endswith(".imzml")
+    if is_imzml:
         imzml = imzmlio.open_imzml(registername)
-        array = imzmlio.to_image_array(imzml)
+        array = imzmlio.to_image_array(imzml).T
         register = sitk.GetImageFromArray(array)
     else:
         register = sitk.ReadImage(registername, sitk.sitkFloat32)
@@ -141,9 +142,11 @@ if registername:
         outSlice = sitk.JoinSeries(outSlice)
         outRegister = sitk.Paste(outRegister, outSlice, outSlice.GetSize(), destinationIndex=[0,0,i])
 
-    if registername.endswith(".imzML"):
-        coords = imzml.coordinates
+    if is_imzml:
         mz, y = imzml.getspectrum(0)
+        intensities, coordinates = imzmlio.get_spectra_from_images(sitk.GetArrayFromImage(outRegister).T)
+        mzs = [mz] * len(coordinates)
+        imzmlio.write_imzml(mzs, intensities, coordinates, outputname)
 
     else:
         sitk.WriteImage(outRegister, outputname)
