@@ -24,7 +24,7 @@ threshold = args.threshold
 radius = 1
 selem = disk(radius)
 
-image = nib.load("/mnt/d/MALDI/imzML/MSI_20190419_01/00/peaksel.nii")
+image = nib.load("/mnt/d/MALDI/imzML/MSI_20190419_01/00/peaksel_norm.nii")
 
 img_data = image.get_data()
 
@@ -54,4 +54,4 @@ plt.show()
 
 
 nibimg = nib.Nifti1Image(masked_mean_image, np.eye(4))
-nibimg.to_filename("/mnt/d/MALDI/imzML/MSI_20190419_01/00/segmented_regiongrowing_t" + threshold + ".nii")
+#nibimg.to_filename("/mnt/d/MALDI/imzML/MSI_20190419_01/00/segmented_regiongrowing_t" + threshold + ".nii")

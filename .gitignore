@@ -1,2 +1,5 @@
 *.pyc
 *~
+data/
+*.jpg
+.mypy_cache/

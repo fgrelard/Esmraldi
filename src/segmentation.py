@@ -5,6 +5,7 @@ from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from skimage.measure import find_contours
 from skimage import measure
+from skimage.filters import threshold_otsu, rank
 import cv2 as cv
 import SimpleITK as sitk
 
@@ -167,11 +168,41 @@ def find_similar_images(image_maldi):
     numpy.ndarray
         trimmed stack with images of high similarity
     """
-    norm = normalize(image_maldi)
+    nb_class = 2
+    norm = preprocess_pca(image_maldi)
     pca = PCA(n_components=5)
     X_r = pca.fit(norm).transform(norm)
-    kmeans = KMeans(n_clusters=2, random_state=0)
+    kmeans = KMeans(n_clusters=nb_class, random_state=0)
     kmeans.fit(X_r)
     y_kmeans = kmeans.predict(X_r)
-    similar_images = image_maldi[..., y_kmeans==0]
+    index = select_class(image_maldi, y_kmeans, nb_class)
+    similar_images = image_maldi[..., y_kmeans==index]
     return similar_images
+
+def average_area(images):
+    sum_area = 0
+    z = images.shape[-1]
+    count = 0
+    for k in range(z):
+        slice2D = images[..., k]
+        slice2DNorm = np.uint8(cv.normalize(slice2D, None, 0, 255, cv.NORM_MINMAX))
+        try:
+            otsu = threshold_otsu(slice2DNorm)
+            labels = measure.label(slice2DNorm > otsu, background=0)
+            regionprop = properties_largest_area_cc(labels)
+            sum_area += regionprop.area
+            count += 1
+        except Exception as e:
+            pass
+    return sum_area / count if count != 0 else 0
+
+def select_class(image_maldi, y_kmeans, nb_class):
+    max_area = 0
+    index = -1
+    for i in range(nb_class):
+        similar_images = image_maldi[..., y_kmeans==i]
+        av_area = average_area(similar_images)
+        if av_area > max_area:
+            index = i
+            max_area = av_area
+    return index

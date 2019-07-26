@@ -83,9 +83,9 @@ itk_similar_images = sitk.GetImageFromArray(similar_images)
 sitk.WriteImage(itk_similar_images, outname)
 
 outname_csv = os.path.splitext(outname)[0] + ".csv"
-np.savetxt(outname_csv, similar_mzs, delimiter=";")
+np.savetxt(outname_csv, similar_mzs, delimiter=",", fmt="%10.5f")
 
 point = fit_pca.transform(mri_norm)
 labels = af.labels_
-plt.plot(point[0, 0], point[0, 1], "rx")
-plot_clustering(X_r, labels)
+#plt.plot(point[0, 0], point[0, 1], "rx")
+#plot_clustering(X_r, labels)
