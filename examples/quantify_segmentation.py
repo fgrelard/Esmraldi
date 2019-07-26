@@ -31,7 +31,7 @@ def find_peaks(data, prominence, w):
 
 
 mri_curvature = np.loadtxt("data/mri_curvature.txt")
-maldi_curvature = np.loadtxt("data/maldi_curvature.txt")
+maldi_curvature = np.loadtxt("data/registered_curvature.txt")
 
 #Shift distribution
 index_max_mri = mri_curvature.argmax()
