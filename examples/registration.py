@@ -21,31 +21,7 @@ def resample(image, transform):
     return sitk.Resample(image, reference_image, transform,
                          interpolator, default_value)
 
-def precision(im1, im2):
-    tp = np.count_nonzero((im2 + im1) == 2)
-    allp = np.count_nonzero(im2 == 1)
-    return tp * 1.0 / allp
-    # fig, ax = plt.subplots(1, 3)
-    # ax[0].imshow(sitk.GetArrayFromImage(tp))
-    # ax[1].imshow(sitk.GetArrayFromImage(im1))
-    # ax[2].imshow(sitk.GetArrayFromImage(im2))
-    # plt.show()
-    # print(tp)
 
-def recall(im1, im2):
-    tp = np.count_nonzero((im2 + im1) == 2)
-    allr = np.count_nonzero(im1 == 1)
-    return tp * 1.0 / allr
-
-def quality_registration(imRef, imRegistered):
-    otsu_filter = sitk.OtsuThresholdImageFilter()
-    otsu_filter.SetInsideValue(0)
-    otsu_filter.SetOutsideValue(1)
-    imRef_bin = otsu_filter.Execute(imRef)
-    imRegistered_bin = otsu_filter.Execute(imRegistered)
-    p = precision(imRef_bin, imRegistered_bin)
-    r = recall(imRef_bin, imRegistered_bin)
-    return p, r
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--fixed", help="Fixed image")
@@ -105,8 +81,6 @@ else:
     simg2 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
     cimg = sitk.Compose(simg1, simg2, simg1//3.+simg2//1.5)
 
-    p, r = quality_registration(simg1, simg2)
-
 
 plt.imshow(sitk.GetArrayFromImage(cimg))
 plt.show()
@@ -126,21 +100,36 @@ if registername:
         register = sitk.GetImageFromArray(array)
     else:
         register = sitk.ReadImage(registername, sitk.sitkFloat32)
-    register.SetDirection( (1.0, 0.0, 0.0,
-                        0.0, 1.0, 0.0,
-                        0.0, 0.0, 1.0))
-    size = register.GetSize()
-    outRegister = sitk.Image(width, height, size[2], sitk.sitkUInt8 )
-    sx = fixed.GetSpacing()[0]
-    outRegister.SetSpacing((sx, sx, sx))
+    dim = register.GetDimension()
+    identity = np.identity(dim).tolist()
+    flat_list = [item for sublist in identity for item in sublist]
+    direction = tuple(flat_list)
+    register.SetDirection(flat_list)
 
-    for i in range(size[2]):
-        slice = register[:,:,i]
-        slice.SetSpacing(fixed.GetSpacing())
-        outSlice = resampler.Execute(slice)
-        outSlice = sitk.Cast(sitk.RescaleIntensity(outSlice), sitk.sitkUInt8)
-        outSlice = sitk.JoinSeries(outSlice)
-        outRegister = sitk.Paste(outRegister, outSlice, outSlice.GetSize(), destinationIndex=[0,0,i])
+    size = register.GetSize()
+
+
+    if len(size) == 2:
+        outRegister = sitk.Image(width, height, sitk.sitkUInt8 )
+
+    if len(size) == 3:
+        outRegister = sitk.Image(width, height, size[2], sitk.sitkUInt8 )
+    sx = fixed.GetSpacing()[0]
+    spacing = tuple([sx for i in range(dim)])
+    outRegister.SetSpacing(spacing)
+
+    if len(size) == 2:
+        outRegister = resampler.Execute(register)
+        outRegister = sitk.Cast(sitk.RescaleIntensity(outRegister), sitk.sitkUInt8)
+
+    if len(size) == 3:
+        for i in range(size[2]):
+            slice = register[:,:,i]
+            slice.SetSpacing(fixed.GetSpacing())
+            outSlice = resampler.Execute(slice)
+            outSlice = sitk.Cast(sitk.RescaleIntensity(outSlice), sitk.sitkUInt8)
+            outSlice = sitk.JoinSeries(outSlice)
+            outRegister = sitk.Paste(outRegister, outSlice, outSlice.GetSize(), destinationIndex=[0,0,i])
 
     if is_imzml:
         mz, y = imzml.getspectrum(0)
