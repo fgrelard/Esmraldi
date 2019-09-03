@@ -7,8 +7,14 @@ import os
 
 
 
-spectra = np.load("data/peaksel_3.npy")
+spectra = np.load("data/spectra.npy")
+
+indices = sp.spectra_peak_indices(spectra)
+reference_indices = sp.peak_reference_indices(indices)
+reference_indices2 = sp.index_groups(indices, 2)
+print(len(indices), " ", len(reference_indices), " ", len(reference_indices2))
 prominence = 50
+
 spectra_max_before = sp.spectra_max(spectra)
 #spectra_max_after = sp.spectra_max(realigned_spectra)
 indices_spectra_max = sp.peak_indices(spectra_max_before, prominence)
@@ -26,7 +32,7 @@ for spectrum in realigned_spectra:
 
 #np.save("data/peaksel_2.npy", np.asarray(to_array))
 
-io.write_imzml(mzs, intensities, p.coordinates, "/mnt/d/MALDI/imzML/MSI_20190419_01/00/peaksel_2.imzML")
+io.write_imzml(mzs, intensities, p.coordinates, "/mnt/d/MALDI/imzML/MSI_20190419_01/00/peaksel_realign_after.imzML")
 
 
 full_indices = sp.spectra_peak_indices(spectra, prominence)

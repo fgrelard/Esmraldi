@@ -156,6 +156,36 @@ def normalization_tic(y):
     return y / sum_intensity
 
 
+def index_groups(indices, step=1):
+    groups = []
+    index = 0
+    L = []
+    while index < len(indices) - 1:
+        value = indices[index]
+        next = indices[index+1]
+        L.append(value)
+        if abs(value - next) > step:
+            groups.append(L)
+            if index == len(indices) - 2:
+                groups.append([next])
+            L = []
+        elif index == len(indices) - 2:
+            L.append(next)
+            groups.append(L)
+        index += 1
+    return groups
+
+def peak_reference_indices_group(group):
+    return max(set(group), key=group.count)
+
+def peak_reference_indices_groups(groups):
+    indices = []
+    for group in groups:
+        index = peak_reference_indices_group(group)
+        indices.append(index)
+    return indices
+
+
 def width_peak_indices(indices, full_indices):
     """
     Computes the width of a peak
@@ -211,7 +241,13 @@ def closest_peak(num, indices_to_width):
     width = indices_to_width[mz]
     return mz, width
 
-def realign(spectra, prominence=50):
+def find_group(i, groups):
+    for group in groups:
+        if i in group:
+            return group
+    return None
+
+def realign(spectra, prominence=50, occurrence=4, step=2):
     """
     Main function allowing to realign the spectra
     First extracts the peaks on all spectra,
@@ -233,8 +269,11 @@ def realign(spectra, prominence=50):
     """
     full_indices = spectra_peak_indices(spectra, prominence)
     unique_indices = np.unique(full_indices)
-    aligned_indices = peak_reference_indices(full_indices)
-    indices_to_width = width_peak_indices(aligned_indices, full_indices)
+    groups = index_groups(full_indices, step)
+    aligned_indices = peak_reference_indices_groups(groups)
+
+    #aligned_indices = peak_reference_indices(full_indices)
+    #indices_to_width = width_peak_indices(aligned_indices, full_indices)
     realigned_spectra = []
     for spectrum in spectra:
         x, y = spectrum
@@ -242,9 +281,13 @@ def realign(spectra, prominence=50):
         y_realigned = np.copy(y)
         indices = peak_indices(y, prominence)
         for i in indices:
-            mz, width = closest_peak(i, indices_to_width)
-            if (i != mz and i >= mz - width and i <= mz + width):
+            group = find_group(i, groups)
+            mz = peak_reference_indices_group(group)
+            if group is not None:
                 y_realigned[mz] = max(y[i], y_realigned[mz])
+            #mz, width = closest_peak(i, indices_to_width)
+            # if (i != mz and i >= mz - width and i <= mz + width):
+            #     y_realigned[mz] = max(y[i], y_realigned[mz])
         x_realigned = x_realigned[aligned_indices]
         y_realigned = y_realigned[aligned_indices]
         realigned_spectra.append((x_realigned, y_realigned))

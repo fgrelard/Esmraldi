@@ -38,6 +38,17 @@ class TestSpectraProcessing(unittest.TestCase):
         reference_indices = sp.peak_reference_indices(indices)
         nptest.assert_array_equal(reference_indices, [18])
 
+    def test_index_groups(self):
+        indices = sp.spectra_peak_indices(self.spectra, 0.5)
+        groups = sp.index_groups(indices, 1)
+
+    def test_peak_reference_indices_group(self):
+        indices = sp.spectra_peak_indices(self.spectra, 0.5)
+        groups = sp.index_groups(indices, 1)
+        print(groups)
+        reference_indices = sp.peak_reference_indices_group(groups[0])
+        print(reference_indices)
+
     def test_width_peak_indices(self):
         indices = sp.spectra_peak_indices(self.spectra, 0.5)
         indices += [18 for i in range(10)]
