@@ -4,6 +4,8 @@ import nibabel as nib
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2 as cv
+import argparse
+import os
 
 from skimage import segmentation
 from skimage import measure
@@ -13,23 +15,27 @@ from skimage.filters import gaussian
 from skimage.morphology import binary_erosion, opening, disk
 from skimage.filters import threshold_otsu, rank
 from sklearn import manifold
-import argparse
+
 
 parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--input", help="Input .nii")
+parser.add_argument("-o", "--output", help="Output segmentation")
 parser.add_argument("-t", "--threshold", help="Lower threshold for region growing", default=60)
 args = parser.parse_args()
 
 threshold = args.threshold
+inputname = args.input
+outname = args.output
 
 radius = 1
 selem = disk(radius)
 
-image = nib.load("/mnt/d/MALDI/imzML/MSI_20190419_01/00/peaksel_norm.nii")
+image = nib.load(inputname)
 
 img_data = image.get_data()
 
 img_data = np.pad(img_data, (3,3), 'constant')
-similar_images = seg.find_similar_images(img_data)
+similar_images = seg.find_similar_images_variance(img_data)
 mean_image = np.uint8(cv.normalize(np.average(similar_images, axis=2), None, 0, 255, cv.NORM_MINMAX))
 otsu = threshold_otsu(mean_image)
 labels = measure.label(mean_image > otsu, background=0)
@@ -53,6 +59,9 @@ ax[0].imshow(mean_image.T)
 ax[1].imshow(masked_mean_image.T)
 plt.show()
 
+nibimg_similar = nib.Nifti1Image(similar_images, np.eye(4))
+similar_name = os.path.splitext(outname)[0] + "_relevantset.nii"
+nibimg_similar.to_filename(similar_name)
 
 nibimg = nib.Nifti1Image(masked_mean_image, np.eye(4))
-#nibimg.to_filename("/mnt/d/MALDI/imzML/MSI_20190419_01/00/segmented_regiongrowing_t" + threshold + ".nii")
+nibimg.to_filename(outname)

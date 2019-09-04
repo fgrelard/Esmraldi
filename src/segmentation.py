@@ -86,6 +86,8 @@ def properties_largest_area_cc(ccs):
 
     """
     regionprops = measure.regionprops(ccs)
+    if len(regionprops) == 0:
+        return -1
     areas = lambda r: r.area
     argmax = max(regionprops, key=areas)
     return argmax
@@ -147,9 +149,19 @@ def region_growing(images, seedList, lower_threshold):
         locations_seeds = np.where(np_seg_con == 1)
         labels = measure.label(np_seg_con, background=0)
         regionprop = properties_largest_area_cc(labels)
-        largest_cc = region_property_to_cc(labels, regionprop)
-        seeds = seeds.union(set(((int(coord[0]), int(coord[1])) for coord in regionprop.coords)))
+        if regionprop != -1:
+            largest_cc = region_property_to_cc(labels, regionprop)
+            seeds = seeds.union(set(((int(coord[0]), int(coord[1])) for coord in regionprop.coords)))
     return list(seeds)
+
+
+def find_similar_images_variance(image_maldi, threshold_variance=0):
+    reshaped = image_maldi.reshape(-1, image_maldi.shape[-1])
+    variance = np.var(reshaped, axis=0)
+    max_variance = np.amax(variance)
+    similar_images = image_maldi[..., variance > 0.1 * max_variance]
+    return similar_images
+
 
 def find_similar_images(image_maldi):
     """
@@ -175,7 +187,7 @@ def find_similar_images(image_maldi):
     kmeans = KMeans(n_clusters=nb_class, random_state=0)
     kmeans.fit(X_r)
     y_kmeans = kmeans.predict(X_r)
-    index = select_class(image_maldi, y_kmeans, nb_class)
+    index = select_class_max_value(image_maldi, y_kmeans, nb_class)
     similar_images = image_maldi[..., y_kmeans==index]
     return similar_images
 
@@ -190,13 +202,26 @@ def average_area(images):
             otsu = threshold_otsu(slice2DNorm)
             labels = measure.label(slice2DNorm > otsu, background=0)
             regionprop = properties_largest_area_cc(labels)
-            sum_area += regionprop.area
-            count += 1
+            if regionprop != -1:
+                sum_area += regionprop.area
+                count += 1
         except Exception as e:
             pass
     return sum_area / count if count != 0 else 0
 
-def select_class(image_maldi, y_kmeans, nb_class):
+def select_class_max_value(image_maldi, y_kmeans, nb_class):
+    max_value = 0
+    index = -1
+    for i in range(nb_class):
+        similar_images = image_maldi[..., y_kmeans==i]
+        reshaped = similar_images.reshape(-1, similar_images.shape[-1])
+        av_max_value = np.mean(np.amax(reshaped, axis=0))
+        if av_max_value > max_value:
+            index = i
+            max_value = av_max_value
+    return index
+
+def select_class_area(image_maldi, y_kmeans, nb_class):
     max_area = 0
     index = -1
     for i in range(nb_class):
