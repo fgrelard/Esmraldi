@@ -35,7 +35,7 @@ def register(fixed, moving, numberOfBins):
     try:
         outTx = R.Execute(fixed, moving)
     except Exception as e:
-        pass
+        print(e)
     else:
         resampler = sitk.ResampleImageFilter()
         resampler.SetReferenceImage(fixed)
@@ -102,11 +102,10 @@ plt.imshow(sitk.GetArrayFromImage(cimg))
 plt.show()
 
 
-print("-------")
-print(outTx)
-print("Optimizer stop condition: {0}".format(R.GetOptimizerStopConditionDescription()))
-print(" Iteration: {0}".format(R.GetOptimizerIteration()))
-print(" Metric value: {0}".format(R.GetMetricValue()))
+# print("-------")
+# print("Optimizer stop condition: {0}".format(R.GetOptimizerStopConditionDescription()))
+# print(" Iteration: {0}".format(R.GetOptimizerIteration()))
+# print(" Metric value: {0}".format(R.GetMetricValue()))
 
 if registername:
     is_imzml = registername.lower().endswith(".imzml")

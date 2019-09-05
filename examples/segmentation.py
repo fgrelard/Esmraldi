@@ -33,8 +33,8 @@ selem = disk(radius)
 image = nib.load(inputname)
 
 img_data = image.get_data()
-
-img_data = np.pad(img_data, (3,3), 'constant')
+padding = 3
+img_data = np.pad(img_data, (padding,padding), 'constant')
 similar_images = seg.find_similar_images_variance(img_data)
 mean_image = np.uint8(cv.normalize(np.average(similar_images, axis=2), None, 0, 255, cv.NORM_MINMAX))
 otsu = threshold_otsu(mean_image)
@@ -53,7 +53,7 @@ plt.imshow(mask)
 plt.show()
 masked_mean_image = np.ma.array(mean_image, mask=mask)
 masked_mean_image = masked_mean_image.filled(0)
-
+masked_mean_image = masked_mean_image[padding:-padding, padding:-padding]
 fig, ax = plt.subplots(1,2)
 ax[0].imshow(mean_image.T)
 ax[1].imshow(masked_mean_image.T)

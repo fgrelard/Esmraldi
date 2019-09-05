@@ -3,6 +3,7 @@ import pyimzml.ImzMLParser as imzmlparser
 import numpy as np
 import nibabel as nib
 import os
+import cv2 as cv
 
 def open_imzml(filename):
     return imzmlparser.ImzMLParser(filename)
@@ -11,6 +12,15 @@ def write_imzml(mzs, intensities, coordinates, filename):
     with imzmlwriter.ImzMLWriter(filename) as writer:
         for i in range(len(coordinates)):
             writer.addSpectrum(mzs[i], intensities[i], coordinates[i])
+
+def normalize(image):
+    image_normalized = np.zeros_like(image, dtype=np.uint8)
+    z = image.shape[-1]
+    for k in range(z):
+        slice2D = image[..., k]
+        slice2DNorm = np.uint8(cv.normalize(slice2D, None, 0, 255, cv.NORM_MINMAX))
+        image_normalized[..., k] = slice2DNorm
+    return image_normalized
 
 def get_spectra(imzml):
     spectra = []

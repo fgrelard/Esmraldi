@@ -17,6 +17,15 @@ class TestImzMLIO(unittest.TestCase):
         i, newcoords = io.get_spectra_from_images(self.data)
         self.assertEqual(coords, newcoords)
 
+    def test_normalize(self):
+        self.imzml = io.open_imzml("/mnt/d/MALDI/imzML/MSI_20190419_01/00/peaksel_small.imzML")
+        image = io.to_image_array(self.imzml)
+        norm = io.normalize(image)
+        print(image)
+        print(norm.dtype)
+        print(norm.shape)
+
+
     def test_get_all_array_images(self):
         self.imzml = io.open_imzml("/mnt/d/MALDI/imzML/MSI_20190419_01/00/peaksel_small.imzML")
         image = io.get_all_array_images(self.imzml)
