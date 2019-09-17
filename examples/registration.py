@@ -27,8 +27,8 @@ def register(fixed, moving, numberOfBins):
     R = sitk.ImageRegistrationMethod()
     R.SetMetricAsMattesMutualInformation(numberOfBins)
     R.SetMetricSamplingPercentage(samplingPercentage, sitk.sitkWallClock)
-    # R.SetOptimizerAsRegularStepGradientDescent(1.0,.001,2000)
-    R.SetOptimizerAsOnePlusOneEvolutionary(5000)
+    #R.SetOptimizerAsRegularStepGradientDescent(0.01,.001,2000)
+    R.SetOptimizerAsOnePlusOneEvolutionary(10000)
     tx = sitk.CenteredTransformInitializer(fixed, moving, sitk.Similarity2DTransform(), sitk.CenteredTransformInitializerFilter.GEOMETRY)
     R.SetInitialTransform(tx)
 
@@ -62,7 +62,7 @@ parser.add_argument("-f", "--fixed", help="Fixed image")
 parser.add_argument("-m", "--moving", help="Moving image")
 parser.add_argument("-r", "--register", help="Registration image")
 parser.add_argument("-o", "--output", help="Output")
-parser.add_argument("-b", "--bins", help="number of bins", default=10)
+parser.add_argument("-b", "--bins", help="number per bins", default=10)
 
 args = parser.parse_args()
 

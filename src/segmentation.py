@@ -137,6 +137,7 @@ def region_growing(images, seedList, lower_threshold):
 
     """
     seeds = seedList.copy()
+    print(images.shape)
     for index in np.ndindex(images.shape[2:]):
         current_index = (slice(None), slice(None)) + (index)
         current_image = images[current_index]
@@ -155,11 +156,11 @@ def region_growing(images, seedList, lower_threshold):
     return list(seeds)
 
 
-def find_similar_images_variance(image_maldi, threshold_variance=0):
+def find_similar_images_variance(image_maldi, factor_variance=0.1):
     reshaped = image_maldi.reshape(-1, image_maldi.shape[-1])
     variance = np.var(reshaped, axis=0)
     max_variance = np.amax(variance)
-    similar_images = image_maldi[..., variance > 0.1 * max_variance]
+    similar_images = image_maldi[..., variance > factor_variance * max_variance]
     return similar_images
 
 

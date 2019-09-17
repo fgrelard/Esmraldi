@@ -2,14 +2,15 @@ import numpy as np
 import cv2 as cv
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans, AffinityPropagation
-
+from sklearn.manifold import TSNE
 
 def clustering(image, X_r):
     af = AffinityPropagation(preference=-50).fit(X_r)
     return af
 
 def pca(image):
-    pca = PCA(n_components=5)
+    pca = TSNE(n_components=2)
+#    pca = PCA(n_components=5)
     fit_pca = pca.fit(image)
     return fit_pca
 

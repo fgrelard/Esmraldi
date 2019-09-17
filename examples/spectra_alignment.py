@@ -32,19 +32,23 @@ outname = args.output
 p = io.open_imzml(inputname)
 #spectra = np.load("data/spectra_small.npy")
 spectra = io.get_spectra(p)
-indices = sp.spectra_peak_indices(spectra)
-reference_indices = sp.peak_reference_indices(indices)
-reference_indices2 = sp.peak_reference_indices_groups(sp.index_groups(indices, 2))
+# indices = sp.spectra_peak_indices(spectra)
+# reference_indices = sp.peak_reference_indices(indices)
+# reference_indices2 = sp.peak_reference_indices_groups(sp.index_groups(indices, 2))
 
-print(len(indices), " ", len(reference_indices), " ", len(reference_indices2))
+# print(len(indices), " ", len(reference_indices), " ", len(reference_indices2))
 prominence = 50
 
 realigned_spectra = sp.realign(spectra, prominence)
+deisotoped_spectra = sp.deisotoping(np.array(realigned_spectra))
+
+print(len(realigned_spectra))
+print(deisotoped_spectra.shape)
 
 mzs = []
 intensities = []
 to_array = []
-for spectrum in realigned_spectra:
+for spectrum in deisotoped_spectra:
     x, y = spectrum
     mzs.append(x)
     intensities.append(y)

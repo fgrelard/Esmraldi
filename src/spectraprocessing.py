@@ -1,7 +1,7 @@
 import scipy.signal as signal
 import numpy as np
 import matplotlib.pyplot as plt
-
+from pyopenms import *
 
 def spectra_sum(spectra):
     """
@@ -283,3 +283,19 @@ def realign(spectra, prominence=50, nb_occurrence=4, step=2):
         y_realigned = y_realigned[aligned_indices]
         realigned_spectra.append((x_realigned, y_realigned))
     return realigned_spectra
+
+
+def deisotoping(spectra):
+    max_length = 0
+    indices = spectra[0, 0]
+    x = spectra.shape[0]
+    for i in range(x):
+        s = MSSpectrum()
+        s.set_peaks(spectra[i, ...].tolist())
+        Deisotoper.deisotopeAndSingleCharge(s, fragment_tolerance=0.1, fragment_unit_ppm=False, min_charge=1, max_charge=1, keep_only_deisotoped=True, min_isopeaks=2, max_isopeaks=10, make_single_charged=False, annotate_charge=True)
+        if s.size() > max_length:
+            max_length = s.size()
+            indices = np.array(s.get_peaks())[0, ...]
+    condition = np.isin(spectra[0,0], indices)
+    deisotoped_spectra = spectra[..., condition]
+    return deisotoped_spectra

@@ -36,6 +36,7 @@ parser.add_argument("-m", "--mri", help="Input MRI image")
 parser.add_argument("-o", "--output", help="Output image")
 parser.add_argument("-r", "--ratio", help="Compute ratio images", action="store_true")
 parser.add_argument("-t", "--top", help="#Top", default=0)
+parser.add_argument("-g", "--threshold", help="Mass to charge ratio threshold", default=0)
 args = parser.parse_args()
 
 inputname = args.input
@@ -43,6 +44,7 @@ mriname = args.mri
 outname = args.output
 is_ratio = args.ratio
 top = int(args.top)
+threshold = int(args.threshold)
 
 if top <= 0:
     top = None
@@ -56,12 +58,16 @@ else:
     mzs = [i for i in range(image.shape[2])]
     mzs = np.asarray(mzs)
 
+image = image[..., mzs >= threshold]
+mzs = mzs[mzs >= threshold]
 mzs = np.around(mzs, decimals=2)
 mzs = mzs.astype(str)
 
 image_mri = sitk.GetArrayFromImage(sitk.ReadImage(mriname, sitk.sitkUInt8)).T
 
 image = imzmlio.normalize(image)
+
+
 if is_ratio:
     ratio_images, ratio_mzs = fusion.extract_ratio_images(image, mzs)
     image = np.concatenate((image, ratio_images), axis=2)

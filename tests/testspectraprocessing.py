@@ -5,6 +5,7 @@ import numpy as np
 import numpy.testing as nptest
 import src.spectraprocessing as sp
 import matplotlib.pyplot as plt
+import src.imzmlio as io
 
 def gaussian(x, mu, sig):
     return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
@@ -63,6 +64,11 @@ class TestSpectraProcessing(unittest.TestCase):
         sum_before = sp.spectra_sum(self.spectra)
         sum_after = sp.spectra_sum(s)
         nptest.assert_equal(x[0], self.spectra[0][0][18])
+
+    def test_deisotoping(self):
+        spectra = np.load("data/peaksel_2.npy")
+        print(spectra.shape)
+        sp.deisotoping(spectra)
 
 
 

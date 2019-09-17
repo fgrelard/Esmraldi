@@ -23,7 +23,7 @@ parser.add_argument("-o", "--output", help="Output segmentation")
 parser.add_argument("-t", "--threshold", help="Lower threshold for region growing", default=60)
 args = parser.parse_args()
 
-threshold = args.threshold
+threshold = int(args.threshold)
 inputname = args.input
 outname = args.output
 
@@ -35,7 +35,9 @@ image = nib.load(inputname)
 img_data = image.get_data()
 padding = 3
 img_data = np.pad(img_data, (padding,padding), 'constant')
-similar_images = seg.find_similar_images_variance(img_data)
+
+factor_variance = 0.05
+similar_images = seg.find_similar_images_variance(img_data, factor_variance)
 mean_image = np.uint8(cv.normalize(np.average(similar_images, axis=2), None, 0, 255, cv.NORM_MINMAX))
 otsu = threshold_otsu(mean_image)
 labels = measure.label(mean_image > otsu, background=0)
