@@ -9,8 +9,8 @@ def clustering(image, X_r):
     return af
 
 def pca(image):
-    pca = TSNE(n_components=2)
-#    pca = PCA(n_components=5)
+#    pca = TSNE(n_components=2)
+    pca = PCA(n_components=5)
     fit_pca = pca.fit(image)
     return fit_pca
 
@@ -25,12 +25,13 @@ def select_images(fit_pca, images, mzs, mri_norm, centers, weights, labels, top=
     if top is None:
         similar_images = images[..., indices].T
         similar_mzs = mzs[indices]
+        distances = distances[indices]
     else:
         indices = np.array(indices)
         condition = np.any(np.array([labels == indices[i] for i in range(top)]), axis=0)
         similar_images = images[..., condition].T
         similar_mzs = mzs[condition]
-    return np.uint8(similar_images), similar_mzs
+    return np.uint8(similar_images), similar_mzs, distances
 
 def extract_ratio_images(image, mzs):
     z = image.shape[-1]

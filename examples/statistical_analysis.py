@@ -49,6 +49,7 @@ threshold = int(args.threshold)
 if top <= 0:
     top = None
 
+
 if inputname.lower().endswith(".imzml"):
     imzml = imzmlio.open_imzml(inputname)
     image = imzmlio.get_all_array_images(imzml)
@@ -97,7 +98,7 @@ if top is not None:
     labels = af.labels_
     centers = af.cluster_centers_
 
-similar_images, similar_mzs = fusion.select_images(fit_pca, image, mzs, mri_norm, centers, weights, labels, None)
+similar_images, similar_mzs, distances = fusion.select_images(fit_pca, image, mzs, mri_norm, centers, weights, labels, None)
 print("Selecting images end")
 
 similar_images = similar_images[:1000]
@@ -105,8 +106,8 @@ itk_similar_images = sitk.GetImageFromArray(similar_images)
 sitk.WriteImage(itk_similar_images, outname)
 
 outname_csv = os.path.splitext(outname)[0] + ".csv"
-np.savetxt(outname_csv, similar_mzs, delimiter=",", fmt="%s")
+np.savetxt(outname_csv, np.transpose((similar_mzs, distances)), delimiter=";", fmt="%s")
 #np.save("data/labels_maldi.npy", labels)
 #plt.plot(point[0, 0], point[0, 1], "rx")
 
-plot_clustering(X_r, labels, point)
+#plot_clustering(X_r, labels, point)
