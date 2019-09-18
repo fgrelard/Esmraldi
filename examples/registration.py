@@ -122,27 +122,29 @@ if registername:
     register.SetDirection(flat_list)
 
     size = register.GetSize()
-
+    pixel_type = register.GetPixelID()
 
     if len(size) == 2:
-        outRegister = sitk.Image(width, height, sitk.sitkUInt8 )
+        outRegister = sitk.Image(width, height, pixel_type )
 
     if len(size) == 3:
-        outRegister = sitk.Image(width, height, size[2], sitk.sitkUInt8 )
+        outRegister = sitk.Image(width, height, size[2], pixel_type )
     sx = fixed.GetSpacing()[0]
     spacing = tuple([sx for i in range(dim)])
     outRegister.SetSpacing(spacing)
 
     if len(size) == 2:
         outRegister = resampler.Execute(register)
-        outRegister = sitk.Cast(sitk.RescaleIntensity(outRegister), sitk.sitkUInt8)
+        if not is_imzml:
+            outRegister = sitk.Cast(sitk.RescaleIntensity(outRegister), sitk.sitkUInt8)
 
     if len(size) == 3:
         for i in range(size[2]):
             slice = register[:,:,i]
             slice.SetSpacing(fixed.GetSpacing())
             outSlice = resampler.Execute(slice)
-            outSlice = sitk.Cast(sitk.RescaleIntensity(outSlice), sitk.sitkUInt8)
+            if not is_imzml:
+                outSlice = sitk.Cast(sitk.RescaleIntensity(outSlice), sitk.sitkUInt8)
             outSlice = sitk.JoinSeries(outSlice)
             outRegister = sitk.Paste(outRegister, outSlice, outSlice.GetSize(), destinationIndex=[0,0,i])
 

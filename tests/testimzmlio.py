@@ -26,12 +26,10 @@ class TestImzMLIO(unittest.TestCase):
         print(norm.shape)
 
 
-    def test_get_all_array_images(self):
+    def test_to_image_array(self):
         self.imzml = io.open_imzml("/mnt/d/MALDI/imzML/MSI_20190419_01/00/peaksel_small.imzML")
-        image = io.get_all_array_images(self.imzml)
         image2 = io.to_image_array(self.imzml)
         print(image2.shape)
-        print(image.shape)
 
 
 if __name__ == "__main__":

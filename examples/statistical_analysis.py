@@ -52,7 +52,7 @@ if top <= 0:
 
 if inputname.lower().endswith(".imzml"):
     imzml = imzmlio.open_imzml(inputname)
-    image = imzmlio.get_all_array_images(imzml)
+    image = imzmlio.to_image_array(imzml)
     mzs, intensities = imzml.getspectrum(0)
 else:
     image = sitk.GetArrayFromImage(sitk.ReadImage(inputname, sitk.sitkUInt8)).T
@@ -66,13 +66,13 @@ mzs = mzs.astype(str)
 
 image_mri = sitk.GetArrayFromImage(sitk.ReadImage(mriname, sitk.sitkUInt8)).T
 
-image = imzmlio.normalize(image)
-
-
 if is_ratio:
+    print(image.dtype)
     ratio_images, ratio_mzs = fusion.extract_ratio_images(image, mzs)
     image = np.concatenate((image, ratio_images), axis=2)
     mzs = np.concatenate((mzs, ratio_mzs))
+
+image = imzmlio.normalize(image)
 
 np.save("data/ratio_650DJ_06_image.npy", image)
 np.save("data/ratio_650DJ_06_mzs.npy", mzs)
@@ -88,17 +88,23 @@ point = fit_pca.transform(mri_norm)
 print("Explained variance ratio =", fit_pca.explained_variance_ratio_)
 
 weights = fit_pca.explained_variance_ratio_ / np.sum(fit_pca.explained_variance_ratio_)
-weights = [1 for i in range(len(weights))]
 X_r = fit_pca.transform(image_norm)
+X_train, X_test = fusion.post_processing(X_r, point)
+clustering = fusion.clustering_kmeans(X_train)
+plot_pca(X_train, clustering)
+
 labels = None
-centers = X_r
+
+centers = X_train
+point_mri = X_test
+weights = [1 for i in range(X_test.shape[1])]
 
 if top is not None:
     af = fusion.clustering(image_norm, X_r)
     labels = af.labels_
     centers = af.cluster_centers_
 
-similar_images, similar_mzs, distances = fusion.select_images(fit_pca, image, mzs, mri_norm, centers, weights, labels, None)
+similar_images, similar_mzs, distances = fusion.select_images(image, mzs, point_mri, centers, weights, labels, None)
 print("Selecting images end")
 
 similar_images = similar_images[:1000]

@@ -292,10 +292,11 @@ def deisotoping(spectra):
     for i in range(x):
         s = MSSpectrum()
         s.set_peaks(spectra[i, ...].tolist())
-        Deisotoper.deisotopeAndSingleCharge(s, fragment_tolerance=0.1, fragment_unit_ppm=False, min_charge=1, max_charge=1, keep_only_deisotoped=True, min_isopeaks=2, max_isopeaks=10, make_single_charged=False, annotate_charge=True)
+        Deisotoper.deisotopeAndSingleCharge(s, fragment_tolerance=0.1, fragment_unit_ppm=False, min_charge=1, max_charge=3, keep_only_deisotoped=True, min_isopeaks=2, max_isopeaks=10, make_single_charged=False, annotate_charge=False)
         if s.size() > max_length:
             max_length = s.size()
             indices = np.array(s.get_peaks())[0, ...]
     condition = np.isin(spectra[0,0], indices)
+    print(spectra[0, 0, condition])
     deisotoped_spectra = spectra[..., condition]
     return deisotoped_spectra

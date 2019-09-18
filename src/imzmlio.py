@@ -57,16 +57,6 @@ def to_image_array(image):
     img_array = np.transpose(np.asarray(image_list))
     return img_array
 
-def get_all_array_images(image):
-    mz, ints = image.getspectrum(0)
-    im = np.zeros((image.imzmldict["max count of pixels x"], image.imzmldict["max count of pixels y"], len(mz)))
-    for i, (x, y, z_) in enumerate(image.coordinates):
-        mzs, ints = map(lambda x: np.asarray(x), image.getspectrum(i))
-        for i in range(len(mzs)):
-            min_i, max_i = imzmlparser._bisect_spectrum(mzs, mzs[i], tol=0.1)
-            im[x - 1, y - 1, i] = sum(ints[min_i:max_i+1])
-    return im
-
 def to_nifti(image, filename):
     nibimg = nib.Nifti1Image(image, np.eye(4))
     nibimg.to_filename(filename)
