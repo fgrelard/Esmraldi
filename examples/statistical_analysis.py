@@ -67,15 +67,12 @@ mzs = mzs.astype(str)
 image_mri = sitk.GetArrayFromImage(sitk.ReadImage(mriname, sitk.sitkUInt8)).T
 
 if is_ratio:
-    print(image.dtype)
     ratio_images, ratio_mzs = fusion.extract_ratio_images(image, mzs)
     image = np.concatenate((image, ratio_images), axis=2)
     mzs = np.concatenate((mzs, ratio_mzs))
 
 image = imzmlio.normalize(image)
 
-np.save("data/ratio_650DJ_06_image.npy", image)
-np.save("data/ratio_650DJ_06_mzs.npy", mzs)
 
 image_norm = seg.preprocess_pca(image)
 mri_norm = seg.preprocess_pca(image_mri)

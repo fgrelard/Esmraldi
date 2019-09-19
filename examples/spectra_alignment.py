@@ -6,6 +6,7 @@ import numpy as np
 import os
 import argparse
 
+
 def plot_peak_selected(spectra, realigned_spectra):
     spectra_max_before = sp.spectra_max(spectra)
     #spectra_max_after = sp.spectra_max(realigned_spectra)
@@ -32,6 +33,7 @@ outname = args.output
 p = io.open_imzml(inputname)
 #spectra = np.load("data/spectra_small.npy")
 spectra = io.get_spectra(p)
+
 # indices = sp.spectra_peak_indices(spectra)
 # reference_indices = sp.peak_reference_indices(indices)
 # reference_indices2 = sp.peak_reference_indices_groups(sp.index_groups(indices, 2))
@@ -40,11 +42,12 @@ spectra = io.get_spectra(p)
 prominence = 50
 
 realigned_spectra = sp.realign(spectra, prominence)
-deisotoped_spectra = sp.deisotoping(np.array(realigned_spectra))
+#deisotoped_spectra = sp.deisotoping(np.array(realigned_spectra))
+deisotoped_spectra = realigned_spectra
 
-print(len(realigned_spectra))
+print(realigned_spectra.shape)
 print(deisotoped_spectra.shape)
-
+print(deisotoped_spectra[0, 0, ...])
 mzs = []
 intensities = []
 to_array = []
@@ -53,6 +56,6 @@ for spectrum in deisotoped_spectra:
     mzs.append(x)
     intensities.append(y)
 
-#np.save("data/peaksel_2.npy", np.asarray(to_array))
+#np.save("data/peaksel_650DJ_35.npy", realigned_spectra)
 
 io.write_imzml(mzs, intensities, p.coordinates, outname)

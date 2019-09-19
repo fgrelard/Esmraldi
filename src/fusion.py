@@ -14,7 +14,6 @@ def clustering_kmeans(X_r):
     return kmeans
 
 def pca(image):
-#    pca = TSNE(n_components=2)
     pca = PCA(n_components=5)
     fit_pca = pca.fit(image)
     return fit_pca
@@ -57,9 +56,7 @@ def extract_ratio_images(image, mzs):
             divided = np.zeros_like(first_image, dtype=np.float64)
             np.divide(first_image, second_image, out=divided, where=second_image!=0)
 
-            divided2 = np.uint8(cv.normalize(divided, None, 0, 255, cv.NORM_MINMAX))
-            fig, ax = plt.subplots(1, 4)
-
+            divided = np.uint8(cv.normalize(divided, None, 0, 255, cv.NORM_MINMAX))
             ratio_images[..., c] = divided
             current_ratio = mzs[i] + "/" + mzs[j]
             new_mzs[c] = current_ratio

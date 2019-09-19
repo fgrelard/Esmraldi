@@ -6,6 +6,9 @@ import numpy.testing as nptest
 import src.spectraprocessing as sp
 import matplotlib.pyplot as plt
 import src.imzmlio as io
+from ms_deisotope import plot
+from ms_deisotope import Averagine
+
 
 def gaussian(x, mu, sig):
     return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
@@ -66,9 +69,19 @@ class TestSpectraProcessing(unittest.TestCase):
         nptest.assert_equal(x[0], self.spectra[0][0][18])
 
     def test_deisotoping(self):
-        spectra = np.load("data/peaksel_2.npy")
+        spectra = np.load("data/peaksel_650DJ_35.npy")
         print(spectra.shape)
-        sp.deisotoping(spectra)
+        print(spectra[0, 0, ...])
+        deisotoped = sp.deisotoping(spectra)
+        print(deisotoped[0, 0, ...])
+
+
+    def test_deisotoping_deconvolution(spectra):
+        peptide_averagine = Averagine({"C": 4.9384, "H": 7.7583, "N": 1.3577, "O": 1.4773, "S": 0.0417})
+
+        spectra = np.load("data/peaksel_650DJ_35.npy")
+        deisotoped = sp.deisotoping_deconvolution(spectra)
+
 
 
 

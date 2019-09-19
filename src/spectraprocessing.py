@@ -2,6 +2,8 @@ import scipy.signal as signal
 import numpy as np
 import matplotlib.pyplot as plt
 from pyopenms import *
+import ms_peak_picker
+import ms_deisotope
 
 def spectra_sum(spectra):
     """
@@ -114,6 +116,15 @@ def peak_indices(data, prominence=50):
                                          wlen=10,
                                          distance=1)
     return peak_indices
+
+
+def peak_selection_shape(spectra):
+    spectra_peak_list = []
+    for spectrum in spectra:
+        x, y = spectrum
+        peak_list = ms_peak_picker.pick_peaks(x, y, fit_type="quadratic", signal_to_noise_threshold=10)
+        spectra_peak_list = spectra_peak_list + list(peak_list.peaks.peaks)
+    return spectra_peak_list
 
 def peak_reference_indices(indices):
     """
@@ -282,21 +293,40 @@ def realign(spectra, prominence=50, nb_occurrence=4, step=2):
         x_realigned = x_realigned[aligned_indices]
         y_realigned = y_realigned[aligned_indices]
         realigned_spectra.append((x_realigned, y_realigned))
-    return realigned_spectra
+    return np.array(realigned_spectra)
 
 
 def deisotoping(spectra):
     max_length = 0
-    indices = spectra[0, 0]
+    mzs = spectra[0, 0]
     x = spectra.shape[0]
     for i in range(x):
         s = MSSpectrum()
         s.set_peaks(spectra[i, ...].tolist())
-        Deisotoper.deisotopeAndSingleCharge(s, fragment_tolerance=0.1, fragment_unit_ppm=False, min_charge=1, max_charge=3, keep_only_deisotoped=True, min_isopeaks=2, max_isopeaks=10, make_single_charged=False, annotate_charge=False)
+        Deisotoper.deisotopeAndSingleCharge(s, fragment_tolerance=0.1, fragment_unit_ppm=False, min_charge=1, max_charge=3, keep_only_deisotoped=True, min_isopeaks=2, max_isopeaks=3, make_single_charged=True, annotate_charge=True)
         if s.size() > max_length:
             max_length = s.size()
-            indices = np.array(s.get_peaks())[0, ...]
-    condition = np.isin(spectra[0,0], indices)
-    print(spectra[0, 0, condition])
+            mzs = np.array(s.get_peaks())[0, ...]
+    condition = np.isin(spectra[0,0], mzs)
+    deisotoped_spectra = spectra[..., condition]
+    return deisotoped_spectra
+
+
+def peak_to_ms_peak(peak, index):
+    peak = ms_peak_picker.FittedPeak( peak[0], peak[1], peak[1]*0.1, index, index, 0.005, peak[1]*1.5, 0.0025, 0.0025)
+    return peak
+
+def deisotoping_deconvolution(spectra):
+    max_length = 0
+    x, y = spectra[0]
+    y = spectra_max(spectra)
+    peak_list = [peak_to_ms_peak([x[i], y[i]], i) for i in range(len(x))]
+    deconvoluted_peaks, _ = ms_deisotope.deconvolute_peaks(peak_list,
+                                                           averagine=ms_deisotope.glycan,
+                                                           scorer=ms_deisotope.MSDeconVFitter(10.0),
+                                                           charge_range=(1,3),
+                                                           truncate_after=0.8)
+    mzs = [elem.mz for elem in list(deconvoluted_peaks.peaks)]
+    condition = np.isin(spectra[0,0], mzs)
     deisotoped_spectra = spectra[..., condition]
     return deisotoped_spectra
