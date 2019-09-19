@@ -119,6 +119,20 @@ def peak_indices(data, prominence=50):
 
 
 def peak_selection_shape(spectra):
+    """
+    Peak selection based on shape
+    Uses ms_peak_picker module
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        Spectra as [mz*I] array
+
+    Returns
+    ----------
+    list
+        list of peaks for all spectra
+    """
     spectra_peak_list = []
     for spectrum in spectra:
         x, y = spectrum
@@ -168,6 +182,22 @@ def normalization_tic(y):
 
 
 def index_groups(indices, step=1):
+    """
+    Makes groups of indices
+    For realignment and spatial selection
+
+    Parameters
+    ----------
+    indices: list
+        list of peak indices
+    step: int
+        threshold in indices to create groups
+
+    Returns
+    ----------
+    list
+        groups=list of list of peak indices
+    """
     indices.sort()
     groups = []
     index = 0
@@ -188,9 +218,31 @@ def index_groups(indices, step=1):
     return groups
 
 def peak_reference_indices_group(group):
+    """
+    Extracts the reference peak in a group
+    i.e. the most frequent in a group
+
+    Parameters
+    ----------
+    group: list
+        list of peak indices
+    """
     return max(set(group), key=group.count)
 
 def peak_reference_indices_groups(groups):
+    """
+    Extracts the reference peaks for several groups
+
+    Parameters
+    ----------
+    groups: list
+        groups=list of list of peak indices
+
+    Returns
+    ----------
+    list
+        list of reference peak indices
+    """
     indices = []
     for group in groups:
         index = peak_reference_indices_group(group)
@@ -297,6 +349,26 @@ def realign(spectra, prominence=50, nb_occurrence=4, step=2):
 
 
 def deisotoping(spectra):
+    """
+    Removes isotopes from a collection of spectra
+    Computes deisotoping for each spectrum and
+    keeps array of mzs of highest length
+
+    Based on pyopenms module
+    Looks at height of neighbouring peaks
+    not accurate for patterns where peak with max intensity
+    does not have the lowest m/z in the pattern
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        Spectra as [mz*I] array
+
+    Returns
+    ----------
+    np.ndarray
+        Deisotoped spectra
+    """
     max_length = 0
     mzs = spectra[0, 0]
     x = spectra.shape[0]
@@ -313,10 +385,32 @@ def deisotoping(spectra):
 
 
 def peak_to_ms_peak(peak, index):
+    """
+    Converts a peak from [mz,I] to
+    ms_peak_picker.FittedPeak
+
+    Parameters
+    ----------
+    peak: list
+        [mz,I]
+    index: int
+        index in spectrum
+
+    Returns
+    ----------
+    ms_peak_picker.FittedPeak
+        adjusted peak
+    """
     peak = ms_peak_picker.FittedPeak( peak[0], peak[1], peak[1]*0.1, index, index, 0.005, peak[1]*1.5, 0.0025, 0.0025)
     return peak
 
 def deisotoping_deconvolution(spectra):
+    """
+    Deisotoping by deconvolution
+    Computes deisotoping on max spectrum
+
+    Based on ms_deisotope module
+    """
     max_length = 0
     x, y = spectra[0]
     y = spectra_max(spectra)

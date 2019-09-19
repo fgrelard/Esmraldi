@@ -77,8 +77,6 @@ class TestSpectraProcessing(unittest.TestCase):
 
 
     def test_deisotoping_deconvolution(spectra):
-        peptide_averagine = Averagine({"C": 4.9384, "H": 7.7583, "N": 1.3577, "O": 1.4773, "S": 0.0417})
-
         spectra = np.load("data/peaksel_650DJ_35.npy")
         deisotoped = sp.deisotoping_deconvolution(spectra)
 

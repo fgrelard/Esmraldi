@@ -6,14 +6,57 @@ import os
 import cv2 as cv
 
 def open_imzml(filename):
+    """
+    Opens an imzML file
+
+    Parameters
+    ----------
+    filename: string
+        input file
+
+    Returns
+    ----------
+    imzmlparser.ImzMLParser
+        parser of file
+
+    """
     return imzmlparser.ImzMLParser(filename)
 
 def write_imzml(mzs, intensities, coordinates, filename):
+    """
+    Writes a file to imzML
+
+    Parameters
+    ----------
+    mzs: list
+        list of list of m/z ratios
+    intensities: list
+        list of list of intensities
+    coordinates: list
+        pixel coordinates associated to each spectrum
+    filename: string
+        output file
+
+
+    """
     with imzmlwriter.ImzMLWriter(filename) as writer:
         for i in range(len(coordinates)):
             writer.addSpectrum(mzs[i], intensities[i], coordinates[i])
 
 def normalize(image):
+    """
+    Normalizes an image : 0 -- 255 scale
+
+    Parameters
+    ----------
+    image: np.ndarray
+        input image
+
+    Returns
+    ----------
+    np.ndarray
+        normalized image
+    """
     image_normalized = np.zeros_like(image, dtype=np.uint8)
     z = image.shape[-1]
     for k in range(z):
@@ -23,6 +66,20 @@ def normalize(image):
     return image_normalized
 
 def get_spectra(imzml):
+    """
+    Extracts spectra from imzML
+    into numpy format
+
+    Parameters
+    ----------
+    imzml: imzmlparser.ImzMLParser
+        parser
+
+    Returns
+    ----------
+    np.array
+        collection of spectra
+    """
     spectra = []
     for i, (x, y, z) in enumerate(imzml.coordinates):
         mz, ints = imzml.getspectrum(i)
@@ -30,6 +87,22 @@ def get_spectra(imzml):
     return np.asarray(spectra)
 
 def get_spectra_from_images(images):
+    """
+    Extracts spectra intensities and coordinates
+    from numpy array
+
+    Parameters
+    ----------
+    images: np.ndarray
+        images as numpy array
+
+    Returns
+    ----------
+    list
+        intensities
+    list
+        coordinates
+    """
     shape = images.shape
     coordinates = []
     intensities = []
@@ -49,6 +122,19 @@ def get_spectra_from_images(images):
 
 
 def to_image_array(image):
+    """
+    Extracts all existing images from imzML
+
+    Parameters
+    ----------
+    image: imzmlparser.ImzMLParser
+        parser
+
+    Returns
+    ----------
+    np.ndarray
+        image array
+    """
     x, y = image.getspectrum(0)
     image_list = []
     for mz in x:
@@ -58,5 +144,16 @@ def to_image_array(image):
     return img_array
 
 def to_nifti(image, filename):
+    """
+    Converts to nifti
+
+    Parameters
+    ----------
+    image: np.ndarray
+        image
+    filename: string
+        output filename
+
+    """
     nibimg = nib.Nifti1Image(image, np.eye(4))
     nibimg.to_filename(filename)

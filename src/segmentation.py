@@ -157,6 +157,24 @@ def region_growing(images, seedList, lower_threshold):
 
 
 def find_similar_images_variance(image_maldi, factor_variance=0.1):
+    """
+    Find images that have a high variance in their intensities
+    Selects images according to a factor of max variance
+
+    Parameters
+    ----------
+    image_maldi: np.ndarray
+        input image
+    factor_variance: int
+        factor by which max variance is multiplied to
+        determine a threshold above which images are selected
+
+    Returns
+    ----------
+    np.ndarray
+        array of high variability images
+
+    """
     reshaped = image_maldi.reshape(-1, image_maldi.shape[-1])
     variance = np.var(reshaped, axis=0)
     max_variance = np.amax(variance)
@@ -194,6 +212,19 @@ def find_similar_images(image_maldi):
 
 
 def average_area(images):
+    """
+    Average area of largest CCs on a collection of images
+
+    Parameters
+    ----------
+    images: np.ndarray
+        collection of images
+
+    Returns
+    ----------
+    int
+        average area of largest CCs
+    """
     sum_area = 0
     z = images.shape[-1]
     count = 0
@@ -212,6 +243,25 @@ def average_area(images):
     return sum_area / count if count != 0 else 0
 
 def select_class_max_value(image_maldi, y_kmeans, nb_class):
+    """
+    Chooses label associated with kmeans cluster with
+    images with highest average intensity
+
+    Parameters
+    ----------
+    image_maldi: np.ndarray
+        images
+    y_kmeans: np.ndarray
+        labels
+    nb_class: int
+        number of clusters used by kmeans
+
+    Returns
+    ----------
+    int
+        class label
+
+    """
     max_value = 0
     index = -1
     for i in range(nb_class):
@@ -224,6 +274,24 @@ def select_class_max_value(image_maldi, y_kmeans, nb_class):
     return index
 
 def select_class_area(image_maldi, y_kmeans, nb_class):
+    """
+    Chooses labels associated with highest average
+    area of largest CCs
+
+    Parameters
+    ----------
+    image_maldi: np.ndarray
+        images
+    y_kmeans: np.ndarray
+        labels
+    nb_class: int
+        number of clsuters used by kmeans
+
+    Returns
+    ----------
+    int
+        class label
+    """
     max_area = 0
     index = -1
     for i in range(nb_class):

@@ -101,7 +101,7 @@ if top is not None:
     labels = af.labels_
     centers = af.cluster_centers_
 
-similar_images, similar_mzs, distances = fusion.select_images(image, mzs, point_mri, centers, weights, labels, None)
+similar_images, similar_mzs, distances = fusion.select_images(image,point_mri, centers, weights,  mzs, labels, None)
 print("Selecting images end")
 
 similar_images = similar_images[:1000]
