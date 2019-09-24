@@ -9,7 +9,7 @@ from skimage.transform import hough_circle, hough_circle_peaks
 from skimage.feature import canny
 from skimage import data, color
 from skimage.draw import circle
-
+import src.registration as reg
 
 def command_iteration(method) :
     print("{0:3} = {1:10.5f} : {2}".format(method.GetOptimizerIteration(),
@@ -82,44 +82,6 @@ def resize(image, size):
     return resampled_img
 
 
-def detect_circles(image, threshold, min_radius, max_radius):
-    cond = np.where(image < threshold)
-    image_copy = np.copy(image)
-    image_copy[cond] = 0
-    edges = canny(image_copy, sigma=3, low_threshold=10, high_threshold=40)
-
-    # Detect two radii
-    hough_radii = np.arange(min_radius, max_radius, 10)
-    hough_res = hough_circle(edges, hough_radii)
-
-    # Select the most prominent 3 circles
-    accums, cx, cy, radii = hough_circle_peaks(hough_res, hough_radii,
-                                               total_num_peaks=1)
-    if len(cx) > 0:
-        return cx[0], cy[0], radii[0]
-    return -1, -1, -1
-
-
-
-def detect_tube(image, threshold=150, min_radius=10, max_radius=50):
-    cy, cx, radii = [], [], []
-    for i in range(image.shape[0]):
-        center_x, center_y, radius = detect_circles(image[i, :,:], threshold, min_radius, max_radius)
-        if center_y >= 0:
-            cy.append(center_y)
-            cx.append(center_x)
-            radii.append(radius)
-    center_y = np.median(cy)
-    center_x = np.median(cx)
-    radius = np.median(radii)
-    return center_x, center_y, radius
-
-def fill_circle(center_x, center_y, radius, image, color=0):
-    image2 = np.copy(image)
-    rr, cc = circle(int(center_y), int(center_x), int(radius), image2.shape[1:])
-    image2[:, rr,cc] = 0
-    return image2
-
 
 
 parser = argparse.ArgumentParser()
@@ -140,14 +102,15 @@ bins = int(args.bins)
 fixed = sitk.ReadImage(fixedname, sitk.sitkFloat32)
 moving = sitk.ReadImage(movingname, sitk.sitkFloat32)
 
-moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkUInt8)
-moving = resize(moving, fixed.GetSize()[0])
-array_moving = sitk.GetArrayFromImage(moving)
-center_x, center_y, radius = detect_tube(array_moving, min_radius=30, max_radius=50)
-array_moving = fill_circle(center_x, center_y, radius, array_moving)
+if len(moving.GetSize()) == 3:
+    moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkUInt8)
+    moving = resize(moving, fixed.GetSize()[0])
+    array_moving = sitk.GetArrayFromImage(moving)
+    center_x, center_y, radius = detect_tube(array_moving, min_radius=30, max_radius=50)
+    array_moving = fill_circle(center_x, center_y, radius, array_moving)
+    moving = sitk.GetImageFromArray(array_moving)
 
-moving = sitk.GetImageFromArray(array_moving[4, ...])
-moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkFloat32)
+
 
 plt.imshow(array_moving[4, ...])
 plt.show()
@@ -156,17 +119,38 @@ width = fixed.GetWidth()
 height = fixed.GetHeight()
 numberOfBins = int(math.sqrt(height * width / bins))
 samplingPercentage = 0.1
-moving.SetSpacing(fixed.GetSpacing())
-
-
 numberOfBins = int(math.sqrt(height * width / bins))
 
-resampler = register(fixed, moving, numberOfBins)
-out = resampler.Execute(moving)
+f_max = 0
+index = -1
+best_resampler = None
+for i in range(array_moving.shape[0]):
+    moving = sitk.GetImageFromArray(array_moving[i, ...])
+    moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkFloat32)
+    moving.SetSpacing(fixed.GetSpacing())
+    try:
+        resampler = register(fixed, moving, numberOfBins)
+        out = resampler.Execute(moving)
+    except Exception as e:
+        print(e)
+    else:
+        simg1 = sitk.Cast(sitk.RescaleIntensity(fixed), sitk.sitkUInt8)
+        simg2 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
+        mut = reg.mutual_information(simg1, simg2)
+        #        f_m = 2 * p * r / (p + r)
+        print(i)
+        print(mut)
+        if (mut > f_max):
+            f_max = mut
+            index = i
+            best_resampler = resampler
+
+print(f_max)
+print(index)
 simg1 = sitk.Cast(sitk.RescaleIntensity(fixed), sitk.sitkUInt8)
+out = best_resampler.Execute(moving)
 simg2 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
 cimg = sitk.Compose(simg1, simg2, simg1//3.+simg2//1.5)
-
 
 plt.imshow(sitk.GetArrayFromImage(cimg))
 plt.show()
@@ -204,7 +188,7 @@ if registername:
     outRegister.SetSpacing(spacing)
 
     if len(size) == 2:
-        outRegister = resampler.Execute(register)
+        outRegister = best_resampler.Execute(register)
         if not is_imzml:
             outRegister = sitk.Cast(sitk.RescaleIntensity(outRegister), pixel_type)
 
@@ -212,7 +196,7 @@ if registername:
         for i in range(size[2]):
             slice = register[:,:,i]
             slice.SetSpacing(fixed.GetSpacing())
-            outSlice = resampler.Execute(slice)
+            outSlice = best_resampler.Execute(slice)
             if not is_imzml:
                 outSlice = sitk.Cast(sitk.RescaleIntensity(outSlice), pixel_type)
             outSlice = sitk.JoinSeries(outSlice)

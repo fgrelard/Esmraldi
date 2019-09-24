@@ -5,6 +5,7 @@ import argparse
 from sklearn import metrics
 import os
 import re
+from src.registration import *
 
 def tryint(s):
     try:
@@ -23,26 +24,6 @@ def sort_nicely(l):
     """
     l.sort(key=alphanum_key)
 
-
-def precision(im1, im2):
-    tp = np.count_nonzero((im2 + im1) == 2)
-    allp = np.count_nonzero(im2 == 1)
-    return tp * 1.0 / allp
-
-def recall(im1, im2):
-    tp = np.count_nonzero((im2 + im1) == 2)
-    allr = np.count_nonzero(im1 == 1)
-    return tp * 1.0 / allr
-
-def quality_registration(imRef, imRegistered):
-    otsu_filter = sitk.OtsuThresholdImageFilter()
-    otsu_filter.SetInsideValue(0)
-    otsu_filter.SetOutsideValue(1)
-    imRef_bin = otsu_filter.Execute(imRef)
-    imRegistered_bin = otsu_filter.Execute(imRegistered)
-    p = precision(imRef_bin, imRegistered_bin)
-    r = recall(imRef_bin, imRegistered_bin)
-    return p, r
 
 def plot_similarity(imRef, imRegistered):
     axes[0].hist(imRef.ravel(), bins=20)
@@ -71,17 +52,7 @@ def quality_registration_size_bin(fixed, registered_dir):
         precision[number] = p
     return zip(*sorted(precision.items()))
 
-def mutual_information(hgram):
-    """ Mutual information for joint histogram
-    """
-    # Convert bins counts to probability values
-    pxy = hgram / float(np.sum(hgram))
-    px = np.sum(pxy, axis=1) # marginal for x over y
-    py = np.sum(pxy, axis=0) # marginal for y over x
-    px_py = px[:, None] * py[None, :] # Broadcast to multiply marginals
-    # Now we can do the calculation using the pxy, px_py 2D arrays
-    nzs = pxy > 0 # Only non-zero pxy values contribute to the sum
-    return np.sum(pxy[nzs] * np.log(pxy[nzs] / px_py[nzs]))
+
 
 
 parser = argparse.ArgumentParser()
