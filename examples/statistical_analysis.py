@@ -88,7 +88,12 @@ weights = fit_pca.explained_variance_ratio_ / np.sum(fit_pca.explained_variance_
 X_r = fit_pca.transform(image_norm)
 X_train, X_test = fusion.post_processing(X_r, point)
 clustering = fusion.clustering_kmeans(X_train)
-plot_pca(X_train, clustering)
+
+plt.plot(X_train[:, 0], X_train[:, 1], "b.")
+plt.plot(X_test[:, 0], X_test[:, 1], "ro")
+plt.show()
+
+# plot_pca(X_train, clustering)
 
 labels = None
 

@@ -36,7 +36,10 @@ spectra = io.get_spectra(p)
 
 prominence = 50
 
+print("Realignment")
 realigned_spectra = sp.realign(spectra, prominence)
+
+print("Deisotoping")
 deisotoped_spectra = sp.deisotoping(np.array(realigned_spectra))
 
 print(realigned_spectra.shape)
