@@ -1,5 +1,9 @@
 import numpy as np
 import SimpleITK as sitk
+from skimage.transform import hough_circle, hough_circle_peaks
+from skimage.feature import canny
+from skimage import data, color
+from skimage.draw import circle
 
 def precision(im1, im2):
     tp = np.count_nonzero((im2 + im1) == 2)
@@ -79,6 +83,38 @@ def detect_tube(image, threshold=150, min_radius=10, max_radius=50):
 
 def fill_circle(center_x, center_y, radius, image, color=0):
     image2 = np.copy(image)
-    rr, cc = circle(int(center_y), int(center_x), int(radius), image2.shape[1:])
-    image2[:, rr,cc] = 0
+    dim = len(image2.shape)
+    rr, cc = circle(int(center_y), int(center_x), int(radius), image2.shape[dim-2:])
+    if dim == 2:
+        image2[rr, cc] = 0
+    if dim == 3:
+        image2[:, rr,cc] = 0
     return image2
+
+
+def best_fit(fixed, array_moving):
+    width = fixed.GetWidth()
+    height = fixed.GetHeight()
+    numberOfBins = int(math.sqrt(height * width / bins))
+    samplingPercentage = 0.1
+    f_max = 0
+    index = -1
+    best_resampler = None
+    for i in range(array_moving.shape[0]):
+        moving = sitk.GetImageFromArray(array_moving[i, ...])
+        moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkFloat32)
+        moving.SetSpacing(fixed.GetSpacing())
+        try:
+            resampler = register(fixed, moving, numberOfBins)
+            out = resampler.Execute(moving)
+        except Exception as e:
+            print(e)
+        else:
+            simg1 = sitk.Cast(sitk.RescaleIntensity(fixed), sitk.sitkUInt8)
+            simg2 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
+            mut = reg.mutual_information(simg1, simg2)
+            if (mut > f_max):
+                f_max = mut
+                index = i
+                best_resampler = resampler
+    return best_resampler
