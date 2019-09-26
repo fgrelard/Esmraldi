@@ -64,7 +64,7 @@ def preprocess_pca(image_maldi):
             norm_img[..., index[0]] = norm_slice.flatten()
     else:
         norm_img = np.zeros(shape=(x*y, 1), dtype=np.uint8)
-        norm_img[..., 0] = np.uint8(cv.normalize(image_maldi, None, 0, 255, cv.NORM_MINMAX).flatten())
+        norm_img[..., 0] = np.uint8(cv.normalize(image_maldi, None, 0, 255, cv.NORM_MINMAX)).flatten()
 
     norm_img = norm_img.transpose()
     return norm_img

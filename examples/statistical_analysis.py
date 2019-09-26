@@ -11,6 +11,9 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as colors
+from sklearn.preprocessing import StandardScaler
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+import cv2
 
 def plot_clustering(X, labels, mri):
     n_clusters = len(np.unique(labels))
@@ -28,6 +31,23 @@ def plot_clustering(X, labels, mri):
 
 def plot_pca(X_r, af):
     plt.scatter(X_r[:, 0], X_r[:, 1], c=af.predict(X_r), cmap="nipy_spectral", alpha=0.7, norm=colors.Normalize(0, 25))
+    plt.show()
+
+def visualize_scatter_with_images(X_all, images_maldi, images_mri, figsize=(45,45), image_zoom=1):
+    fig, ax = plt.subplots(figsize=figsize)
+    artists = []
+    for xy, i in zip(X_all[:-1, :], images_maldi):
+        x0, y0 = xy
+        img = OffsetImage(i, zoom=image_zoom)
+        ab = AnnotationBbox(img, (x0, y0), xycoords='data', frameon=False)
+        artists.append(ax.add_artist(ab))
+
+    img_mri = OffsetImage(images_mri, zoom=image_zoom)
+    x_mri, y_mri = X_all[-1:, 0], X_all[-1:, 1]
+    ab_mri = AnnotationBbox(img_mri, (x_mri, y_mri), xycoords='data', frameon=True, bboxprops =dict(ec="r", lw=2))
+    artists.append(ax.add_artist(ab_mri))
+    ax.update_datalim(X_all)
+    ax.autoscale()
     plt.show()
 
 parser = argparse.ArgumentParser()
@@ -64,6 +84,7 @@ mzs = mzs[mzs >= threshold]
 mzs = np.around(mzs, decimals=2)
 mzs = mzs.astype(str)
 
+
 image_mri = sitk.GetArrayFromImage(sitk.ReadImage(mriname, sitk.sitkUInt8)).T
 
 if is_ratio:
@@ -72,7 +93,6 @@ if is_ratio:
     mzs = np.concatenate((mzs, ratio_mzs))
 
 image = imzmlio.normalize(image)
-
 
 image_norm = seg.preprocess_pca(image)
 mri_norm = seg.preprocess_pca(image_mri)
@@ -87,11 +107,25 @@ print("Explained variance ratio =", fit_pca.explained_variance_ratio_)
 weights = fit_pca.explained_variance_ratio_ / np.sum(fit_pca.explained_variance_ratio_)
 X_r = fit_pca.transform(image_norm)
 X_train, X_test = fusion.post_processing(X_r, point)
+
 clustering = fusion.clustering_kmeans(X_train)
 
 plt.plot(X_train[:, 0], X_train[:, 1], "b.")
 plt.plot(X_test[:, 0], X_test[:, 1], "ro")
 plt.show()
+
+
+if not is_ratio:
+    X_all = np.concatenate((X_train, X_test), axis=0)
+    tsne_all = StandardScaler().fit_transform(X_all)
+
+    images_maldi = [cv2.resize(i, (45,45)) for i in image.T]
+    image_mri = cv2.resize(image_mri.T, (45,45))
+    visualize_scatter_with_images(tsne_all,
+                                  images_maldi,
+                                  image_mri,
+                                  image_zoom=0.7)
+
 
 # plot_pca(X_train, clustering)
 
@@ -102,7 +136,7 @@ point_mri = X_test
 weights = [1 for i in range(X_test.shape[1])]
 
 if top is not None:
-    af = fusion.clustering(image_norm, X_r)
+    af = fusion.clustering_kmeans(image_norm, X_r)
     labels = af.labels_
     centers = af.cluster_centers_
 

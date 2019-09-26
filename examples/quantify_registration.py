@@ -6,6 +6,7 @@ from sklearn import metrics
 import os
 import re
 from src.registration import *
+import matplotlib.colors as mcolors
 
 def tryint(s):
     try:
@@ -26,10 +27,12 @@ def sort_nicely(l):
 
 
 def plot_similarity(imRef, imRegistered):
-    axes[0].hist(imRef.ravel(), bins=20)
+    fig, axes = plt.subplots(1, 2)
+    axes[0].hist(imRef.ravel(), bins=20, normed=True)
     axes[0].set_title('Histogramme image IRM')
-    axes[1].hist(imRegistered.ravel(), bins=20)
+    axes[1].hist(imRegistered.ravel(), bins=20, normed=True)
     axes[1].set_title('Histogramme image MALDI')
+    # axes[2].hist2d(imRef.ravel(), imRegistered.ravel(), bins=20, norm=mcolors.PowerNorm(0.5), normed=True)
     plt.show()
     # Plotting the signal in the T1 slice against the signal in the T2 slice:
 
@@ -85,8 +88,7 @@ registered_array = sitk.GetArrayFromImage(registered)
 
 # The one-dimensional histograms of the example slices:
 
-fig, axes = plt.subplots(1, 2)
-
+plot_similarity(fixed_array, registered_array)
 
 hist_2d, x_edges, y_edges = np.histogram2d(
     fixed_array.ravel(),
@@ -95,4 +97,4 @@ hist_2d, x_edges, y_edges = np.histogram2d(
 
 
 
-print(mutual_information(hist_2d))
+print(mutual_information())

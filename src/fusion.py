@@ -3,7 +3,6 @@ import cv2 as cv
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans, AffinityPropagation
 from sklearn.manifold import TSNE
-import matplotlib.pyplot as plt
 
 def clustering_affinity(X_r):
     """

@@ -4,6 +4,8 @@ from skimage.transform import hough_circle, hough_circle_peaks
 from skimage.feature import canny
 from skimage import data, color
 from skimage.draw import circle
+import matplotlib.pyplot as plt
+import math
 
 def precision(im1, im2):
     tp = np.count_nonzero((im2 + im1) == 2)
@@ -92,11 +94,9 @@ def fill_circle(center_x, center_y, radius, image, color=0):
     return image2
 
 
-def best_fit(fixed, array_moving):
+def best_fit(fixed, array_moving, numberOfBins, samplingPercentage):
     width = fixed.GetWidth()
     height = fixed.GetHeight()
-    numberOfBins = int(math.sqrt(height * width / bins))
-    samplingPercentage = 0.1
     f_max = 0
     index = -1
     best_resampler = None
@@ -105,16 +105,57 @@ def best_fit(fixed, array_moving):
         moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkFloat32)
         moving.SetSpacing(fixed.GetSpacing())
         try:
-            resampler = register(fixed, moving, numberOfBins)
+            resampler = register(fixed, moving, numberOfBins, samplingPercentage)
             out = resampler.Execute(moving)
         except Exception as e:
             print(e)
         else:
             simg1 = sitk.Cast(sitk.RescaleIntensity(fixed), sitk.sitkUInt8)
             simg2 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
-            mut = reg.mutual_information(simg1, simg2)
+            mut = mutual_information(simg1, simg2)
             if (mut > f_max):
                 f_max = mut
                 index = i
                 best_resampler = resampler
     return best_resampler
+
+
+def resize(image, size):
+    dim = len(image.GetSize())
+    new_dims = [size for i in range(2)]
+    spacing = [image.GetSize()[0]/size for i in range(2)]
+    if dim == 3:
+        new_dims.append(image.GetSize()[2])
+        spacing.append(1)
+    resampled_img = sitk.Resample(image,
+                                  new_dims,
+                                  sitk.Transform(),
+                                  sitk.sitkNearestNeighbor,
+                                  image.GetOrigin(),
+                                  spacing,
+                                  image.GetDirection(),
+                                  0.0,
+                                  image.GetPixelID())
+    return resampled_img
+
+def register(fixed, moving, numberOfBins, samplingPercentage):
+    R = sitk.ImageRegistrationMethod()
+    R.SetMetricAsMattesMutualInformation(numberOfBins)
+    R.SetMetricSamplingPercentage(samplingPercentage, sitk.sitkWallClock)
+    #R.SetOptimizerAsRegularStepGradientDescent(0.01,.001,2000)
+    R.SetOptimizerAsOnePlusOneEvolutionary(10000)
+    tx = sitk.CenteredTransformInitializer(fixed, moving, sitk.Similarity2DTransform(), sitk.CenteredTransformInitializerFilter.GEOMETRY)
+    R.SetInitialTransform(tx)
+
+    try:
+        outTx = R.Execute(fixed, moving)
+    except Exception as e:
+        print(e)
+    else:
+        resampler = sitk.ResampleImageFilter()
+        resampler.SetReferenceImage(fixed)
+        resampler.SetInterpolator(sitk.sitkLinear)
+        resampler.SetDefaultPixelValue(0)
+        resampler.SetTransform(outTx)
+        return resampler
+    return None
