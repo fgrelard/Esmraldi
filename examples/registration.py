@@ -112,6 +112,10 @@ if dim_moving == 3:
 
 simg1 = sitk.Cast(sitk.RescaleIntensity(fixed), sitk.sitkUInt8)
 try:
+    if to_flip:
+        print("Flipped!")
+        moving = sitk.Flip(moving, (True, False))
+        moving = sitk.GetImageFromArray(sitk.GetArrayFromImage(moving))
     out = best_resampler.Execute(moving)
 except Exception as e:
     print("Problem with best_resampler")
@@ -121,8 +125,7 @@ else:
     cimg = sitk.Compose(simg1, simg2, simg1//3.+simg2//1.5)
 
     fig, ax = plt.subplots(1, 2)
-    if to_flip:
-        moving = sitk.Flip(moving, (True, False))
+
     ax[0].imshow(sitk.GetArrayFromImage(moving))
     ax[1].imshow(sitk.GetArrayFromImage(cimg))
     plt.show()
@@ -150,13 +153,11 @@ if registername:
         identity = np.identity(dim).tolist()
         flat_list = [item for sublist in identity for item in sublist]
         direction = tuple(flat_list)
-        register.SetDirection(flat_list)
+        #register.SetDirection(flat_list)
 
         if to_flip:
             register = sitk.Flip(register, (True, False))
-
-
-
+            register = sitk.GetImageFromArray(sitk.GetArrayFromImage(register)
     size = register.GetSize()
     pixel_type = register.GetPixelID()
 
