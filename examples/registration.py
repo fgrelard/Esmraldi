@@ -157,7 +157,7 @@ if registername:
 
         if to_flip:
             register = sitk.Flip(register, (True, False))
-            register = sitk.GetImageFromArray(sitk.GetArrayFromImage(register)
+            register = sitk.GetImageFromArray(sitk.GetArrayFromImage(register))
     size = register.GetSize()
     pixel_type = register.GetPixelID()
 
