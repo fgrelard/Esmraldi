@@ -117,7 +117,7 @@ def best_fit(fixed, array_moving, numberOfBins, samplingPercentage):
                 f_max = mut
                 index = i
                 best_resampler = resampler
-    return best_resampler
+    return best_resampler, index
 
 
 def resize(image, size):

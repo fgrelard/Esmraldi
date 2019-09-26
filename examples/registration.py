@@ -85,42 +85,47 @@ moving = sitk.GetImageFromArray(array_moving)
 moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkFloat32)
 
 # Flip axis and choose best fit during registration
-if flipped:
+if dim_moving == 2 and flipped:
     dim_moving = 3
     flipped_moving = sitk.Flip(moving, (True, False))
     moving_and_flipped = np.zeros((2, array_moving.shape[-2], array_moving.shape[-1]), dtype=np.float32)
     moving_and_flipped[0, ...] = sitk.GetArrayFromImage(moving)
     moving_and_flipped[1, ...] = sitk.GetArrayFromImage(flipped_moving)
     array_moving = moving_and_flipped
-    moving = sitk.GetImageFromArray(moving_and_flipped)
+
 
 width = fixed.GetWidth()
 height = fixed.GetHeight()
 numberOfBins = int(math.sqrt(height * width / bins))
 samplingPercentage = 0.1
 
+to_flip = False
+
 if dim_moving == 2:
     best_resampler = reg.register(fixed, moving, numberOfBins, samplingPercentage)
 
 if dim_moving == 3:
     print(array_moving.shape)
-    best_resampler = reg.best_fit(fixed, array_moving, numberOfBins, samplingPercentage)
-
+    best_resampler, index = reg.best_fit(fixed, array_moving, numberOfBins, samplingPercentage)
+    if flipped and index == 1:
+        to_flip = True
 
 simg1 = sitk.Cast(sitk.RescaleIntensity(fixed), sitk.sitkUInt8)
 try:
     out = best_resampler.Execute(moving)
 except Exception as e:
+    print("Problem with best_resampler")
     print(e)
 else:
     simg2 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
     cimg = sitk.Compose(simg1, simg2, simg1//3.+simg2//1.5)
 
     fig, ax = plt.subplots(1, 2)
-    ax[0].imshow(array_moving)
+    if to_flip:
+        moving = sitk.Flip(moving, (True, False))
+    ax[0].imshow(sitk.GetArrayFromImage(moving))
     ax[1].imshow(sitk.GetArrayFromImage(cimg))
     plt.show()
-
 
 # print("-------")
 # print("Optimizer stop condition: {0}".format(R.GetOptimizerStopConditionDescription()))
@@ -136,15 +141,21 @@ if registername:
     else:
         register = sitk.ReadImage(registername, sitk.sitkFloat32)
         register = reg.resize(register, fixed.GetSize()[0])
+
         array_reg = sitk.GetArrayFromImage(register)
         array_reg = reg.fill_circle(center_x, center_y, maxr, array_reg)
         register = sitk.GetImageFromArray(array_reg)
 
-    dim = register.GetDimension()
-    identity = np.identity(dim).tolist()
-    flat_list = [item for sublist in identity for item in sublist]
-    direction = tuple(flat_list)
-    register.SetDirection(flat_list)
+        dim = register.GetDimension()
+        identity = np.identity(dim).tolist()
+        flat_list = [item for sublist in identity for item in sublist]
+        direction = tuple(flat_list)
+        register.SetDirection(flat_list)
+
+        if to_flip:
+            register = sitk.Flip(register, (True, False))
+
+
 
     size = register.GetSize()
     pixel_type = register.GetPixelID()
