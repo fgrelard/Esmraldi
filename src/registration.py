@@ -93,6 +93,8 @@ def fill_circle(center_x, center_y, radius, image, color=0):
         image2[:, rr,cc] = 0
     return image2
 
+def remove_pericarp(image):
+    pass
 
 def best_fit(fixed, array_moving, numberOfBins, samplingPercentage):
     width = fixed.GetWidth()

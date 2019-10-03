@@ -66,23 +66,9 @@ moving = sitk.ReadImage(movingname, sitk.sitkFloat32)
 moving = reg.resize(moving, fixed.GetSize()[0])
 
 moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkUInt8)
-array_moving = sitk.GetArrayFromImage(moving)
-
-#Removing tube
-minr = 15
-maxr = 25
-
-dim_moving = len(moving.GetSize())
-if dim_moving == 2:
-    center_x, center_y, radius = reg.detect_circle(array_moving, threshold=150, min_radius=minr, max_radius=maxr)
-    array_moving = reg.fill_circle(center_x, center_y, maxr, array_moving)
-
-if dim_moving == 3:
-    center_x, center_y, radius = reg.detect_tube(array_moving, min_radius=minr, max_radius=maxr)
-    array_moving = reg.fill_circle(center_x, center_y, maxr, array_moving)
-
-moving = sitk.GetImageFromArray(array_moving)
 moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkFloat32)
+
+array_moving = sitk.GetArrayFromImage(moving)
 
 # Flip axis and choose best fit during registration
 if dim_moving == 2 and flipped:
@@ -124,11 +110,11 @@ else:
     simg2 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
     cimg = sitk.Compose(simg1, simg2, simg1//3.+simg2//1.5)
 
-    fig, ax = plt.subplots(1, 2)
+    # fig, ax = plt.subplots(1, 2)
 
-    ax[0].imshow(sitk.GetArrayFromImage(moving))
-    ax[1].imshow(sitk.GetArrayFromImage(cimg))
-    plt.show()
+    # ax[0].imshow(sitk.GetArrayFromImage(moving))
+    # ax[1].imshow(sitk.GetArrayFromImage(cimg))
+    # plt.show()
 
 # print("-------")
 # print("Optimizer stop condition: {0}".format(R.GetOptimizerStopConditionDescription()))
