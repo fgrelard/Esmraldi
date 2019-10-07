@@ -6,6 +6,7 @@ import numpy as np
 import src.imzmlio as imzmlio
 import os
 import src.registration as reg
+import src.segmentation as segmentation
 
 def command_iteration(method) :
     print("{0:3} = {1:10.5f} : {2}".format(method.GetOptimizerIteration(),
@@ -63,7 +64,8 @@ fixed = sitk.ReadImage(fixedname, sitk.sitkFloat32)
 moving = sitk.ReadImage(movingname, sitk.sitkFloat32)
 
 #Resizing
-moving = reg.resize(moving, fixed.GetSize()[0])
+dim_moving = moving.GetDimension();
+moving = segmentation.resize(moving, fixed.GetSize()[0])
 
 moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkUInt8)
 moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkFloat32)
@@ -72,6 +74,8 @@ array_moving = sitk.GetArrayFromImage(moving)
 
 # Flip axis and choose best fit during registration
 if dim_moving == 2 and flipped:
+    # Construct a 3D image
+    # 2 slices = original + flipped
     dim_moving = 3
     flipped_moving = sitk.Flip(moving, (True, False))
     moving_and_flipped = np.zeros((2, array_moving.shape[-2], array_moving.shape[-1]), dtype=np.float32)
@@ -129,11 +133,7 @@ if registername:
         register = sitk.GetImageFromArray(array)
     else:
         register = sitk.ReadImage(registername, sitk.sitkFloat32)
-        register = reg.resize(register, fixed.GetSize()[0])
-
-        array_reg = sitk.GetArrayFromImage(register)
-        array_reg = reg.fill_circle(center_x, center_y, maxr, array_reg)
-        register = sitk.GetImageFromArray(array_reg)
+        register = segmentation.resize(register, fixed.GetSize()[0])
 
         dim = register.GetDimension()
         identity = np.identity(dim).tolist()
@@ -177,6 +177,5 @@ if registername:
         intensities, coordinates = imzmlio.get_spectra_from_images(sitk.GetArrayFromImage(outRegister).T)
         mzs = [mz] * len(coordinates)
         imzmlio.write_imzml(mzs, intensities, coordinates, outputname)
-
     else:
         sitk.WriteImage(outRegister, outputname)

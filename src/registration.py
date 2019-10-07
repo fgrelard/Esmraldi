@@ -1,9 +1,5 @@
 import numpy as np
 import SimpleITK as sitk
-from skimage.transform import hough_circle, hough_circle_peaks
-from skimage.feature import canny
-from skimage import data, color
-from skimage.draw import circle
 import matplotlib.pyplot as plt
 import math
 
@@ -51,50 +47,7 @@ def mutual_information(imRef, imRegistered):
     nzs = pxy > 0 # Only non-zero pxy values contribute to the sum
     return np.sum(pxy[nzs] * np.log(pxy[nzs] / px_py[nzs]))
 
-def detect_circle(image, threshold, min_radius, max_radius):
-    cond = np.where(image < threshold)
-    image_copy = np.copy(image)
-    image_copy[cond] = 0
-    edges = canny(image_copy, sigma=3, low_threshold=10, high_threshold=40)
 
-    # Detect two radii
-    hough_radii = np.arange(min_radius, max_radius, 10)
-    hough_res = hough_circle(edges, hough_radii)
-
-    # Select the most prominent 3 circles
-    accums, cx, cy, radii = hough_circle_peaks(hough_res, hough_radii,
-                                               total_num_peaks=1)
-    if len(cx) > 0:
-        return cx[0], cy[0], radii[0]
-    return -1, -1, -1
-
-
-
-def detect_tube(image, threshold=150, min_radius=10, max_radius=50):
-    cy, cx, radii = [], [], []
-    for i in range(image.shape[0]):
-        center_x, center_y, radius = detect_circle(image[i, :,:], threshold, min_radius, max_radius)
-        if center_y >= 0:
-            cy.append(center_y)
-            cx.append(center_x)
-            radii.append(radius)
-    center_y = np.median(cy)
-    center_x = np.median(cx)
-    radius = np.median(radii)
-    return center_x, center_y, radius
-
-def fill_circle(center_x, center_y, radius, image, color=0):
-    image2 = np.copy(image)
-    dim = len(image2.shape)
-    rr, cc = circle(int(center_y), int(center_x), int(radius), image2.shape[dim-2:])
-    if dim == 2:
-        image2[rr, cc] = 0
-    if dim == 3:
-        image2[:, rr,cc] = 0
-    return image2
-
-def remove_pericarp(image):
-    pass
 
 def best_fit(fixed, array_moving, numberOfBins, samplingPercentage):
     width = fixed.GetWidth()
@@ -121,24 +74,6 @@ def best_fit(fixed, array_moving, numberOfBins, samplingPercentage):
                 best_resampler = resampler
     return best_resampler, index
 
-
-def resize(image, size):
-    dim = len(image.GetSize())
-    new_dims = [size for i in range(2)]
-    spacing = [image.GetSize()[0]/size for i in range(2)]
-    if dim == 3:
-        new_dims.append(image.GetSize()[2])
-        spacing.append(1)
-    resampled_img = sitk.Resample(image,
-                                  new_dims,
-                                  sitk.Transform(),
-                                  sitk.sitkNearestNeighbor,
-                                  image.GetOrigin(),
-                                  spacing,
-                                  image.GetDirection(),
-                                  0.0,
-                                  image.GetPixelID())
-    return resampled_img
 
 def register(fixed, moving, numberOfBins, samplingPercentage):
     R = sitk.ImageRegistrationMethod()
