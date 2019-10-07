@@ -67,6 +67,11 @@ moving = sitk.ReadImage(movingname, sitk.sitkFloat32)
 dim_moving = moving.GetDimension();
 moving = segmentation.resize(moving, fixed.GetSize()[0])
 
+sx = fixed.GetSpacing()[0]
+spacing = tuple([sx for i in range(dim_moving)])
+moving.SetSpacing(spacing)
+
+
 moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkUInt8)
 moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkFloat32)
 
@@ -114,11 +119,11 @@ else:
     simg2 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
     cimg = sitk.Compose(simg1, simg2, simg1//3.+simg2//1.5)
 
-    # fig, ax = plt.subplots(1, 2)
+    fig, ax = plt.subplots(1, 2)
 
-    # ax[0].imshow(sitk.GetArrayFromImage(moving))
-    # ax[1].imshow(sitk.GetArrayFromImage(cimg))
-    # plt.show()
+    ax[0].imshow(sitk.GetArrayFromImage(moving))
+    ax[1].imshow(sitk.GetArrayFromImage(cimg))
+    plt.show()
 
 # print("-------")
 # print("Optimizer stop condition: {0}".format(R.GetOptimizerStopConditionDescription()))
