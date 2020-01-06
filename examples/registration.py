@@ -140,15 +140,16 @@ if registername:
         register = sitk.ReadImage(registername, sitk.sitkFloat32)
         register = segmentation.resize(register, fixed.GetSize()[0])
 
-        dim = register.GetDimension()
-        identity = np.identity(dim).tolist()
-        flat_list = [item for sublist in identity for item in sublist]
-        direction = tuple(flat_list)
-        #register.SetDirection(flat_list)
-
         if to_flip:
             register = sitk.Flip(register, (True, False))
             register = sitk.GetImageFromArray(sitk.GetArrayFromImage(register))
+
+    dim = register.GetDimension()
+    identity = np.identity(dim).tolist()
+    flat_list = [item for sublist in identity for item in sublist]
+    direction = tuple(flat_list)
+    #register.SetDirection(flat_list)
+
     size = register.GetSize()
     pixel_type = register.GetPixelID()
 

@@ -80,6 +80,10 @@ registered = sitk.ReadImage(registeredname, sitk.sitkFloat32)
 
 simg1 = sitk.Cast(sitk.RescaleIntensity(fixed), sitk.sitkUInt8)
 simg2 = sitk.Cast(sitk.RescaleIntensity(registered), sitk.sitkUInt8)
+
+cimg = sitk.Compose(simg1, simg2, simg1//3.+simg2//1.5)
+plt.imshow(sitk.GetArrayFromImage(cimg))
+plt.show()
 p, r = quality_registration(fixed, registered)
 print("Precision=", p, " recall=", r)
 
@@ -88,7 +92,7 @@ registered_array = sitk.GetArrayFromImage(registered)
 
 # The one-dimensional histograms of the example slices:
 
-plot_similarity(fixed_array, registered_array)
+#plot_similarity(fixed_array, registered_array)
 
 hist_2d, x_edges, y_edges = np.histogram2d(
     fixed_array.ravel(),
@@ -97,4 +101,4 @@ hist_2d, x_edges, y_edges = np.histogram2d(
 
 
 
-print(mutual_information())
+print("Mutual information = ", mutual_information(fixed, registered))

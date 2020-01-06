@@ -57,6 +57,7 @@ parser.add_argument("-o", "--output", help="Output image")
 parser.add_argument("-r", "--ratio", help="Compute ratio images", action="store_true")
 parser.add_argument("-t", "--top", help="#Top", default=0)
 parser.add_argument("-g", "--threshold", help="Mass to charge ratio threshold", default=0)
+parser.add_argument("-n", "--norm", help="Normalization image filename")
 args = parser.parse_args()
 
 inputname = args.input
@@ -65,6 +66,11 @@ outname = args.output
 is_ratio = args.ratio
 top = int(args.top)
 threshold = int(args.threshold)
+normname = args.norm
+
+if normname is not None:
+    norm_img = sitk.ReadImage(normname)
+    norm_img = sitk.GetArrayFromImage(norm_img).T
 
 if top <= 0:
     top = None
@@ -75,11 +81,16 @@ if inputname.lower().endswith(".imzml"):
     image = imzmlio.to_image_array(imzml)
     mzs, intensities = imzml.getspectrum(0)
 else:
-    image = sitk.GetArrayFromImage(sitk.ReadImage(inputname, sitk.sitkUInt8)).T
+    image = sitk.GetArrayFromImage(sitk.ReadImage(inputname)).T
     mzs = [i for i in range(image.shape[2])]
     mzs = np.asarray(mzs)
 
 image = image[..., mzs >= threshold]
+
+if normname is not None:
+    norm_img_3D = norm_img[..., None]
+    image = np.divide(image, norm_img_3D, out=np.zeros_like(image, dtype=np.float), where=norm_img_3D!=0)
+
 mzs = mzs[mzs >= threshold]
 mzs = np.around(mzs, decimals=2)
 mzs = mzs.astype(str)
