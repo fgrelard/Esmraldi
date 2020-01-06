@@ -79,9 +79,20 @@ def register(fixed, moving, numberOfBins, samplingPercentage):
     R = sitk.ImageRegistrationMethod()
     R.SetMetricAsMattesMutualInformation(numberOfBins)
     R.SetMetricSamplingPercentage(samplingPercentage, 121213 )
-    #R.SetOptimizerAsRegularStepGradientDescent(0.01,.001,2000)
-    R.SetOptimizerAsOnePlusOneEvolutionary(10000)
-    tx = sitk.CenteredTransformInitializer(fixed, moving, sitk.Similarity2DTransform(), sitk.CenteredTransformInitializerFilter.GEOMETRY)
+    # R.SetOptimizerAsOnePlusOneEvolutionary(numberOfIterations=10000,
+    #                                        epsilon=1.5e-4,
+    #                                        initialRadius=1.01,
+    #                                        growthFactor=-1.0,
+    #                                        shrinkFactor=-1.0,
+    #                                        seed=121213)
+    R.SetOptimizerAsRegularStepGradientDescent(
+        learningRate=1.2,
+        minStep=0.02,
+        numberOfIterations=100,
+        relaxationFactor=0.80,
+        gradientMagnitudeTolerance = 1e-6,
+        maximumStepSizeInPhysicalUnits = 0.0)
+    tx = sitk.CenteredTransformInitializer(fixed, moving, sitk.Similarity2DTransform(), sitk.CenteredTransformInitializerFilter.MOMENTS)
     R.SetInitialTransform(tx)
 
     try:

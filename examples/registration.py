@@ -64,17 +64,15 @@ fixed = sitk.ReadImage(fixedname, sitk.sitkFloat32)
 moving = sitk.ReadImage(movingname, sitk.sitkFloat32)
 
 #Resizing
-dim_moving = moving.GetDimension();
-moving = segmentation.resize(moving, fixed.GetSize()[0])
-
-sx = fixed.GetSpacing()[0]
-spacing = tuple([sx for i in range(dim_moving)])
+dim_moving = moving.GetDimension()
+moving = segmentation.resize(moving, fixed.GetSize())
+sx = fixed.GetSpacing()
+spacing = tuple([sx[i] for i in range(dim_moving)])
 moving.SetSpacing(spacing)
 
 
 moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkUInt8)
 moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkFloat32)
-
 array_moving = sitk.GetArrayFromImage(moving)
 
 # Flip axis and choose best fit during registration
@@ -138,8 +136,8 @@ if registername:
         register = sitk.GetImageFromArray(array)
     else:
         register = sitk.ReadImage(registername, sitk.sitkFloat32)
-        register = segmentation.resize(register, fixed.GetSize()[0])
 
+        register = segmentation.resize(register, fixed.GetSize())
         if to_flip:
             register = sitk.Flip(register, (True, False))
             register = sitk.GetImageFromArray(sitk.GetArrayFromImage(register))
@@ -159,8 +157,8 @@ if registername:
     if len(size) == 3:
         outRegister = sitk.Image(size[0], size[1], size[2], pixel_type )
 
-    sx = fixed.GetSpacing()[0]
-    spacing = tuple([sx for i in range(dim)])
+    sx = fixed.GetSpacing()
+    spacing = tuple([sx[i] for i in range(dim)])
     register.SetSpacing(spacing)
 
     if len(size) == 2:

@@ -68,10 +68,6 @@ top = int(args.top)
 threshold = int(args.threshold)
 normname = args.norm
 
-if normname is not None:
-    norm_img = sitk.ReadImage(normname)
-    norm_img = sitk.GetArrayFromImage(norm_img).T
-
 if top <= 0:
     top = None
 
@@ -85,11 +81,20 @@ else:
     mzs = [i for i in range(image.shape[2])]
     mzs = np.asarray(mzs)
 
+print("Mass-to-charge ratio=", mzs)
+
 image = image[..., mzs >= threshold]
 
 if normname is not None:
+    print("Norm image detected")
+    norm_img = sitk.ReadImage(normname)
+    norm_img = sitk.GetArrayFromImage(norm_img).T
     norm_img_3D = norm_img[..., None]
+    before = image.max()
     image = np.divide(image, norm_img_3D, out=np.zeros_like(image, dtype=np.float), where=norm_img_3D!=0)
+    after = image.max()
+    print("Before max=", before, ", after=", after)
+
 
 mzs = mzs[mzs >= threshold]
 mzs = np.around(mzs, decimals=2)

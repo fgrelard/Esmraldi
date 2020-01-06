@@ -362,13 +362,9 @@ def remove_pericarp(image, radius_selem=1):
 
 def resize(image, size):
     dim = len(image.GetSize())
-    new_dims = [size for i in range(2)]
-    spacing = [image.GetSize()[0]/size for i in range(2)]
-    if dim == 3:
-        new_dims.append(image.GetSize()[2])
-        spacing.append(1)
+    spacing = [old_sz*old_spc/new_sz  for old_sz, old_spc, new_sz in zip(image.GetSize(), image.GetSpacing(), size)]
     resampled_img = sitk.Resample(image,
-                                  new_dims,
+                                  size,
                                   sitk.Transform(),
                                   sitk.sitkNearestNeighbor,
                                   image.GetOrigin(),
