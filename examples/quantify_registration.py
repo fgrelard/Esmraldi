@@ -83,6 +83,7 @@ simg2 = sitk.Cast(sitk.RescaleIntensity(registered), sitk.sitkUInt8)
 
 cimg = sitk.Compose(simg1, simg2, simg1//3.+simg2//1.5)
 plt.imshow(sitk.GetArrayFromImage(cimg))
+plt.axis('off')
 plt.show()
 p, r = quality_registration(fixed, registered)
 print("Precision=", p, " recall=", r)

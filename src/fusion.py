@@ -42,7 +42,7 @@ def clustering_kmeans(X_r):
     kmeans = KMeans(n_clusters=5, random_state=0).fit(X_r)
     return kmeans
 
-def pca(image):
+def pca(image, n=5):
     """
     Performs PCA on image array
     Each image is represented as a point after fitting
@@ -59,7 +59,7 @@ def pca(image):
         description
 
     """
-    pca = PCA(n_components=5)
+    pca = PCA(n_components=n)
     fit_pca = pca.fit(image)
     return fit_pca
 
