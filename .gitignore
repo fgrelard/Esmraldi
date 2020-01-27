@@ -3,3 +3,5 @@
 data/
 *.jpg
 .mypy_cache/
+jupyter/
+.ipynb_checkpoints/
