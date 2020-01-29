@@ -13,9 +13,8 @@ class TestSpectraInterpretation(unittest.TestCase):
     def setUp(self):
         ax = sr.SpeciesRule("AX", "MS", mz=132.06, begin=569.26, end=2500, naming_fn=lambda i: "AX"+str(i+3))
         matrix = sr.SpeciesRule("Matrix", "M", mz=551, count=1)
-        ac = sr.SpeciesRule("Ac", "A", mz=42.02, count=3, naming_fn=lambda i: str(i) + "Ac")
+        ac = sr.SpeciesRule("Ac", "A", mz=42.02, count=3, naming_fn=lambda i: str(i) + "Ac", adduct_fn="AX.*")
         self.ts = TheoreticalSpectrum([ax, matrix], [ac])
-        self.ts.add_adducts_to_molecules_regexp("AX.*", ".*")
         random.seed(a=1)
         self.observed = [random.randrange(569, 2000) for i in range(200)]
         print(self.observed)
