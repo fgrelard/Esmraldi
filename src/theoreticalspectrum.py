@@ -2,15 +2,17 @@ import re
 
 class TheoreticalSpectrum:
     def __init__(self,  molecules, adducts):
-        self.molecules = {}
-        self.adducts = {}
-        for mol in molecules:
-            self.molecules.update(mol.species())
+        self.molecules = molecules
+        self.adducts = adducts
+        self.full_molecules = {}
+        for mol in self.molecules:
+            self.full_molecules.update(mol.species())
+
+        self.spectrum = dict(self.full_molecules)
 
         for add in adducts:
-            self.adducts.update(add.species())
-
-        self.spectrum = dict(self.molecules)
+            theoretical = self.add_adducts_to_molecules_regexp(add)
+            self.spectrum.update(theoretical)
 
 
     def add_adducts_to_molecules(self, molecules, adducts):
@@ -23,17 +25,13 @@ class TheoreticalSpectrum:
         self.spectrum.update(mol_with_adducts)
         return mol_with_adducts
 
-    def add_adducts_to_molecules_regexp(self, mol_regexp, adduct_regexp):
+    def add_adducts_to_molecules_regexp(self, adduct):
         theoretical = {}
-        pattern = re.compile(mol_regexp)
-        list_names = '\n'.join(list(self.molecules.keys()))
+        pattern = re.compile(adduct.adduct_fn)
+        list_names = '\n'.join(list(self.full_molecules.keys()))
         matches = pattern.findall(list_names)
-        molecules = {k:self.molecules[k] for k in matches if k in self.molecules}
 
-        pattern = re.compile(adduct_regexp)
-        list_names = '\n'.join(list(self.adducts.keys()))
-        matches = pattern.findall(list_names)
-        adducts = {k:self.adducts[k] for k in matches if k in self.adducts}
+        molecules = {k:self.full_molecules[k] for k in matches if k in self.full_molecules}
 
-        mol_with_adducts = self.add_adducts_to_molecules(molecules, adducts)
+        mol_with_adducts = self.add_adducts_to_molecules(molecules, adduct.species())
         return mol_with_adducts

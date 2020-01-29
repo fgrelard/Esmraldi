@@ -1,7 +1,6 @@
 import json
 import numpy as np
 
-
 def parts_eval(parts, i):
     current_name = ""
     for part in parts:
@@ -28,18 +27,20 @@ def json_to_species(filename):
         begin = rule["begin"] if "begin" in rule else None
         end = rule["end"] if "end" in rule else None
         naming_fn = rule["naming_fn"] if "naming_fn" in rule else None
+        add_fn = rule["adduct_fn"] if "add_fn" in rule else None
         if naming_fn is not None:
             parts = naming_fn.split(",")
             naming_fn = lambda i: parts_eval(parts, i)
         else:
             naming_fn = lambda i: name + str(i)
+
         s = SpeciesRule(name, category, mz, count, begin, end, naming_fn)
         species.append(s)
     return species
 
 
 class SpeciesRule:
-    def __init__(self, name, category, mz, count=1, begin=None, end=None, naming_fn=None):
+    def __init__(self, name, category, mz, count=1, begin=None, end=None, naming_fn=None, adduct_fn=None):
         self.name = name
         self.category = category
         self.mz = mz
@@ -58,6 +59,8 @@ class SpeciesRule:
             self.naming_fn = lambda i: self.name + str(i)
         else:
             self.naming_fn = naming_fn
+
+        self.adduct_fn = adduct_fn
 
 
     def species(self):
