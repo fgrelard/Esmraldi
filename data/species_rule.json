@@ -1,0 +1,26 @@
+{
+    "rules": [
+        {
+            "name": "AX",
+            "category": "Ion",
+            "mz": 132.06,
+            "begin": 569.26,
+            "end": 2500,
+            "naming_fn": "AX,i+3"
+        },
+        {
+            "name": "Matrix",
+            "category": "Ion",
+            "mz": 551,
+            "count": 1,
+            "naming_fn": "Matrix"
+        },
+        {
+            "name": "Ac",
+            "category": "Adduct",
+            "mz": 42.02,
+            "count": 3,
+            "naming_fn": "i,Ac"
+        }
+    ]
+}

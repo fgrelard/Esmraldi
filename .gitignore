@@ -1,7 +1,9 @@
 *.pyc
 *~
-data/
+data/*.npy
 *.jpg
 .mypy_cache/
 jupyter/
 .ipynb_checkpoints/
+/.tern-port
+/tests/.tern-port
