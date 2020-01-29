@@ -22,7 +22,7 @@ class TestTheoreticalSpectra(unittest.TestCase):
         print(theoretical)
 
     def test_add_adducts_to_molecules_regexp(self):
-        theoretical = self.ts.add_adducts_to_molecules_regexp(r"AX.*", r"[1-2]Ac")
+        theoretical = self.ts.add_adducts_to_molecules_regexp(r"AX[4-9]", r"[1-2]Ac")
         print(theoretical)
 
 

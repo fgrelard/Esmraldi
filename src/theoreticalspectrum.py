@@ -9,12 +9,12 @@ class TheoreticalSpectrum:
 
         for add in adducts:
             self.adducts.update(add.species())
-        print(self.molecules)
-        self.spectrum = {}
+
+        self.spectrum = dict(self.molecules)
 
 
     def add_adducts_to_molecules(self, molecules, adducts):
-        mol_with_adducts = dict(self.molecules)
+        mol_with_adducts = {}
         for name, mz in adducts.items():
             for mol_name, mol_mz in molecules.items():
                 current_mz = mol_mz + mz
@@ -25,7 +25,6 @@ class TheoreticalSpectrum:
 
     def add_adducts_to_molecules_regexp(self, mol_regexp, adduct_regexp):
         theoretical = {}
-
         pattern = re.compile(mol_regexp)
         list_names = '\n'.join(list(self.molecules.keys()))
         matches = pattern.findall(list_names)
