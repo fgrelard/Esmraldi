@@ -9,7 +9,7 @@ class TheoreticalSpectrum:
             self.full_molecules.update(mol.species())
 
         self.spectrum = dict(self.full_molecules)
-
+        print(self.spectrum)
         for add in adducts:
             theoretical = self.add_adducts_to_molecules_regexp(add)
             self.spectrum.update(theoretical)

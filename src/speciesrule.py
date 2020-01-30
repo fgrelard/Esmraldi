@@ -1,7 +1,8 @@
 import json
 import numpy as np
+from functools import partial
 
-def parts_eval(parts, i):
+def parts_eval(i, parts):
     current_name = ""
     for part in parts:
         part_split = part.split("+")
@@ -12,6 +13,7 @@ def parts_eval(parts, i):
             current_name += part
     return current_name
 
+
 def json_to_species(filename):
     species = []
 
@@ -19,6 +21,7 @@ def json_to_species(filename):
         data = json.load(f)
 
     rules = data["rules"]
+    fns = []
     for rule in rules:
         name = rule["name"]
         category = rule["category"]
@@ -27,14 +30,15 @@ def json_to_species(filename):
         begin = rule["begin"] if "begin" in rule else None
         end = rule["end"] if "end" in rule else None
         naming_fn = rule["naming_fn"] if "naming_fn" in rule else None
-        add_fn = rule["adduct_fn"] if "add_fn" in rule else None
+        add_fn = rule["adduct_fn"] if "adduct_fn" in rule else None
         if naming_fn is not None:
             parts = naming_fn.split(",")
-            naming_fn = lambda i: parts_eval(parts, i)
+            naming_fn = lambda i, parts=parts: parts_eval(i, parts)
+            fns.append(naming_fn)
         else:
             naming_fn = lambda i: name + str(i)
 
-        s = SpeciesRule(name, category, mz, count, begin, end, naming_fn)
+        s = SpeciesRule(name=name, category=category, mz=mz, count=count, begin=begin, end=end, naming_fn=naming_fn, adduct_fn=add_fn)
         species.append(s)
     return species
 

@@ -1,16 +1,21 @@
 import csv
+import src.speciesrule as sr
+import src.spectrainterpretation as si
+from src.theoreticalspectrum import TheoreticalSpectrum
 
-with open("/mnt/d/theoretical_spectrum.csv") as csvfile:
-    reader = csv.reader(csvfile, delimiter=";")
-    for row in reader:
-        species_type = row[0]
-        species_name = row[1]
-        species_mz = float(row[2].replace(",", "."))
-        begin = row[3]
-        end = row[4]
-        if species_type.endswith("S"):
-            species_begin = float(begin)
-            species_end = float(end)
-        else:
-            species_begin = int(begin)
-            species_end = int(end)
+theoretical_name = "data/species_rule.json"
+observed_name = "data/peaksel_deisotoped.csv"
+species = sr.json_to_species(theoretical_name)
+ions = [mol for mol in species if mol.category=="Ion"]
+adducts = [mol for mol in species if mol.category=="Adduct"]
+print(len(ions), "ions,", len(adducts), "adducts")
+
+theoretical_spectrum = TheoreticalSpectrum(ions, adducts)
+
+with open(observed_name) as csv_file:
+    csv_reader = csv.reader(csv_file, delimiter=";")
+    observed_spectrum = [float(row[0]) for row in csv_reader]
+
+annotation = si.annotation(observed_spectrum, theoretical_spectrum.spectrum, 1)
+
+print({k:v for k, v in annotation.items() if v is not None})
