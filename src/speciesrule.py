@@ -55,7 +55,7 @@ class SpeciesRule:
             self.begin = mz
 
         if begin is not None and end is not None:
-            self.count = int((end - begin) // self.mz)
+            self.count = int((end - begin) // self.mz) + 1
         else:
             self.count = count
 

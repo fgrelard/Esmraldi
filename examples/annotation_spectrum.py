@@ -16,6 +16,6 @@ with open(observed_name) as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=";")
     observed_spectrum = [float(row[0]) for row in csv_reader]
 
-annotation = si.annotation(observed_spectrum, theoretical_spectrum.spectrum, 1)
+annotation = si.annotation(observed_spectrum, theoretical_spectrum.spectrum, 0.5)
 
 print({k:v for k, v in annotation.items() if v is not None})

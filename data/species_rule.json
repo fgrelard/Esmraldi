@@ -3,7 +3,7 @@
         {
             "name": "AX",
             "category": "Ion",
-            "mz": 132.06,
+            "mz": 132.05,
             "begin": 569.26,
             "end": 2500,
             "naming_fn": "AX,i+3"
