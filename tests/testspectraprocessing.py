@@ -68,6 +68,31 @@ class TestSpectraProcessing(unittest.TestCase):
         sum_after = sp.spectra_sum(s)
         nptest.assert_equal(x[0], self.spectra[0][0][18])
 
+    def test_find_isotopic_pattern(self):
+        L = [[10.2, 10.], [11, 23.], [12.23, 11.25],
+             [13.23, 8.75], [14.3, 6.2], [15.2, 18.96],
+             [16.2, 38.2], [17.21, 20.1], [18.19, 7.5]]
+        pattern = sp.find_isotopic_pattern(L, 0.1)
+        print(pattern)
+
+    def test_peaks_isotopic_pattern(self):
+        L = [[10.2, 10.], [11, 23.], [12.23, 11.25],
+             [13.23, 8.75], [14.3, 6.2], [15.2, 18.96],
+             [16.2, 38.2], [17.21, 20.1], [18.19, 7.5]]
+        pattern = sp.find_isotopic_pattern(L, 0.1)
+        print(pattern)
+        d = sp.forward_derivatives(pattern)
+        print(d)
+        peaks = sp.peaks_isotopic_pattern(pattern)
+        print(peaks)
+
+    def test_forward_derivatives(self):
+        L = [[10, 10.], [11, 23.], [12.23, 11.25],
+             [13.23, 8.75], [14.3, 6.2], [15.2, 18.96],
+             [16.2, 38.2], [17.21, 20.1], [18.19, 7.5]]
+        d = sp.forward_derivatives(L)
+        print(d)
+
     def test_deisotoping(self):
         spectra = np.load("data/peaksel_650DJ_35.npy")
         print(spectra.shape)

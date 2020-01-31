@@ -1,9 +1,11 @@
+import ms_peak_picker
+import ms_deisotope
+import math
 import scipy.signal as signal
 import numpy as np
 import matplotlib.pyplot as plt
 from pyopenms import *
-import ms_peak_picker
-import ms_deisotope
+
 
 def spectra_sum(spectra):
     """
@@ -348,6 +350,69 @@ def realign(spectra, prominence=50, nb_occurrence=4, step=2):
     return np.array(realigned_spectra)
 
 
+def neighbours(index_peak, n, spectra):
+    i = index_peak+1
+    return spectra[i:i+n, ...]
+
+def forward_derivatives(peaks):
+    derivatives = []
+    for i in range(len(peaks)-1):
+        p = peaks[i]
+        p_next = peaks[i+1]
+        d = (p_next[1] - p[1]) / (p_next[0] - p[0])
+        derivatives.append(d)
+    return derivatives
+
+def find_isotopic_pattern(neighbours, tolerance, nb_charges=5):
+    pattern = []
+    peak = neighbours[0]
+    for j in range(len(neighbours)):
+        n = neighbours[j]
+        d = n[0] - peak[0]
+        if abs(d - round(d)) < tolerance and d < nb_charges+1:
+            pattern.append(n)
+    return pattern
+
+def peaks_isotopic_pattern(pattern):
+    peaks = []
+    derivatives = forward_derivatives(pattern)
+    for j in range(1, len(derivatives)):
+        d = derivatives[j]
+        d_previous = derivatives[j - 1]
+        associated_peak = pattern[j+1]
+        if d > 0 and d_previous <= 0:
+            peaks.append(associated_peak)
+    if len(peaks) == 0:
+        peaks.append(pattern[0])
+    return peaks
+
+def deisotoping_simple(spectra, tolerance=0.1, nb_neighbours=8, nb_charges=5):
+    deisotoped_spectra = []
+    deisotoped_indices = []
+    ignore_indices = []
+    mzs = spectra[0, 0]
+    x = mzs.shape[0]
+    for i in range(x):
+        if i in ignore_indices:
+            continue
+        peak = mzs[i, ...]
+        N = neighbours(i, nb_neighbours, mzs)
+        for j in range(len(N)):
+            n = N[j]
+            d = n - peak
+            if abs(d - math.floor(d)) < tolerance:
+                ignore_indices.append(i+j)
+        deisotoped_indices.append(i)
+    print(len(ignore_indices))
+    deisotoped_indices = np.array(deisotoped_indices)
+    for spectrum in spectra:
+        x, y = spectrum
+        new_x = x[deisotoped_indices]
+        new_y = y[deisotoped_indices]
+        deisotoped_spectra.append((new_x, new_y))
+    return np.array(deisotoped_spectra)
+
+
 def deisotoping(spectra):
     """
     Removes isotopes from a collection of spectra
@@ -375,7 +440,7 @@ def deisotoping(spectra):
     for i in range(x):
         s = MSSpectrum()
         s.set_peaks(spectra[i, ...].tolist())
-        Deisotoper.deisotopeAndSingleCharge(s, fragment_tolerance=0.1, fragment_unit_ppm=False, min_charge=1, max_charge=3, keep_only_deisotoped=True, min_isopeaks=2, max_isopeaks=3, make_single_charged=True, annotate_charge=True)
+        Deisotoper.deisotopeAndSingleCharge(s, fragment_tolerance=0.1, fragment_unit_ppm=False, min_charge=1, max_charge=8, keep_only_deisotoped=True, min_isopeaks=2, max_isopeaks=3, make_single_charged=True, annotate_charge=True)
         if s.size() > max_length:
             max_length = s.size()
             mzs = np.array(s.get_peaks())[0, ...]
@@ -401,8 +466,20 @@ def peak_to_ms_peak(peak, index):
     ms_peak_picker.FittedPeak
         adjusted peak
     """
-    peak = ms_peak_picker.FittedPeak( peak[0], peak[1], peak[1]*0.1, index, index, 0.005, peak[1]*1.5, 0.0025, 0.0025)
+    peak = ms_peak_picker.FittedPeak(mz=peak[0],
+                                     intensity=peak[1],
+                                     signal_to_noise=max(peak[1]*0.1, 50),
+                                     peak_count=index,
+                                     index=index,
+                                     full_width_at_half_max=0.1,
+                                     area=peak[1]*0.1,
+                                     left_width=0.05,
+                                     right_width=0.05)
     return peak
+
+
+
+
 
 def deisotoping_deconvolution(spectra):
     """

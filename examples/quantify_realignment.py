@@ -82,11 +82,13 @@ def extract_indices_from_mz(mzs, x):
             l.append(i)
     return l
 
-realigned_spectra = np.load("data/peaksel_2.npy")
+realigned_spectra = np.load("data/old/peaksel_2.npy")
+realigned_spectra = sp.deisotoping_simple(realigned_spectra)
+print(realigned_spectra.shape)
 sum_realigned = complete_sum(realigned_spectra)
 snoise_realigned, median_realigned = estimate_noise_ratio(realigned_spectra[:, 1, :])
 
-full_spectra =  np.load("data/spectra.npy")
+full_spectra =  np.load("data/old/spectra.npy")
 indices_realigned = extract_indices_from_mz(realigned_spectra[0, 0, :], full_spectra[0,0,:])
 #cwt_indices = cwt_peak_indices(full_spectra)
 #np.save("indices_cwt.npy", cwt_indices)
@@ -94,13 +96,16 @@ indices_realigned = extract_indices_from_mz(realigned_spectra[0, 0, :], full_spe
 distance_between_mz = full_spectra[0,0,1] - full_spectra[0,0,0]
 prominence = 50
 
-indices_full_spectra = np.load("data/indices_full.npy")
+indices_full_spectra = np.load("data/old/indices_full.npy")
 unique_indices = np.unique(indices_full_spectra)
 
-spectra_max_before = np.load("data/spectra_max.npy")
+spectra_max_before = np.load("data/old/spectra_max.npy")
 indices_spectra_max = sp.peak_indices(spectra_max_before, 5)
 
 print(len(spectra_max_before), " ", len(indices_spectra_max))
+plt.plot(full_spectra[0][0], spectra_max_before, full_spectra[0,0, indices_realigned], np.array(spectra_max_before[indices_realigned]), ".")
+plt.show()
+exit(0)
 
 ui_realigned = realign_close_peaks(indices_realigned, indices_spectra_max)
 ism_realigned = realign_close_peaks(indices_spectra_max, indices_realigned)
@@ -112,8 +117,7 @@ print("FullSpectra min=", full_spectra[:, 1, :].min(), ", max=", full_spectra[:,
 print("Precision=", p, " recall=", r)
 print("Missing indices=", len(missing), " max=", peaks_missing.max(), " median=", np.median(peaks_missing), " mean=", np.mean(peaks_missing), " stddev=", np.std(peaks_missing))
 
-plt.plot(full_spectra[0][0], spectra_max_before, full_spectra[0,0, indices_realigned], np.array(spectra_max_before[indices_realigned]), ".")
-plt.show()
+
 
 #print(indices_spectra_max)
 #realign = sp.realign(full_spectra, prominence)

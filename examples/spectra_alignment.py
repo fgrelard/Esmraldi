@@ -21,6 +21,17 @@ def plot_peak_selected(spectra, realigned_spectra):
     plt.plot(spectra[0][0], spectra_max_before, realigned_spectra[0][0], np.array(spectra_max_before)[small_indices], ".")
     plt.show()
 
+def extract_mz_above(spectra):
+    indices = spectra[0,0,...] > 1700
+    smaller_spectra = spectra[..., indices]
+    return smaller_spectra
+
+
+# spectra = np.load("data/old/peaksel_2.npy")
+# deisotoped_spectra = sp.deisotoping(spectra)
+# np.save("data/peaksel_2_deisotoped.npy", deisotoped_spectra)
+# print(spectra.shape)
+# exit(0)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input MALDI imzML")
@@ -31,7 +42,7 @@ inputname = args.input
 outname = args.output
 
 p = io.open_imzml(inputname)
-#spectra = np.load("data/spectra_small.npy")
+
 spectra = io.get_spectra(p)
 
 prominence = 50
