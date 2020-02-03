@@ -6,6 +6,33 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pyopenms import *
 
+class Peak:
+    def __init__(self, mz, intensity):
+        self.mz = mz
+        self.intensity = intensity
+
+
+def array_to_peaks(array):
+    L = []
+    mzs = array[0, :]
+    intensities = array[1, :]
+    for j in range(len(mzs)):
+        p = Peak(mzs[j], intensities[j])
+        L.append(p)
+    return np.array(L)
+
+def peaks_to_array(peaks):
+    L = [ [peak.mz for peak in peaks],
+          [peak.intensity for peak in peaks] ]
+    return np.array(L)
+
+def spectra_to_peaklist(spectra):
+    L = [ array_to_peaks(array) for array in spectra ]
+    return np.array(L)
+
+def peaklist_to_spectra(peaklist):
+    L = [ peaks_to_array(peaks) for peaks in peaklist ]
+    return np.array(L)
 
 def spectra_sum(spectra):
     """
@@ -350,9 +377,10 @@ def realign(spectra, prominence=50, nb_occurrence=4, step=2):
     return np.array(realigned_spectra)
 
 
-def neighbours(index_peak, n, spectra):
-    i = index_peak+1
-    return spectra[i:i+n, ...]
+def neighbours(index, n, spectra):
+    s = index
+    e = index + n if index + n < spectra.shape[0] else spectra.shape[0]
+    return spectra[s:e, ...]
 
 def forward_derivatives(peaks):
     derivatives = []
@@ -363,13 +391,13 @@ def forward_derivatives(peaks):
         derivatives.append(d)
     return derivatives
 
-def find_isotopic_pattern(neighbours, tolerance, nb_charges=5):
+def find_isotopic_pattern(neighbours, tolerance, nb_charges):
     pattern = []
-    peak = neighbours[0]
-    for j in range(len(neighbours)):
+    for j in range(neighbours.shape[0]):
         n = neighbours[j]
-        d = n[0] - peak[0]
-        if abs(d - round(d)) < tolerance and d < nb_charges+1:
+        d = n[0] - neighbours[0][0]
+        eps = abs(d - round(d))
+        if eps < tolerance and d-eps < nb_charges:
             pattern.append(n)
     return pattern
 
@@ -379,37 +407,72 @@ def peaks_isotopic_pattern(pattern):
     for j in range(1, len(derivatives)):
         d = derivatives[j]
         d_previous = derivatives[j - 1]
+        previous_peak = pattern[j]
         associated_peak = pattern[j+1]
-        if d > 0 and d_previous <= 0:
+        ratio = associated_peak[1]/previous_peak[1]
+        if (d > 0 and d_previous <= 0) or ratio > 5:
             peaks.append(associated_peak)
-    if len(peaks) == 0:
-        peaks.append(pattern[0])
     return peaks
+
+
+def isotope_indices(pattern, peaks_in_pattern):
+    indices_isotopes = []
+    for i in range(len(pattern)):
+        close = False
+        peak = pattern[i]
+        for other_peak in peaks_in_pattern:
+            close |= np.isclose(peak[0], other_peak[0])
+        if not close:
+            indices_isotopes.append(i)
+    return indices_isotopes
+
+def isotopes_from_pattern(pattern, peaks_in_pattern):
+    isotopes = []
+    for i in range(len(pattern)):
+        close = False
+        peak = pattern[i]
+        for other_peak in peaks_in_pattern:
+            close |= np.isclose(peak[0], other_peak[0])
+        if not close and i > 0:
+            isotopes.append(peak)
+    return np.array(isotopes)
 
 def deisotoping_simple(spectra, tolerance=0.1, nb_neighbours=8, nb_charges=5):
     deisotoped_spectra = []
     deisotoped_indices = []
     ignore_indices = []
-    mzs = spectra[0, 0]
-    x = mzs.shape[0]
+    mzs = spectra[0][0]
+    peaks = spectra_max(spectra)
+    peaks = np.array([mzs, peaks])
+    peaks = peaks[...,(peaks[0] > 604) & (peaks[0] < 622)]
+    x = peaks.shape[-1]
+    # print(peaks)
     for i in range(x):
-        if i in ignore_indices:
+        if np.any([np.isclose(ignore_indices[j][0], peaks[0, i]) for j in range(len(ignore_indices))]):
             continue
-        peak = mzs[i, ...]
-        N = neighbours(i, nb_neighbours, mzs)
-        for j in range(len(N)):
-            n = N[j]
-            d = n - peak
-            if abs(d - math.floor(d)) < tolerance:
-                ignore_indices.append(i+j)
+        peak = peaks[..., i]
+        N = neighbours(i, nb_neighbours, peaks.T)
+        # print(N)
+        pattern = find_isotopic_pattern(N, tolerance, nb_charges)
+        # print("Pattern=", pattern)
+        other_peaks = peaks_isotopic_pattern(pattern)
+        # print("Other peaks=", other_peaks)
+        #isotope_ind = isotope_indices(pattern, other_peaks)
+        #print("Isotope ind=", isotope_ind)
+        isotopes = isotopes_from_pattern(pattern, other_peaks)
+        # print("Isotopes=", isotopes)
+        ignore_indices.extend(isotopes)
+        # ignore_indices.extend([i+j for j in isotope_ind if j != 0])
         deisotoped_indices.append(i)
-    print(len(ignore_indices))
+    print("End, ignore ind=", ignore_indices)
     deisotoped_indices = np.array(deisotoped_indices)
+    print("Deisotoped ind=", deisotoped_indices)
     for spectrum in spectra:
-        x, y = spectrum
-        new_x = x[deisotoped_indices]
-        new_y = y[deisotoped_indices]
-        deisotoped_spectra.append((new_x, new_y))
+        mzs, intensities = spectrum
+        new_mzs = mzs[deisotoped_indices]
+        new_intensities = intensities[deisotoped_indices]
+        deisotoped_spectra.append((new_mzs, new_intensities))
+    print("Start len=", x, "Final len=", len(deisotoped_spectra[0][0]))
     return np.array(deisotoped_spectra)
 
 
