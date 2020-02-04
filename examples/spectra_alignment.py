@@ -45,7 +45,7 @@ p = io.open_imzml(inputname)
 
 spectra = io.get_spectra(p)
 
-prominence = 50
+prominence = 75
 
 print("Realignment")
 realigned_spectra = sp.realign(spectra, prominence)
@@ -65,6 +65,6 @@ for spectrum in deisotoped_spectra:
     mzs.append(x)
     intensities.append(y)
 
-#np.save("data/peaksel_650DJ_35.npy", realigned_spectra)
+#np.save("data/peaksel_250DJ_prominence75.npy", realigned_spectra)
 
 io.write_imzml(mzs, intensities, p.coordinates, outname)

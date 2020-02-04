@@ -1,6 +1,7 @@
 import ms_peak_picker
 import ms_deisotope
 import math
+import re
 import scipy.signal as signal
 import numpy as np
 import matplotlib.pyplot as plt
@@ -392,17 +393,26 @@ def forward_derivatives(peaks):
     return derivatives
 
 def find_isotopic_pattern(neighbours, tolerance, nb_charges):
-    pattern = []
-    for j in range(neighbours.shape[0]):
+    pattern = [neighbours[0]]
+    for j in range(1, neighbours.shape[0]):
         n = neighbours[j]
         d = n[0] - neighbours[0][0]
         eps = abs(d - round(d))
-        if eps < tolerance and d-eps < nb_charges:
+
+        previous = pattern[-1]
+        d_previous = n[0] - previous[0]
+        eps_previous = abs(d_previous - round(d_previous))
+        if eps < tolerance and d_previous-eps_previous < nb_charges:
             pattern.append(n)
     return pattern
 
-def peaks_isotopic_pattern(pattern):
-    peaks = []
+def peaks_max_intensity_isotopic_pattern(pattern):
+    index_max = np.argmax(np.array(pattern), axis=0)[1]
+    return [pattern[index_max]]
+
+
+def peaks_derivative_isotopic_pattern(pattern):
+    peaks = [pattern[0]]
     derivatives = forward_derivatives(pattern)
     for j in range(1, len(derivatives)):
         d = derivatives[j]
@@ -415,17 +425,6 @@ def peaks_isotopic_pattern(pattern):
     return peaks
 
 
-def isotope_indices(pattern, peaks_in_pattern):
-    indices_isotopes = []
-    for i in range(len(pattern)):
-        close = False
-        peak = pattern[i]
-        for other_peak in peaks_in_pattern:
-            close |= np.isclose(peak[0], other_peak[0])
-        if not close:
-            indices_isotopes.append(i)
-    return indices_isotopes
-
 def isotopes_from_pattern(pattern, peaks_in_pattern):
     isotopes = []
     for i in range(len(pattern)):
@@ -433,38 +432,64 @@ def isotopes_from_pattern(pattern, peaks_in_pattern):
         peak = pattern[i]
         for other_peak in peaks_in_pattern:
             close |= np.isclose(peak[0], other_peak[0])
-        if not close and i > 0:
+        if not close:
             isotopes.append(peak)
     return np.array(isotopes)
 
-def deisotoping_simple(spectra, tolerance=0.1, nb_neighbours=8, nb_charges=5):
+def mz_second_isotope_most_abundant(average_distribution):
+    masses = {"H": 1.0078, "C": 12, "N": 14.00307, "O": 15.99491, "S": 31.97207, "H2": 2.014, "C13": 13.00335, "N15":15.00011, "O17": 16.999913, "O18": 17.99916, "S33":32.97146, "S34": 33.9678}
+    distribution = {"H": 0.99985, "C": 0.9889, "N": 0.9964, "O": 0.9976, "S": 0.95, "H2": 0.00015, "C13": 0.0111, "N15": 0.0036, "O17": 0.0004, "O18": 0.002, "S33": 0.0076, "S34": 0.0422}
+    without_isotopes = 0
+    with_isotopes = 0
+    list_names = '\n'.join(list(masses.keys()))
+    for k, v in average_distribution.items():
+        if k in masses:
+            pattern = re.compile(k + ".*")
+            without_isotopes += v*masses[k]
+            matches = pattern.findall(list_names)
+            with_isotopes += sum([v*masses[m]*distribution[m] for m in matches])
+    if with_isotopes == without_isotopes:
+        return 0
+    n = 1.0 / (with_isotopes - without_isotopes)
+    mz = n * without_isotopes
+    return mz
+
+def peak_to_index(peak, pattern):
+    for i in range(len(pattern)):
+        p = pattern[i]
+        if np.isclose(peak[0], p[0]):
+            return i
+    return 0
+
+def deisotoping_simple(spectra, tolerance=0.1, nb_neighbours=8, nb_charges=5, average_distribution={}):
     deisotoped_spectra = []
     deisotoped_indices = []
     ignore_indices = []
+    mz_second_isotope = mz_second_isotope_most_abundant(average_distribution)
     mzs = spectra[0][0]
     peaks = spectra_max(spectra)
     peaks = np.array([mzs, peaks])
-    peaks = peaks[...,(peaks[0] > 604) & (peaks[0] < 622)]
+    # peaks = peaks[...,(peaks[0] > 860) & (peaks[0] < 880)]
     x = peaks.shape[-1]
-    # print(peaks)
     for i in range(x):
         if np.any([np.isclose(ignore_indices[j][0], peaks[0, i]) for j in range(len(ignore_indices))]):
             continue
         peak = peaks[..., i]
         N = neighbours(i, nb_neighbours, peaks.T)
-        # print(N)
         pattern = find_isotopic_pattern(N, tolerance, nb_charges)
-        # print("Pattern=", pattern)
-        other_peaks = peaks_isotopic_pattern(pattern)
-        # print("Other peaks=", other_peaks)
-        #isotope_ind = isotope_indices(pattern, other_peaks)
-        #print("Isotope ind=", isotope_ind)
-        isotopes = isotopes_from_pattern(pattern, other_peaks)
-        # print("Isotopes=", isotopes)
+        if peak[0] < mz_second_isotope:
+            peaks_pattern = peaks_max_intensity_isotopic_pattern(pattern)
+        else:
+            peaks_pattern = peaks_derivative_isotopic_pattern(pattern)
+        isotopes = isotopes_from_pattern(pattern, peaks_pattern)
         ignore_indices.extend(isotopes)
-        # ignore_indices.extend([i+j for j in isotope_ind if j != 0])
-        deisotoped_indices.append(i)
-    print("End, ignore ind=", ignore_indices)
+        indices = [peak_to_index(peak, pattern) for peak in peaks_pattern]
+        deisotoped_indices.extend([i+j for j in indices if i+j not in deisotoped_indices])
+        # print("Neighbours=", N)
+        # print("Pattern=", pattern)
+        # print("Other peaks=", peaks_pattern)
+        # print("Isotopes=", isotopes)
+
     deisotoped_indices = np.array(deisotoped_indices)
     print("Deisotoped ind=", deisotoped_indices)
     for spectrum in spectra:

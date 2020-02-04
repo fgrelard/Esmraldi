@@ -117,6 +117,12 @@ class TestSpectraProcessing(unittest.TestCase):
         isotopes = sp.isotope_indices(pattern, peaks)
         nptest.assert_equal(isotopes, [0, 1, 2])
 
+    def test_mz_second_isotope_most_abundant(self):
+        distrib = {'C': 7.0, 'H': 11.8333, 'N': 0.5, 'O': 5.16666}
+        distrib = {}
+        mz = sp.mz_second_isotope_most_abundant(distrib)
+        nptest.assert_almost_equal(mz, 1778.6831809)
+
     def test_deisotoping(self):
         spectra = np.load("data/peaksel_650DJ_35.npy")
         print(spectra.shape)

@@ -82,9 +82,9 @@ def extract_indices_from_mz(mzs, x):
             l.append(i)
     return l
 
-realigned_spectra = np.load("data/old/peaksel_2.npy")
-realigned_spectra = sp.deisotoping_simple(realigned_spectra, nb_charges=4)
-exit(0)
+averagine = {'C': 7.0, 'H': 11.8333, 'N': 0.5, 'O': 5.16666}
+realigned_spectra = np.load("data/peaksel_250DJ_prominence75.npy")
+realigned_spectra = sp.deisotoping_simple(realigned_spectra, nb_charges=2, average_distribution=averagine)
 print(realigned_spectra.shape)
 sum_realigned = complete_sum(realigned_spectra)
 snoise_realigned, median_realigned = estimate_noise_ratio(realigned_spectra[:, 1, :])
@@ -106,7 +106,7 @@ indices_spectra_max = sp.peak_indices(spectra_max_before, 5)
 print(len(spectra_max_before), " ", len(indices_spectra_max))
 plt.plot(full_spectra[0][0], spectra_max_before, full_spectra[0,0, indices_realigned], np.array(spectra_max_before[indices_realigned]), ".")
 plt.show()
-
+exit(0)
 ui_realigned = realign_close_peaks(indices_realigned, indices_spectra_max)
 ism_realigned = realign_close_peaks(indices_spectra_max, indices_realigned)
 p = precision(ui_realigned, ism_realigned)
