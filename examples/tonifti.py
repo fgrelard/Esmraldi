@@ -1,6 +1,7 @@
+import argparse
+import os
 import src.segmentation as seg
 import src.imzmlio as imzmlio
-import argparse
 
 def reduce_image(image):
     mzs = []
@@ -22,7 +23,10 @@ args = parser.parse_args()
 inputname = args.input
 outname = args.output
 
+root, ext = os.path.splitext(outname)
 image = imzmlio.open_imzml(inputname)
 img_array = imzmlio.to_image_array(image)
+mzs, y = image.getspectrum(0)
 imzmlio.to_nifti(img_array, outname)
+imzmlio.to_csv(mzs, root+".csv")
 #seg.max_variance_sort(image)

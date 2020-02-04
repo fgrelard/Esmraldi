@@ -157,3 +157,6 @@ def to_nifti(image, filename):
     """
     nibimg = nib.Nifti1Image(image, np.eye(4))
     nibimg.to_filename(filename)
+
+def to_csv(array, filename):
+    np.savetxt(filename, array, delimiter=";", fmt='%1.4f')
