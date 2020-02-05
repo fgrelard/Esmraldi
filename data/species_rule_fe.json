@@ -22,6 +22,14 @@
             "count": 4,
             "naming_fn": "i,Ac",
             "adduct_fn": "AX.*"
+        },
+        {
+            "name": "Fe",
+            "category": "Adduct",
+            "mz": 176.072,
+            "count": 3,
+            "naming_fn": "i,Fe",
+            "adduct_fn": "AX.*"
         }
     ]
 }

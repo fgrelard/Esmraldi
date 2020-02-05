@@ -1,6 +1,7 @@
 import numpy as np
 import cv2 as cv
 from sklearn.decomposition import PCA
+from sklearn.decomposition import NMF
 from sklearn.cluster import KMeans, AffinityPropagation
 from sklearn.manifold import TSNE
 
@@ -62,6 +63,12 @@ def pca(image, n=5):
     pca = PCA(n_components=n)
     fit_pca = pca.fit(image)
     return fit_pca
+
+def nmf(image, n=5):
+    nmf_obj = NMF(n_components=n, init='nndsvda', solver='cd', random_state=0)
+    fit_nmf = nmf_obj.fit(image)
+    return fit_nmf
+
 
 def post_processing(pca_maldi, pca_mri):
     """

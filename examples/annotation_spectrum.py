@@ -3,7 +3,7 @@ import src.speciesrule as sr
 import src.spectrainterpretation as si
 from src.theoreticalspectrum import TheoreticalSpectrum
 
-theoretical_name = "data/species_rule.json"
+theoretical_name = "data/species_rule_fe.json"
 observed_name = "data/peaksel_deisotoped.csv"
 species = sr.json_to_species(theoretical_name)
 ions = [mol for mol in species if mol.category=="Ion"]
