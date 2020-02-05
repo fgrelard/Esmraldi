@@ -73,6 +73,10 @@ for i in range(eigenvectors.shape[0]):
     plt.imshow(image_eigenvectors[..., i], cmap="gray")
     plt.axis("off")
     plt.savefig(current_name + ".png", bbox_inches="tight")
+    plt.close()
+    plt.stem(mzs, eigenvectors[i], use_line_collection=True)
+    plt.savefig(current_name + "_eigenvectors.png", bbox_inches="tight")
+    plt.close()
     descending_indices = eigenvectors[i].argsort()[::-1]
     descending_scores = eigenvectors[i, descending_indices]
     descending_mzs = mzs[descending_indices]
@@ -92,5 +96,3 @@ np.savetxt(outname, tables_reshaped, delimiter=";", fmt="%s", header=header, com
 # plt.imshow(image_eigenvectors[..., 0])
 # plt.show()
 annotation = si.annotation(mzs, theoretical_spectrum.spectrum, 0.5)
-
-print({k:v for k, v in annotation.items() if v is not None})
