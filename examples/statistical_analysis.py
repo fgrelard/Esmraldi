@@ -17,7 +17,7 @@ import cv2
 
 def plot_clustering(X, labels, mri):
     n_clusters = len(np.unique(labels))
-    cm = plt.get_cmap('nipy_spectral')
+    cm = plt.get_cmap('gray')
     plt.plot(mri[0][0], mri[0][1], "x")
     for k in range(n_clusters):
         class_members = labels == k
@@ -33,16 +33,16 @@ def plot_pca(X_r, af):
     plt.scatter(X_r[:, 0], X_r[:, 1], c=af.predict(X_r), cmap="nipy_spectral", alpha=0.7, norm=colors.Normalize(0, 25))
     plt.show()
 
-def visualize_scatter_with_images(X_all, images_maldi, images_mri, figsize=(45,45), image_zoom=1):
+def visualize_scatter_with_images(X_all, images_maldi, images_mri,figsize=(45,45), image_zoom=1):
     fig, ax = plt.subplots(figsize=figsize)
     artists = []
     for xy, i in zip(X_all[:-1, :], images_maldi):
         x0, y0 = xy
-        img = OffsetImage(i, zoom=image_zoom)
+        img = OffsetImage(i, zoom=image_zoom, cmap='gray')
         ab = AnnotationBbox(img, (x0, y0), xycoords='data', frameon=False)
         artists.append(ax.add_artist(ab))
 
-    img_mri = OffsetImage(images_mri, zoom=image_zoom)
+    img_mri = OffsetImage(images_mri, zoom=image_zoom, cmap='gray')
     x_mri, y_mri = X_all[-1:, 0], X_all[-1:, 1]
     ab_mri = AnnotationBbox(img_mri, (x_mri, y_mri), xycoords='data', frameon=True, bboxprops =dict(ec="r", lw=2))
     artists.append(ax.add_artist(ab_mri))
@@ -51,9 +51,9 @@ def visualize_scatter_with_images(X_all, images_maldi, images_mri, figsize=(45,4
     plt.show()
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--input", help="Input MALDI image")
-parser.add_argument("-m", "--mri", help="Input MRI image")
-parser.add_argument("-o", "--output", help="Output image")
+parser.add_argument("-i", "--input", help="Input MALDI image (imzML or nii)")
+parser.add_argument("-m", "--mri", help="Input MRI image (ITK format)")
+parser.add_argument("-o", "--output", help="Output image (ITK format)")
 parser.add_argument("-r", "--ratio", help="Compute ratio images", action="store_true")
 parser.add_argument("-t", "--top", help="#Top", default=0)
 parser.add_argument("-g", "--threshold", help="Mass to charge ratio threshold", default=0)
@@ -109,10 +109,9 @@ if is_ratio:
     mzs = np.concatenate((mzs, ratio_mzs))
 
 image = imzmlio.normalize(image)
-
 image_norm = seg.preprocess_pca(image)
 mri_norm = seg.preprocess_pca(image_mri)
-print(image_norm.shape)
+
 
 print("Computing PCA")
 fit_pca = fusion.pca(image_norm)
@@ -123,24 +122,33 @@ print("Explained variance ratio =", fit_pca.explained_variance_ratio_)
 weights = fit_pca.explained_variance_ratio_ / np.sum(fit_pca.explained_variance_ratio_)
 X_r = fit_pca.transform(image_norm)
 X_train, X_test = fusion.post_processing(X_r, point)
-
 clustering = fusion.clustering_kmeans(X_train)
+
+
+plt.plot(X_r[:, 0], X_r[:, 1], "b.")
+plt.plot(point[:, 0], point[:, 1], "ro")
+plt.show()
+plt.close()
 
 plt.plot(X_train[:, 0], X_train[:, 1], "b.")
 plt.plot(X_test[:, 0], X_test[:, 1], "ro")
 plt.show()
-
+plt.close()
 
 if not is_ratio:
     X_all = np.concatenate((X_train, X_test), axis=0)
     tsne_all = StandardScaler().fit_transform(X_all)
-    pca_all = StandardScaler().fit_transform(X_r)
+    X_r_all = np.concatenate((X_r, point), axis=0)
+    pca_all = StandardScaler().fit_transform(X_r_all)
+    mri = StandardScaler().fit_transform(point)
     pca_all = pca_all[..., :2]
-    images_maldi = [cv2.resize(i, (45,45)) for i in image.T]
-    image_mri = cv2.resize(image_mri.T, (45,45))
+    size = (45, 45)
+    images_maldi = [cv2.resize(i, size) for i in image.T]
+    image_mri = cv2.resize(image_mri.T, size)
     visualize_scatter_with_images(pca_all,
                                   images_maldi,
                                   image_mri,
+                                  figsize=size,
                                   image_zoom=0.7)
 
 

@@ -6,7 +6,7 @@ from src.theoreticalspectrum import TheoreticalSpectrum
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--theoretical", help="Theoretical spectrum")
-parser.add_argument("-o", "--observed", help="Observed spectrum")
+parser.add_argument("-o", "--observed", help="Observed spectrum (.csv)")
 args = parser.parse_args()
 
 theoretical_name = args.theoretical
@@ -25,4 +25,5 @@ with open(observed_name) as csv_file:
 
 annotation = si.annotation(observed_spectrum, theoretical_spectrum.spectrum, 0.5)
 
+print([v for k, v in annotation.items()][:10])
 print({k:v for k, v in annotation.items() if v is not None})
