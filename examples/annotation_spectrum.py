@@ -1,10 +1,17 @@
+import argparse
 import csv
 import src.speciesrule as sr
 import src.spectrainterpretation as si
 from src.theoreticalspectrum import TheoreticalSpectrum
 
-theoretical_name = "data/species_rule_fe.json"
-observed_name = "data/peaksel_deisotoped.csv"
+parser = argparse.ArgumentParser()
+parser.add_argument("-t", "--theoretical", help="Theoretical spectrum")
+parser.add_argument("-o", "--observed", help="Observed spectrum")
+args = parser.parse_args()
+
+theoretical_name = args.theoretical
+observed_name = args.observed
+
 species = sr.json_to_species(theoretical_name)
 ions = [mol for mol in species if mol.category=="Ion"]
 adducts = [mol for mol in species if mol.category=="Adduct"]

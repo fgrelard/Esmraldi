@@ -84,7 +84,7 @@ def extract_indices_from_mz(mzs, x):
 
 averagine = {'C': 7.0, 'H': 11.8333, 'N': 0.5, 'O': 5.16666}
 realigned_spectra = np.load("data/peaksel_250DJ_prominence75.npy")
-realigned_spectra = sp.deisotoping_simple(realigned_spectra, nb_charges=2, average_distribution=averagine)
+realigned_spectra = sp.deisotoping_simple(realigned_spectra, nb_charges=2, average_distribution={})
 print(realigned_spectra.shape)
 sum_realigned = complete_sum(realigned_spectra)
 snoise_realigned, median_realigned = estimate_noise_ratio(realigned_spectra[:, 1, :])

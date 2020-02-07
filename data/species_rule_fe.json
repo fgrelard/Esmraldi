@@ -5,7 +5,7 @@
             "category": "Ion",
             "mz": 132.05,
             "begin": 569.26,
-            "end": 2500,
+            "end": 3000,
             "naming_fn": "AX,i+3"
         },
         {
@@ -27,7 +27,7 @@
             "name": "Fe",
             "category": "Adduct",
             "mz": 176.072,
-            "count": 3,
+            "count": 2,
             "naming_fn": "i,Fe",
             "adduct_fn": "AX.*"
         }

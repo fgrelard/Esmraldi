@@ -134,10 +134,11 @@ plt.show()
 if not is_ratio:
     X_all = np.concatenate((X_train, X_test), axis=0)
     tsne_all = StandardScaler().fit_transform(X_all)
-
+    pca_all = StandardScaler().fit_transform(X_r)
+    pca_all = pca_all[..., :2]
     images_maldi = [cv2.resize(i, (45,45)) for i in image.T]
     image_mri = cv2.resize(image_mri.T, (45,45))
-    visualize_scatter_with_images(tsne_all,
+    visualize_scatter_with_images(pca_all,
                                   images_maldi,
                                   image_mri,
                                   image_zoom=0.7)

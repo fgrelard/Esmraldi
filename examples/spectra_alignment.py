@@ -52,7 +52,7 @@ realigned_spectra = sp.realign(spectra, prominence)
 
 print("Deisotoping")
 averagine = {'C': 7.0, 'H': 11.8333, 'N': 0.5, 'O': 5.16666}
-deisotoped_spectra = sp.deisotoping_simple(realigned_spectra, nb_charges=2, average_distribution=averagine)
+deisotoped_spectra = sp.deisotoping_simple(realigned_spectra, nb_charges=2, average_distribution={})
 
 # deisotoped_spectra = sp.deisotoping(np.array(realigned_spectra))
 
