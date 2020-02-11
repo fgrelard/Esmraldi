@@ -142,7 +142,7 @@ if not is_ratio:
     pca_all = StandardScaler().fit_transform(X_r_all)
     mri = StandardScaler().fit_transform(point)
     pca_all = pca_all[..., :2]
-    size = (45, 45)
+    size = (100, 100)
     images_maldi = [cv2.resize(i, size) for i in image.T]
     image_mri = cv2.resize(image_mri.T, size)
     visualize_scatter_with_images(pca_all,

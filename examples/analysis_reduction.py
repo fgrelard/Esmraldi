@@ -21,6 +21,7 @@ parser.add_argument("-m", "--mzs", help="MZS corresponding to MALDI image")
 parser.add_argument("-t", "--theoretical", help="Theoretical spectrum")
 parser.add_argument("-o", "--output", help="Output csv file(s)")
 parser.add_argument("-n", "--n", help="Number of components for dimension reduction method")
+parser.add_argument("-p", "--preprocess", help="Whether to normalize or not", action="store_true")
 args = parser.parse_args()
 
 
@@ -29,6 +30,7 @@ mzsname = args.mzs
 theoretical_name = args.theoretical
 outname = args.output
 n = int(args.n)
+is_normalized = args.preprocess
 
 outroot, outext = os.path.splitext(outname)
 
@@ -53,7 +55,11 @@ adducts = [mol for mol in species if mol.category=="Adduct"]
 theoretical_spectrum = TheoreticalSpectrum(ions, adducts)
 print(len(ions), "ions,", len(adducts), "adducts")
 
-image = imzmlio.normalize(image)
+if is_normalized:
+    image = imzmlio.normalize(image)
+else:
+    image = np.uint8(image)
+
 image_shape = (image.shape[0], image.shape[1])
 image_norm = seg.preprocess_pca(image)
 M = image_norm.T
@@ -95,4 +101,3 @@ np.savetxt(outname, tables_reshaped, delimiter=";", fmt="%s", header=header, com
 # print(image_eigenvectors.shape)
 # plt.imshow(image_eigenvectors[..., 0])
 # plt.show()
-annotation = si.annotation(mzs, theoretical_spectrum.spectrum, 0.5)
