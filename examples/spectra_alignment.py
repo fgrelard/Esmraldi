@@ -36,29 +36,35 @@ def extract_mz_above(spectra):
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input MALDI imzML")
 parser.add_argument("-o", "--output", help="Output peak selected imzML")
+parser.add_argument("-p", "--prominence", help="Prominence for peak selection", default=75)
+parser.add_argument("-n", "--nbpeaks", help="Number of peaks for the realignment", default=4)
+parser.add_argument("-z", "--nbcharges", help="Number of charges for deisotoping", default=2)
 args = parser.parse_args()
 
 inputname = args.input
 outname = args.output
+prominence = int(args.prominence)
+nb_peaks = int(args.nbpeaks)
+nb_charges = int(args.nbcharges)
 
 p = io.open_imzml(inputname)
 
 spectra = io.get_spectra(p)
 
-prominence = 75
 
 print("Realignment")
-realigned_spectra = sp.realign(spectra, prominence)
+realigned_spectra = sp.realign(spectra, prominence, nb_peaks)
 
 print("Deisotoping")
 averagine = {'C': 7.0, 'H': 11.8333, 'N': 0.5, 'O': 5.16666}
-deisotoped_spectra = sp.deisotoping_simple(realigned_spectra, nb_charges=2, average_distribution={})
+deisotoped_spectra = sp.deisotoping_simple(realigned_spectra, nb_charges=nb_charges, average_distribution={})
 
 # deisotoped_spectra = sp.deisotoping(np.array(realigned_spectra))
 
 print(realigned_spectra.shape)
 print(deisotoped_spectra.shape)
-print(deisotoped_spectra[0, 0, ...])
+print("Before deisotoping", realigned_spectra[0, 0, ...])
+print("After deisotoping", deisotoped_spectra[0, 0, ...])
 
 mzs = []
 intensities = []

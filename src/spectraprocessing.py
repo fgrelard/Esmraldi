@@ -491,13 +491,11 @@ def deisotoping_simple(spectra, tolerance=0.1, nb_neighbours=8, nb_charges=5, av
         # print("Isotopes=", isotopes)
 
     deisotoped_indices = np.array(deisotoped_indices)
-    print("Deisotoped ind=", deisotoped_indices)
     for spectrum in spectra:
         mzs, intensities = spectrum
         new_mzs = mzs[deisotoped_indices]
         new_intensities = intensities[deisotoped_indices]
         deisotoped_spectra.append((new_mzs, new_intensities))
-    print("Start len=", x, "Final len=", len(deisotoped_spectra[0][0]))
     return np.array(deisotoped_spectra)
 
 

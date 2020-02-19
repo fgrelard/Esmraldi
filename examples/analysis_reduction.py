@@ -13,7 +13,10 @@ import src.fusion as fusion
 from sklearn.decomposition import NMF
 from src.theoreticalspectrum import TheoreticalSpectrum
 
-
+def transpose_eigenvectors(M, eigenvectors, eigenvalues):
+    p, n = M.shape
+    evT = [np.divide( (np.dot(M, eigenvectors[i])), (np.sqrt(2 * eigenvalues[i] * (n-1)/(p-1)))) for i in range(n)]
+    return np.asarray(evT)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input MALDI image")
@@ -22,6 +25,7 @@ parser.add_argument("-t", "--theoretical", help="Theoretical spectrum")
 parser.add_argument("-o", "--output", help="Output csv file(s)")
 parser.add_argument("-n", "--n", help="Number of components for dimension reduction method")
 parser.add_argument("-p", "--preprocess", help="Whether to normalize or not", action="store_true")
+parser.add_argument("-f", "--nmf", help="Use NMF instead of PCA", action="store_true")
 args = parser.parse_args()
 
 
@@ -31,6 +35,7 @@ theoretical_name = args.theoretical
 outname = args.output
 n = int(args.n)
 is_normalized = args.preprocess
+is_nmf = args.nmf
 
 outroot, outext = os.path.splitext(outname)
 
@@ -63,11 +68,22 @@ else:
 image_shape = (image.shape[0], image.shape[1])
 image_norm = seg.preprocess_pca(image)
 M = image_norm.T
-nmf = NMF(n_components=n, init='nndsvda', solver='cd', random_state=0)
-fit_nmf = nmf.fit(M)
-eigenvectors = fit_nmf.components_ #H
-eigenvalues = nmf.fit_transform(M); #W
-eigenvectors_transposed = eigenvalues.T
+
+
+if is_nmf:
+    nmf = NMF(n_components=n, init='nndsvda', solver='cd', random_state=0)
+    fit_nmf = nmf.fit(M)
+    eigenvectors = fit_nmf.components_ #H
+    eigenvalues = nmf.fit_transform(M); #W
+    eigenvectors_transposed = eigenvalues.T
+else:
+    # p, n = M.shape
+    fit_pca = fusion.pca(M, n)
+
+    eigenvectors = fit_pca.components_
+    eigenvalues = fit_pca.transform(M)
+    eigenvectors_transposed = eigenvalues.T
+
 image_eigenvectors = eigenvectors_transposed.T
 new_shape = image_shape + (image_eigenvectors.shape[-1],)
 image_eigenvectors = image_eigenvectors.reshape(new_shape)
@@ -76,7 +92,10 @@ tables = []
 for i in range(eigenvectors.shape[0]):
     current_name = outroot + "_" + str(i)
     current_image = image_eigenvectors[..., i]
-    plt.imshow(image_eigenvectors[..., i], cmap="gray")
+    im = plt.imshow(image_eigenvectors[..., i], cmap="gray")
+    clim = im.properties()['clim']
+    plt.colorbar()
+    plt.clim(clim)
     plt.axis("off")
     plt.savefig(current_name + ".png", bbox_inches="tight")
     plt.close()
