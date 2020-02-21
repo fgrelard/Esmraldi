@@ -51,6 +51,10 @@ p = io.open_imzml(inputname)
 
 spectra = io.get_spectra(p)
 
+# print(spectra.shape)
+# mz, I = [spectra[0], spectra[12], spectra[24]]
+# x24, y24 = spectra[24]
+# selection = sp.peak_indices(I, prominence)
 
 print("Realignment")
 realigned_spectra = sp.realign(spectra, prominence, nb_peaks)

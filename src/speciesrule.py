@@ -29,6 +29,7 @@ def json_to_species(filename):
         count = rule["count"] if "count" in rule else 1
         begin = rule["begin"] if "begin" in rule else None
         end = rule["end"] if "end" in rule else None
+        family_number = rule["family_number"] if "family_number" in rule else None
         naming_fn = rule["naming_fn"] if "naming_fn" in rule else None
         add_fn = rule["adduct_fn"] if "adduct_fn" in rule else None
         if naming_fn is not None:
@@ -44,7 +45,7 @@ def json_to_species(filename):
 
 
 class SpeciesRule:
-    def __init__(self, name, category, mz, count=1, begin=None, end=None, naming_fn=None, adduct_fn=None):
+    def __init__(self, name, category, mz, count=1, begin=None, end=None, family_number=None, naming_fn=None, adduct_fn=None):
         self.name = name
         self.category = category
         self.mz = mz
@@ -58,6 +59,11 @@ class SpeciesRule:
             self.count = int((end - begin) // self.mz) + 1
         else:
             self.count = count
+
+        if family_number is not None:
+            self.family_number = family_number
+        else:
+            self.family_number = 1
 
         if naming_fn is None:
             self.naming_fn = lambda i: self.name + str(i)

@@ -1,4 +1,5 @@
 import re
+import numpy as np
 
 class TheoreticalSpectrum:
     def __init__(self,  molecules, adducts):
@@ -13,6 +14,13 @@ class TheoreticalSpectrum:
             theoretical = self.add_adducts_to_molecules_regexp(add)
             self.spectrum.update(theoretical)
 
+
+    def combination_adducts(self, adducts):
+        family_numbers = np.unique([add.family_number for add in adducts])
+        families = [ [add for add in adducts if add.family_number == i] for i in family_numbers]
+        print(families)
+        combinations = np.stack(np.meshgrid(*families)).T.reshape(-1, 3)
+        return combinations
 
     def add_adducts_to_molecules(self, molecules, adducts):
         mol_with_adducts = {}

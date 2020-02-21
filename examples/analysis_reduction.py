@@ -68,7 +68,7 @@ else:
 image_shape = (image.shape[0], image.shape[1])
 image_norm = seg.preprocess_pca(image)
 M = image_norm.T
-
+print(M.shape)
 
 if is_nmf:
     nmf = NMF(n_components=n, init='nndsvda', solver='cd', random_state=0)
@@ -83,6 +83,8 @@ else:
     eigenvectors = fit_pca.components_
     eigenvalues = fit_pca.transform(M)
     eigenvectors_transposed = eigenvalues.T
+
+print(eigenvectors.shape, " ", eigenvalues.shape)
 
 image_eigenvectors = eigenvectors_transposed.T
 new_shape = image_shape + (image_eigenvectors.shape[-1],)
