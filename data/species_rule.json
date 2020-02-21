@@ -3,24 +3,42 @@
         {
             "name": "AX",
             "category": "Ion",
-            "mz": 132.05,
-            "begin": 569.26,
-            "end": 2500,
-            "naming_fn": "AX,i+3"
+            "mz": 132.0423,
+            "begin": 4,
+            "end_mz": 3000,
+            "naming_fn": "AX,i"
         },
         {
-            "name": "Matrix",
-            "category": "Ion",
-            "mz": 551,
+            "name": "H2O",
+            "category": "Adduct",
+            "mz": 18.0106,
             "count": 1,
-            "naming_fn": "Matrix"
+            "naming_fn": "",
+            "family_number": 1
+        },
+        {
+            "name": "Na+",
+            "category": "Adduct",
+            "mz": 22.9898,
+            "count": 1,
+            "naming_fn": "Na+",
+            "family_number": 2
+        },
+        {
+            "name": "K+",
+            "category": "Adduct",
+            "mz": 38.9637,
+            "count": 1,
+            "naming_fn": "K+",
+            "family_number": 2
         },
         {
             "name": "Ac",
-            "category": "Adduct",
-            "mz": 42.02,
+            "category": "Modification",
+            "mz": 42.0105,
             "count": 4,
             "naming_fn": "i,Ac",
+            "family_number": 3,
             "adduct_fn": "AX.*"
         }
     ]

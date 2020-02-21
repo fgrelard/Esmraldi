@@ -28,7 +28,7 @@ def json_to_species(filename):
         mz = rule["mz"]
         count = rule["count"] if "count" in rule else 1
         begin = rule["begin"] if "begin" in rule else None
-        end = rule["end_mz"] if "end_mz" in rule else None
+        end_mz = rule["end_mz"] if "end_mz" in rule else None
         family_number = rule["family_number"] if "family_number" in rule else None
         naming_fn = rule["naming_fn"] if "naming_fn" in rule else None
         add_fn = rule["adduct_fn"] if "adduct_fn" in rule else None
@@ -39,7 +39,7 @@ def json_to_species(filename):
         else:
             naming_fn = lambda i: name + str(i)
 
-        s = SpeciesRule(name=name, category=category, mz=mz, count=count, begin=begin, end_mz=end_mz, naming_fn=naming_fn, adduct_fn=add_fn)
+        s = SpeciesRule(name=name, category=category, mz=mz, count=count, begin=begin, end_mz=end_mz, family_number=family_number, naming_fn=naming_fn, adduct_fn=add_fn)
         species.append(s)
     return species
 
@@ -67,11 +67,14 @@ class SpeciesRule:
             self.family_number = 1
 
         if naming_fn is None:
-            self.naming_fn = lambda i: self.name + str(i)
+            self.naming_fn = lambda i: str(i) + self.name
         else:
             self.naming_fn = naming_fn
 
-        self.adduct_fn = adduct_fn
+        if adduct_fn is None:
+            self.adduct_fn = adduct_fn
+        else:
+            self.adduct_fn = ".*"
 
 
     def species(self):
