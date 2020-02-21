@@ -56,11 +56,10 @@ class SpeciesRule:
             self.begin = 1
 
         if end_mz is not None:
-            self.count = int(end_mz // self.mz)
+            self.count = int(end_mz // self.mz - self.begin + 1)
         else:
             self.count = count
 
-        self.count -= self.begin - 1
 
         if family_number is not None:
             self.family_number = family_number
@@ -78,7 +77,8 @@ class SpeciesRule:
     def species(self):
         d = {}
         for i in range(self.count):
-            current_name = self.naming_fn(i+self.begin)
-            current_mz = (self.begin + i) * self.mz
+            index = i + self.begin
+            current_name = self.naming_fn(index) if index > 0 else ""
+            current_mz = index * self.mz
             d[current_name] = current_mz
         return d

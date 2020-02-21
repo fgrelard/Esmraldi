@@ -11,7 +11,7 @@ class TestSpeciesRule(unittest.TestCase):
     def setUp(self):
         self.ax = sr.SpeciesRule("AX", "MS", mz=132.04, begin=4, end_mz=2500, naming_fn=lambda i: "AX"+str(i))
         self.matrix = sr.SpeciesRule("Matrix", "M", mz=551, count=1)
-        self.ac = sr.SpeciesRule("Ac", "A", mz=42.02, begin=0, count=3, naming_fn=lambda i: str(i) + "Ac" if i>0 else "")
+        self.ac = sr.SpeciesRule("Ac", "A", mz=42.02, count=3, naming_fn=lambda i: str(i) + "Ac")
 
 
     def test_generate(self):

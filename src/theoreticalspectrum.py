@@ -2,20 +2,22 @@ import re
 import numpy as np
 
 class TheoreticalSpectrum:
-    def __init__(self,  molecules, adducts):
+    def __init__(self,  molecules, adducts, modifications=[]):
         self.molecules = molecules
         self.adducts = adducts
+        self.modifications = modifications
         self.full_molecules = {}
         for mol in self.molecules:
             self.full_molecules.update(mol.species())
 
-        self.spectrum = {}
-        self.add_all_adducts_to_molecules()
+        self.spectrum = self.add_all_adducts_to_molecules(self.full_molecules, self.adducts)
 
 
-    def mix_adducts(self, adducts):
-        family_numbers = np.unique([add.family_number for add in adducts])
-        families = [ [add for add in adducts if add.family_number == i] for i in family_numbers]
+    def mix_species(self, species):
+        family_numbers = np.unique([s.family_number for s in species])
+        if len(family_numbers) == 0:
+            return []
+        families = [ [s for s in species if s.family_number == i] for i in family_numbers]
         mix = np.stack(np.meshgrid(*families)).T.reshape(-1, len(families))
         return mix
 
@@ -39,10 +41,10 @@ class TheoreticalSpectrum:
         molecules_matching = {k:molecules[k] for k in matches if k in molecules}
         return molecules_matching
 
-    def mix_molecules_regexp(self, mix):
+    def mix_molecules_regexp(self, mix, molecules):
         molecules_accepted = []
         for mol in mix:
-            molecules = self.molecules_regexp(mol, self.full_molecules)
+            molecules = self.molecules_regexp(mol, molecules)
             molecules_accepted.append(molecules)
         molecules_matching_all = molecules_accepted[0]
         for i in range(1, len(molecules_accepted)):
@@ -51,13 +53,21 @@ class TheoreticalSpectrum:
         return molecules_matching_all
 
 
-    def add_all_adducts_to_molecules(self):
-        mix = self.mix_adducts(self.adducts)
+    def add_all_adducts_to_molecules(self, molecules, adducts):
+        spectrum = {}
+        mix = self.mix_species(adducts)
+        mix_modifications = self.mix_species(self.modifications)
         for m in mix:
-            molecules = self.mix_molecules_regexp(m)
-            adducts = self.expand_mix(m)
-            theoretical = self.add_adduct_to_molecules(molecules, adducts)
-            self.spectrum.update(theoretical)
+            expanded = self.expand_mix(m)
+            theoretical = self.add_adduct_to_molecules(molecules, expanded)
+            spectrum.update(theoretical)
+        molecules_with_adducts = spectrum.copy()
+        for m in mix_modifications:
+            molecules_re = self.mix_molecules_regexp(m, molecules_with_adducts)
+            modifications = self.expand_mix(m)
+            theoretical = self.add_adduct_to_molecules(molecules_re, modifications)
+            spectrum.update(theoretical)
+        return spectrum
 
     def add_adduct_to_molecules(self, molecules, adduct):
         mol_with_adducts = {}
@@ -66,7 +76,6 @@ class TheoreticalSpectrum:
                 current_mz = mol_mz + mz
                 current_name = mol_name + "_" + name
                 mol_with_adducts[current_name] = current_mz
-        self.spectrum.update(mol_with_adducts)
         return mol_with_adducts
 
     def add_adducts_to_molecules_regexp(self, adduct):
