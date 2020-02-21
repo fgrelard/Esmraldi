@@ -28,7 +28,7 @@ def json_to_species(filename):
         mz = rule["mz"]
         count = rule["count"] if "count" in rule else 1
         begin = rule["begin"] if "begin" in rule else None
-        end = rule["end"] if "end" in rule else None
+        end = rule["end_mz"] if "end_mz" in rule else None
         family_number = rule["family_number"] if "family_number" in rule else None
         naming_fn = rule["naming_fn"] if "naming_fn" in rule else None
         add_fn = rule["adduct_fn"] if "adduct_fn" in rule else None
@@ -39,13 +39,13 @@ def json_to_species(filename):
         else:
             naming_fn = lambda i: name + str(i)
 
-        s = SpeciesRule(name=name, category=category, mz=mz, count=count, begin=begin, end=end, naming_fn=naming_fn, adduct_fn=add_fn)
+        s = SpeciesRule(name=name, category=category, mz=mz, count=count, begin=begin, end_mz=end_mz, naming_fn=naming_fn, adduct_fn=add_fn)
         species.append(s)
     return species
 
 
 class SpeciesRule:
-    def __init__(self, name, category, mz, count=1, begin=None, end=None, family_number=None, naming_fn=None, adduct_fn=None):
+    def __init__(self, name, category, mz, count=1, begin=None, end_mz=None, family_number=None, naming_fn=None, adduct_fn=None):
         self.name = name
         self.category = category
         self.mz = mz
@@ -53,12 +53,14 @@ class SpeciesRule:
         if begin is not None:
             self.begin = begin
         else:
-            self.begin = mz
+            self.begin = 1
 
-        if begin is not None and end is not None:
-            self.count = int((end - begin) // self.mz) + 1
+        if end_mz is not None:
+            self.count = int(end_mz // self.mz)
         else:
             self.count = count
+
+        self.count -= self.begin - 1
 
         if family_number is not None:
             self.family_number = family_number
@@ -76,7 +78,7 @@ class SpeciesRule:
     def species(self):
         d = {}
         for i in range(self.count):
-            current_name = self.naming_fn(i + 1)
-            current_mz = self.begin + i * self.mz
+            current_name = self.naming_fn(i+self.begin)
+            current_mz = (self.begin + i) * self.mz
             d[current_name] = current_mz
         return d

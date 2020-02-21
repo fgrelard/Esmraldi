@@ -10,7 +10,7 @@ import random
 
 class TestTheoreticalSpectra(unittest.TestCase):
     def setUp(self):
-        ax = sr.SpeciesRule("AX", "MS", mz=132.06, begin=569.26, end=2500, naming_fn=lambda i: "AX"+str(i+3))
+        ax = sr.SpeciesRule("AX", "MS", mz=132.04226, begin=3, end=2500, naming_fn=lambda i: "AX"+str(i+3))
         matrix = sr.SpeciesRule("Matrix", "M", mz=551, count=1, naming_fn=lambda i:"Matrix")
         h2o = sr.SpeciesRule("H2O", "A", mz=18, count=1, naming_fn=lambda i: "", family_number=0, adduct_fn=r"AX.*")
         na  = sr.SpeciesRule("Na", "A", mz=23, count=1, naming_fn=lambda i: "Na+", family_number=2, adduct_fn=r"AX.*")

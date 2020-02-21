@@ -52,7 +52,6 @@ class TheoreticalSpectrum:
 
 
     def add_all_adducts_to_molecules(self):
-        self.spectrum = dict(self.full_molecules)
         mix = self.mix_adducts(self.adducts)
         for m in mix:
             molecules = self.mix_molecules_regexp(m)
