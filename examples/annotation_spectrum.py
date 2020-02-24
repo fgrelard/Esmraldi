@@ -25,10 +25,10 @@ with open(observed_name) as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=";")
     observed_spectrum = [float(row[0]) for row in csv_reader]
 
-annotation = si.annotation(observed_spectrum, theoretical_spectrum.spectrum, 2.5)
+annotation = si.annotation(observed_spectrum, theoretical_spectrum.spectrum, 0.1)
 
 print([v for k, v in annotation.items()][:10])
-d = {k:v for k, v in annotation.items() if v is not None}
+d = {k:v for k, v in annotation.items() if len(v) > 0}
 keys_sorted = {k:v for k,v in sorted(annotation.items(), key=lambda item: item[1])}
 pp = pprint.PrettyPrinter(indent=1)
 pp.pprint(keys_sorted)

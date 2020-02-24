@@ -1,0 +1,62 @@
+{
+    "rules": [
+        {
+            "name": "Pentose",
+            "category": "Ion",
+            "mz": 132.0423,
+            "begin": 2,
+            "end_mz": 3000,
+            "naming_fn": "Pentose DP,i"
+        },
+        {
+            "name": "Hexose",
+            "category": "Ion",
+            "mz": 162.0528,
+            "begin": 2,
+            "end_mz": 3000,
+            "naming_fn": "Hexose DP,i"
+        },
+        {
+            "name": "H2O",
+            "category": "Adduct",
+            "mz": 18.0106,
+            "count": 1,
+            "naming_fn": "",
+            "family_number": 1
+        },
+        {
+            "name": "Na+",
+            "category": "Adduct",
+            "mz": 22.9898,
+            "count": 1,
+            "naming_fn": "Na+",
+            "family_number": 2
+        },
+        {
+            "name": "K+",
+            "category": "Adduct",
+            "mz": 38.9637,
+            "count": 1,
+            "naming_fn": "K+",
+            "family_number": 2
+        },
+        {
+            "name": "MeGlcA",
+            "category": "Modification",
+            "mz": 190.0477,
+            "count": 1,
+            "naming_fn": "i,MeGlcA",
+            "family_number": 3,
+            "adduct_fn": ".*"
+        },
+        {
+            "name": "Ac",
+            "category": "Modification",
+            "mz": 42.0105,
+            "count": 8,
+            "naming_fn": "i,Ac",
+            "family_number": 4,
+            "adduct_fn": ".*"
+        }
+    ]
+}

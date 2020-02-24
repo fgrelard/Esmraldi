@@ -96,7 +96,7 @@ def spectra_max(spectra):
         spectra_max = np.maximum(spectra_max, y)
     return spectra_max
 
-def spectra_peak_indices(spectra, prominence=50):
+def spectra_peak_indices(spectra, prominence=50, wlen=10):
     """
     Estimates and extracts significant peaks in the spectra
     By using the prominence (height of the peak relative to the nearest
@@ -118,11 +118,11 @@ def spectra_peak_indices(spectra, prominence=50):
     indices = []
     for spectrum in spectra:
         x, y = spectrum
-        indices_current = peak_indices(y, prominence)
+        indices_current = peak_indices(y, prominence, wlen)
         indices.append(indices_current)
     return np.array(indices)
 
-def peak_indices(data, prominence=50):
+def peak_indices(data, prominence, wlen):
     """
     Estimates and extracts significant peaks in the spectrum
     By using the prominence (height of the peak relative to the nearest
@@ -143,8 +143,15 @@ def peak_indices(data, prominence=50):
     """
     peak_indices, _ = signal.find_peaks(tuple(data),
                                          prominence=prominence,
-                                         wlen=10,
+                                         wlen=wlen,
                                          distance=1)
+    return peak_indices
+
+
+def peak_indices_cwt(data, widths):
+    peak_indices, _ = signal.find_peaks_cwt(tuple(data),
+                                            widths=widths,
+                                            min_snr=3)
     return peak_indices
 
 
@@ -166,7 +173,9 @@ def peak_selection_shape(spectra):
     spectra_peak_list = []
     for spectrum in spectra:
         x, y = spectrum
-        peak_list = ms_peak_picker.pick_peaks(x, y, fit_type="quadratic", signal_to_noise_threshold=10)
+        peak_list = ms_peak_picker.pick_peaks(x, y, fit_type="quadratic", signal_to_noise_threshold=2)
+        print([p.mz for p in peak_list.peaks.peaks])
+        break
         spectra_peak_list = spectra_peak_list + list(peak_list.peaks.peaks)
     return spectra_peak_list
 
@@ -187,7 +196,7 @@ def peak_reference_indices(indices):
 
     """
     counts = np.bincount(indices)
-    indices_second = peak_indices(counts, 4)
+    indices_second = peak_indices(counts, prominence=4, wlen=10)
     return indices_second
 
 def normalization_tic(y):
@@ -362,7 +371,7 @@ def realign_wrt_peaks(spectra, aligned_peaks, full_peaks, indices_to_width):
         realigned_spectra.append((x_realigned, y_realigned))
     return realigned_spectra
 
-def realign(spectra, prominence=50, nb_occurrence=4, step=2):
+def realign(spectra, prominence=50, nb_occurrence=4, step=0.02):
     """
     Main function allowing to realign the spectra
     First extracts the peaks on all spectra,
@@ -382,7 +391,11 @@ def realign(spectra, prominence=50, nb_occurrence=4, step=2):
         realigned spectra
 
     """
-    full_indices = spectra_peak_indices(spectra, prominence)
+    mz, I = spectra[0]
+    min_diff = mz[1] - mz[0]
+    step_index = math.ceil(step / min_diff)
+    wlen = 0.2 / min_diff
+    full_indices = spectra_peak_indices(spectra, prominence, wlen)
     flat_full_indices = np.hstack(full_indices)
     unique_indices = np.unique(flat_full_indices)
     groups = index_groups(flat_full_indices, step)
@@ -393,7 +406,12 @@ def realign(spectra, prominence=50, nb_occurrence=4, step=2):
     return np.array(realigned_spectra)
 
 
-def realign_median(spectra, prominence=50, nb_occurrence=4, step=2):
+def realign_median(spectra, prominence=50, nb_occurrence=4, step=0.02):
+    mz, I = spectra[0]
+    min_diff = mz[1] - mz[0]
+    step_index = math.ceil(step / min_diff)
+    wlen = 0.2 / min_diff
+    print(wlen)
     full_indices = spectra_peak_indices(spectra, prominence)
     flat_full_indices = np.hstack(full_indices)
     unique_indices = np.unique(flat_full_indices)

@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import src.spectraprocessing as sp
 import src.imzmlio as io
+import sys
 
 def plot_peak_selected(spectra, realigned_spectra):
     spectra_max_before = sp.spectra_max(spectra)
@@ -51,22 +52,26 @@ nb_charges = int(args.nbcharges)
 step_mz = float(args.step)
 tolerance_mz = float(args.tolerance)
 
+
+np.set_printoptions(threshold=sys.maxsize)
+
+
 p = io.open_imzml(inputname)
 
 spectra = io.get_spectra(p)
 
 print(spectra.shape)
 mz, I = spectra[0]
-
+indices = sp.peak_indices(I, prominence, 50)
+print(mz[indices])
 max_spectra = sp.spectra_max(spectra)
 print(mz.shape, max_spectra.shape)
 plt.plot(mz, max_spectra)
 plt.show()
 
 print("Realignment")
-step_index = math.ceil(step_mz / (mz[1] - mz[0]))
 # realigned_spectra = sp.realign(spectra, prominence, nb_peaks)
-realigned_spectra = sp.realign_median(spectra, prominence=prominence, nb_occurrence=nb_peaks, step=step_index)
+realigned_spectra = sp.realign_median(spectra, prominence=prominence, nb_occurrence=nb_peaks, step=step_mz)
 
 print("Deisotoping")
 averagine = {'C': 7.0, 'H': 11.8333, 'N': 0.5, 'O': 5.16666}
