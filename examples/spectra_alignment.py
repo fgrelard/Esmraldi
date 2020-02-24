@@ -1,11 +1,11 @@
-import src.spectraprocessing as sp
-import src.imzmlio as io
+import os
+import math
+import argparse
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-import os
-import argparse
-
+import src.spectraprocessing as sp
+import src.imzmlio as io
 
 def plot_peak_selected(spectra, realigned_spectra):
     spectra_max_before = sp.spectra_max(spectra)
@@ -39,6 +39,8 @@ parser.add_argument("-o", "--output", help="Output peak selected imzML")
 parser.add_argument("-p", "--prominence", help="Prominence for peak selection", default=75)
 parser.add_argument("-n", "--nbpeaks", help="Number of peaks for the realignment", default=4)
 parser.add_argument("-z", "--nbcharges", help="Number of charges for deisotoping", default=2)
+parser.add_argument("-s", "--step", help="Tolerance step to realign peaks (in m/z)", default=0.05)
+parser.add_argument("-t", "--tolerance", help="Tolerance for deisotoping (in m/z)", default=0.05)
 args = parser.parse_args()
 
 inputname = args.input
@@ -46,23 +48,29 @@ outname = args.output
 prominence = int(args.prominence)
 nb_peaks = int(args.nbpeaks)
 nb_charges = int(args.nbcharges)
+step_mz = float(args.step)
+tolerance_mz = float(args.tolerance)
 
 p = io.open_imzml(inputname)
 
 spectra = io.get_spectra(p)
 
-# print(spectra.shape)
-# mz, I = [spectra[0], spectra[12], spectra[24]]
-# x24, y24 = spectra[24]
-# selection = sp.peak_indices(I, prominence)
+print(spectra.shape)
+mz, I = spectra[0]
+
+max_spectra = sp.spectra_max(spectra)
+print(mz.shape, max_spectra.shape)
+plt.plot(mz, max_spectra)
+plt.show()
 
 print("Realignment")
-realigned_spectra = sp.realign(spectra, prominence, nb_peaks)
+step_index = math.ceil(step_mz / (mz[1] - mz[0]))
+# realigned_spectra = sp.realign(spectra, prominence, nb_peaks)
+realigned_spectra = sp.realign_median(spectra, prominence=prominence, nb_occurrence=nb_peaks, step=step_index)
 
 print("Deisotoping")
 averagine = {'C': 7.0, 'H': 11.8333, 'N': 0.5, 'O': 5.16666}
-deisotoped_spectra = sp.deisotoping_simple(realigned_spectra, nb_charges=nb_charges, average_distribution={})
-
+deisotoped_spectra = sp.deisotoping_simple(realigned_spectra, tolerance=tolerance_mz, nb_charges=nb_charges, average_distribution={})
 # deisotoped_spectra = sp.deisotoping(np.array(realigned_spectra))
 
 print(realigned_spectra.shape)

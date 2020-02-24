@@ -119,8 +119,8 @@ def spectra_peak_indices(spectra, prominence=50):
     for spectrum in spectra:
         x, y = spectrum
         indices_current = peak_indices(y, prominence)
-        indices = indices + indices_current.tolist()
-    return indices
+        indices.append(indices_current)
+    return np.array(indices)
 
 def peak_indices(data, prominence=50):
     """
@@ -279,6 +279,15 @@ def peak_reference_indices_groups(groups):
         indices.append(index)
     return indices
 
+def peak_reference_indices_median(groups):
+    indices = []
+    for group in groups:
+        group_copy = sorted(group.copy())
+        index = int(np.median(group_copy))
+        indices.append(index)
+    return indices
+
+
 
 def width_peak_indices(indices, full_indices):
     """
@@ -336,6 +345,23 @@ def closest_peak(num, indices_to_width):
     return mz, width
 
 
+def realign_wrt_peaks(spectra, aligned_peaks, full_peaks, indices_to_width):
+    realigned_spectra = []
+    for i in range(spectra.shape[0]):
+        spectrum = spectra[i]
+        x, y = spectrum
+        x_realigned = np.copy(x)
+        y_realigned = np.copy(y)
+        indices = full_peaks[i]
+        for i in indices:
+            mz, width = closest_peak(i, indices_to_width)
+            if (i != mz and i >= mz - width and i <= mz + width):
+                y_realigned[mz] = max(y[i], y_realigned[mz])
+        x_realigned = x_realigned[aligned_peaks]
+        y_realigned = y_realigned[aligned_peaks]
+        realigned_spectra.append((x_realigned, y_realigned))
+    return realigned_spectra
+
 def realign(spectra, prominence=50, nb_occurrence=4, step=2):
     """
     Main function allowing to realign the spectra
@@ -357,24 +383,25 @@ def realign(spectra, prominence=50, nb_occurrence=4, step=2):
 
     """
     full_indices = spectra_peak_indices(spectra, prominence)
-    unique_indices = np.unique(full_indices)
-    groups = index_groups(full_indices, step)
+    flat_full_indices = np.hstack(full_indices)
+    unique_indices = np.unique(flat_full_indices)
+    groups = index_groups(flat_full_indices, step)
     groups = [group for group in groups if len(group) > nb_occurrence]
     aligned_indices = peak_reference_indices_groups(groups)
     indices_to_width = width_peak_indices(aligned_indices, full_indices)
-    realigned_spectra = []
-    for spectrum in spectra:
-        x, y = spectrum
-        x_realigned = np.copy(x)
-        y_realigned = np.copy(y)
-        indices = peak_indices(y, prominence)
-        for i in indices:
-            mz, width = closest_peak(i, indices_to_width)
-            if (i != mz and i >= mz - width and i <= mz + width):
-                y_realigned[mz] = max(y[i], y_realigned[mz])
-        x_realigned = x_realigned[aligned_indices]
-        y_realigned = y_realigned[aligned_indices]
-        realigned_spectra.append((x_realigned, y_realigned))
+    realigned_spectra = realign_wrt_peaks(spectra, aligned_indices, full_indices, indices_to_width)
+    return np.array(realigned_spectra)
+
+
+def realign_median(spectra, prominence=50, nb_occurrence=4, step=2):
+    full_indices = spectra_peak_indices(spectra, prominence)
+    flat_full_indices = np.hstack(full_indices)
+    unique_indices = np.unique(flat_full_indices)
+    groups = index_groups(flat_full_indices, step)
+    groups = [group for group in groups if len(group) > nb_occurrence]
+    aligned_indices = peak_reference_indices_median(groups)
+    indices_to_width = width_peak_indices(aligned_indices, full_indices)
+    realigned_spectra = realign_wrt_peaks(spectra, aligned_indices, full_indices, indices_to_width)
     return np.array(realigned_spectra)
 
 
