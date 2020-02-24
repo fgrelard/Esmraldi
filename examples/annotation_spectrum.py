@@ -3,6 +3,7 @@ import csv
 import src.speciesrule as sr
 import src.spectrainterpretation as si
 from src.theoreticalspectrum import TheoreticalSpectrum
+import pprint
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--theoretical", help="Theoretical spectrum")
@@ -24,10 +25,10 @@ with open(observed_name) as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=";")
     observed_spectrum = [float(row[0]) for row in csv_reader]
 
-annotation = si.annotation(observed_spectrum, theoretical_spectrum.spectrum, 0.5)
+annotation = si.annotation(observed_spectrum, theoretical_spectrum.spectrum, 2.5)
 
 print([v for k, v in annotation.items()][:10])
 d = {k:v for k, v in annotation.items() if v is not None}
-keys_sorted = sorted(d)
-for k in keys_sorted:
-    print(str(k)+":"+str(d[k]), end=", ")
+keys_sorted = {k:v for k,v in sorted(annotation.items(), key=lambda item: item[1])}
+pp = pprint.PrettyPrinter(indent=1)
+pp.pprint(keys_sorted)

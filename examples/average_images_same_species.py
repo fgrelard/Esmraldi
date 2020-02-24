@@ -46,7 +46,9 @@ mzs = np.around(mzs, decimals=2)
 species = sr.json_to_species(theoretical_name)
 ions = [mol for mol in species if mol.category=="Ion"]
 adducts = [mol for mol in species if mol.category=="Adduct"]
-theoretical_spectrum = TheoreticalSpectrum(ions, adducts)
+modifications = [mol for mol in species if mol.category=="Modification"]
+
+theoretical_spectrum = TheoreticalSpectrum(ions, adducts, modifications)
 annotation = si.annotation(mzs, theoretical_spectrum.spectrum, 0.5)
 
 list_names = [v for v in annotation.values() if v is not None]

@@ -57,7 +57,8 @@ mzs = np.around(mzs, decimals=2)
 species = sr.json_to_species(theoretical_name)
 ions = [mol for mol in species if mol.category=="Ion"]
 adducts = [mol for mol in species if mol.category=="Adduct"]
-theoretical_spectrum = TheoreticalSpectrum(ions, adducts)
+modifications = [mol for mol in species if mol.category=="Modification"]
+theoretical_spectrum = TheoreticalSpectrum(ions, adducts, modifications)
 print(len(ions), "ions,", len(adducts), "adducts")
 
 if is_normalized:
@@ -107,8 +108,8 @@ for i in range(eigenvectors.shape[0]):
     descending_indices = eigenvectors[i].argsort()[::-1]
     descending_scores = eigenvectors[i, descending_indices]
     descending_mzs = mzs[descending_indices]
-    descending_names = si.annotation(descending_mzs, theoretical_spectrum.spectrum, 0.5)
-    descending_names = {k:(v if v is not None else "?") for k,v in descending_names.items()}
+    descending_names = si.annotation(descending_mzs, theoretical_spectrum.spectrum, 2.5)
+    descending_names = {k:(v if len(v) > 0 else "?") for k,v in descending_names.items()}
     table = np.column_stack([list(descending_names.keys()), list(descending_names.values()), descending_scores.tolist()])
     tables.append(table)
     # outfile.write("Eigenvector " + str(i))
