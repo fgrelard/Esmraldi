@@ -85,6 +85,7 @@ class TestSpectraProcessing(unittest.TestCase):
         sum_after = sp.spectra_sum(s)
         nptest.assert_equal(x[0], self.spectra[0][0][18])
 
+
     def test_neighbours(self):
         L = [[10.2, 10.], [11, 23.], [12.23, 11.25],
              [13.23, 8.75], [14.3, 6.2], [15.2, 18.96],

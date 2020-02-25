@@ -431,7 +431,7 @@ def realign(spectra, prominence=50, nb_occurrence=4, step=0.02):
     full_indices = spectra_peak_indices(spectra, prominence, wlen)
     flat_full_indices = np.hstack(full_indices)
     unique_indices = np.unique(flat_full_indices)
-    groups = index_groups(flat_full_indices, step)
+    groups = index_groups(flat_full_indices, step_index)
     groups = [group for group in groups if len(group) > nb_occurrence]
     aligned_indices = peak_reference_indices_groups(groups)
     indices_to_width = width_peak_indices(aligned_indices, full_indices)
@@ -447,7 +447,7 @@ def realign_median(spectra, factor=1, nb_occurrence=4, step=0.02):
     full_indices = spectra_peak_indices_adaptative(spectra, factor, wlen)
     flat_full_indices = np.hstack(full_indices)
     unique_indices = np.unique(flat_full_indices)
-    groups = index_groups(flat_full_indices, step)
+    groups = index_groups(flat_full_indices, step_index)
     groups = [group for group in groups if len(group) > nb_occurrence]
     aligned_indices = peak_reference_indices_median(groups)
     indices_to_width = width_peak_indices(aligned_indices, full_indices)
