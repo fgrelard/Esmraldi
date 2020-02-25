@@ -55,23 +55,17 @@ tolerance_mz = float(args.tolerance)
 
 np.set_printoptions(threshold=sys.maxsize)
 
-
 p = io.open_imzml(inputname)
-
 spectra = io.get_spectra(p)
 
-print(spectra.shape)
 mz, I = spectra[0]
-indices = sp.peak_indices(I, prominence, 50)
-print(mz[indices])
+indices = sp.spectra_peak_indices_adaptative(spectra, prominence, 250)
 max_spectra = sp.spectra_max(spectra)
-print(mz.shape, max_spectra.shape)
-plt.plot(mz, max_spectra)
-plt.show()
+print(mz[indices[0]])
 
 print("Realignment")
 # realigned_spectra = sp.realign(spectra, prominence, nb_peaks)
-realigned_spectra = sp.realign_median(spectra, prominence=prominence, nb_occurrence=nb_peaks, step=step_mz)
+realigned_spectra = sp.realign_median(spectra, factor=prominence, nb_occurrence=nb_peaks, step=step_mz)
 
 print("Deisotoping")
 averagine = {'C': 7.0, 'H': 11.8333, 'N': 0.5, 'O': 5.16666}

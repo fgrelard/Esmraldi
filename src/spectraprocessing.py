@@ -2,6 +2,7 @@ import ms_peak_picker
 import ms_deisotope
 import math
 import re
+import sys
 import scipy.signal as signal
 import numpy as np
 import matplotlib.pyplot as plt
@@ -96,6 +97,26 @@ def spectra_max(spectra):
         spectra_max = np.maximum(spectra_max, y)
     return spectra_max
 
+def spectra_min(spectra):
+    """
+    Computes the minimum intensity for each abscissa
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        Spectra as [mz*I] array
+
+    Returns
+    ----------
+    np.ndarray
+        Max spectrum
+
+    """
+    spectra_min = [sys.maxsize for i in range(len(spectra[0][0]))]
+    for x, y in spectra:
+        spectra_min = np.minimum(spectra_min, y)
+    return spectra_min
+
 def spectra_peak_indices(spectra, prominence=50, wlen=10):
     """
     Estimates and extracts significant peaks in the spectra
@@ -119,6 +140,18 @@ def spectra_peak_indices(spectra, prominence=50, wlen=10):
     for spectrum in spectra:
         x, y = spectrum
         indices_current = peak_indices(y, prominence, wlen)
+        indices.append(indices_current)
+    return np.array(indices)
+
+
+def spectra_peak_indices_adaptative(spectra, factor=1, wlen=10):
+    indices = []
+    min_spectra = spectra_min(spectra)
+    size = min_spectra.shape[0]
+    stddev = np.array([np.std(min_spectra[max(0,i-wlen) : min(i+wlen, size-1)]) for i in range(min_spectra.shape[0])])
+    for spectrum in spectra:
+        x, y = spectrum
+        indices_current = peak_indices(y, stddev * factor, wlen)
         indices.append(indices_current)
     return np.array(indices)
 
@@ -394,7 +427,7 @@ def realign(spectra, prominence=50, nb_occurrence=4, step=0.02):
     mz, I = spectra[0]
     min_diff = mz[1] - mz[0]
     step_index = math.ceil(step / min_diff)
-    wlen = 0.2 / min_diff
+    wlen = max(10, int(0.2 / min_diff))
     full_indices = spectra_peak_indices(spectra, prominence, wlen)
     flat_full_indices = np.hstack(full_indices)
     unique_indices = np.unique(flat_full_indices)
@@ -406,13 +439,12 @@ def realign(spectra, prominence=50, nb_occurrence=4, step=0.02):
     return np.array(realigned_spectra)
 
 
-def realign_median(spectra, prominence=50, nb_occurrence=4, step=0.02):
+def realign_median(spectra, factor=1, nb_occurrence=4, step=0.02):
     mz, I = spectra[0]
     min_diff = mz[1] - mz[0]
     step_index = math.ceil(step / min_diff)
-    wlen = 0.2 / min_diff
-    print(wlen)
-    full_indices = spectra_peak_indices(spectra, prominence)
+    wlen = max(10, int(1.0 / min_diff))
+    full_indices = spectra_peak_indices_adaptative(spectra, factor, wlen)
     flat_full_indices = np.hstack(full_indices)
     unique_indices = np.unique(flat_full_indices)
     groups = index_groups(flat_full_indices, step)
