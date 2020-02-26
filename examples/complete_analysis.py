@@ -70,9 +70,9 @@ def add_table(worksheet, masses, image):
     stats = np.vstack((mz_curated, variability_peaks, average_peaks, std_peaks, variability_replicates, average_replicates, std_replicates)).T
     worksheet.add_table(0, 0, stats.shape[0], stats.shape[1]-1, {"data":stats, 'columns':[
         {'header': 'm/z'},
-        {'header': 'Variability peaks'},
-        {'header': 'Average peaks'},
-        {'header': 'Stddev peaks'},
+        {'header': 'Variability samples'},
+        {'header': 'Average samples'},
+        {'header': 'Stddev samples'},
         {'header': 'Variability replicates'},
         {'header': 'Average replicates'},
         {'header': 'Stddev replicates'}]
