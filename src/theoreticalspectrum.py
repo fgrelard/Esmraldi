@@ -26,7 +26,6 @@ class TheoreticalSpectrum:
         b = []
         for l in mix:
             cleaned = [elem for elem in l if elem is not None]
-            print(cleaned)
             if len(cleaned):
                 b.append(np.array(cleaned))
         mix = np.array(b)
