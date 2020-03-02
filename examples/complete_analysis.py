@@ -130,6 +130,35 @@ def add_images(worksheet, masses, image):
     for i in range(data.shape[1]):
         worksheet.set_column(i+1, i+1, max_width)
 
+def add_reduction(worksheet, reduction_dir):
+    files_reduction = os.listdir(reduction_dir)
+    csv_name = [reduction_dir + os.path.sep + filename for filename in files_reduction if filename.endswith(".csv")][0]
+    image_names = [reduction_dir + os.path.sep + filename for filename in files_reduction if filename.endswith(".png")]
+    n = len(image_names) // 2
+    gradients = gradient(n, 120, 255)
+    formats = []
+    for g in gradients:
+        f = workbook.add_format({"fg_color":g})
+        formats.append(f)
+
+    with open(csv_name) as f:
+        csv_reader = csv.reader(f, delimiter=";")
+        i = 0
+        for row in csv_reader:
+            j = 0
+            for cell in row:
+                worksheet.write(i+12, j, cell, formats[j//3 if j//3 < len(formats) else -1])
+                j += 1
+            i += 1
+    for i in range(0, len(image_names), 2):
+        representative = image_names[i]
+        score = image_names[i+1]
+        np_representative = plt.imread(representative)[..., 0]
+        h_representative, w_representative = np_representative.shape[0], np_representative.shape[1]
+        w, h = int(number_replicates*20*w_representative/h_representative), number_replicates*20
+        worksheet_representative = insertable_image(np_representative, (w, h))
+        worksheet.insert_image(0, int(i*1.5), "", {'image_data': worksheet_representative, 'object_position': 4})
+
 
 def gradient(n, start, end):
     g = []
@@ -211,42 +240,16 @@ worksheet2 = workbook.add_worksheet("Mass list (curated)")
 worksheet3 = workbook.add_worksheet("Statistics")
 worksheet4 = workbook.add_worksheet("Images")
 
-if reduction_dir:
-    worksheet5 = workbook.add_worksheet("Reduction")
-    files_reduction = os.listdir(reduction_dir)
-    csv_name = [reduction_dir + os.path.sep + filename for filename in files_reduction if filename.endswith(".csv")][0]
-    image_names = [reduction_dir + os.path.sep + filename for filename in files_reduction if filename.endswith(".png")]
-    n = len(image_names) // 2
-    gradients = gradient(n, 120, 255)
-    formats = []
-    for g in gradients:
-        print(g)
-        f = workbook.add_format({"fg_color":g})
-        formats.append(f)
-
-    with open(csv_name) as f:
-        csv_reader = csv.reader(f, delimiter=";")
-        i = 0
-        for row in csv_reader:
-            j = 0
-            for cell in row:
-                worksheet5.write(i+12, j, cell, formats[j//3 if j//3 < len(formats) else -1])
-                j += 1
-            i += 1
-    for i in range(0, len(image_names), 2):
-        representative = image_names[i]
-        score = image_names[i+1]
-        np_representative = plt.imread(representative)[..., 0]
-        h_representative, w_representative = np_representative.shape[0], np_representative.shape[1]
-        w, h = int(number_replicates*20*w_representative/h_representative), number_replicates*20
-        worksheet_representative = insertable_image(np_representative, (w, h))
-        worksheet5.insert_image(0, int(i*1.5), "", {'image_data': worksheet_representative, 'object_position': 4})
-
 
 write_mass_list(worksheet, masses, mean_spectrum)
 write_mass_list(worksheet2, masses_curated, mean_spectrum_curated)
 add_table(worksheet3, masses, image)
 add_images(worksheet4, masses, image)
+
+if reduction_dir:
+    worksheet5 = workbook.add_worksheet("Reduction")
+    add_reduction(worksheet5, reduction_dir)
+
 
 workbook.close()
 
