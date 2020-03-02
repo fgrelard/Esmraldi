@@ -94,8 +94,8 @@ image_eigenvectors = image_eigenvectors.reshape(new_shape)
 tables = []
 for i in range(eigenvectors.shape[0]):
     current_name = outroot + "_" + str(i)
-    current_image = image_eigenvectors[..., i]
-    im = plt.imshow(image_eigenvectors[..., i], cmap="gray")
+    current_image = image_eigenvectors[..., i].T
+    im = plt.imshow(current_image, cmap="gray")
     clim = im.properties()['clim']
     plt.colorbar()
     plt.clim(clim)
@@ -108,7 +108,7 @@ for i in range(eigenvectors.shape[0]):
     descending_indices = eigenvectors[i].argsort()[::-1]
     descending_scores = eigenvectors[i, descending_indices]
     descending_mzs = mzs[descending_indices]
-    descending_names = si.annotation(descending_mzs, theoretical_spectrum.spectrum, 2.5)
+    descending_names = si.annotation(descending_mzs, theoretical_spectrum.spectrum, 0.1)
     descending_names = {k:(v if len(v) > 0 else "?") for k,v in descending_names.items()}
     table = np.column_stack([list(descending_names.keys()), list(descending_names.values()), descending_scores.tolist()])
     tables.append(table)
