@@ -5,7 +5,9 @@ import pprint
 import cv2
 import numpy as np
 import os
+import SimpleITK as sitk
 import matplotlib.pyplot as plt
+
 from xlsxwriter.utility import xl_rowcol_to_cell, xl_col_to_name
 from PIL import Image
 from io import BytesIO
@@ -95,8 +97,8 @@ def add_table(worksheet, masses, image):
 
 
 def insertable_image(image, size):
-    image_i = ((image - image.min()) * (1/(image.max() - image.min()) * 255)).astype('uint8')
-    new_im = np.array(Image.fromarray(image_i).resize(size))
+    # image_i = ((image - image.min()) * (1/(image.max() - image.min()) * 255)).astype('uint8')
+    new_im = np.array(Image.fromarray(image).resize(size))
     im, a_numpy = cv2.imencode(".png", new_im)
     a = a_numpy.tostring()
     image_data = BytesIO(a)
@@ -105,9 +107,8 @@ def insertable_image(image, size):
 def add_images(worksheet, masses, image):
     data = dict_to_array(masses)
 
-
-    for i in range(image.shape[-1]):
-        image_i = image[..., i].T
+    for i in range(norm_img.shape[-1]):
+        image_i = norm_img[..., i].T
         image_data = insertable_image(image_i, (number_samples*20, number_replicates*20))
         worksheet.insert_image(0, i+1, "", {'image_data': image_data, 'object_position': 4})
 
@@ -185,20 +186,10 @@ mzs_name = args.mzs
 output_name = args.output
 reduction_dir = args.reduction_dir
 
-if input_name.lower().endswith(".imzml"):
-    imzml = imzmlio.open_imzml(input_name)
-    spectra = imzmlio.get_spectra(imzml)
-    image = imzmlio.to_image_array(imzml)
-    observed_spectrum, intensities = imzml.getspectrum(0)
-else:
-    image = sitk.GetArrayFromImage(sitk.ReadImage(input_name)).T
-    if observed_spectrum_name:
-        with open(observed_spectrum_name) as csv_file:
-            csv_reader = csv.reader(csv_file, delimiter=";")
-            observed_spectrum = [float(row[0]) for row in csv_reader]
-    else:
-        observed_spectrum = [i for i in range(image.shape[2])]
-    observed_spectrum = np.asarray(observed_spectrum)
+imzml = imzmlio.open_imzml(input_name)
+spectra = imzmlio.get_spectra(imzml)
+image = imzmlio.to_image_array(imzml)
+observed_spectrum, intensities = imzml.getspectrum(0)
 
 number_samples = image.shape[0]
 number_replicates = image.shape[1]
@@ -240,6 +231,11 @@ worksheet2 = workbook.add_worksheet("Mass list (curated)")
 worksheet3 = workbook.add_worksheet("Statistics")
 worksheet4 = workbook.add_worksheet("Images")
 
+
+print(image[..., -1])
+plt.imshow(image[..., -1])
+plt.show()
+exit(0)
 
 write_mass_list(worksheet, masses, mean_spectrum)
 write_mass_list(worksheet2, masses_curated, mean_spectrum_curated)

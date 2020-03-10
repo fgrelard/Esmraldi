@@ -138,7 +138,7 @@ def to_image_array(image):
     x, y = image.getspectrum(0)
     image_list = []
     for mz in x:
-        im = imzmlparser.getionimage(image, mz, tol=0.1)
+        im = imzmlparser.getionimage(image, mz, tol=0.01)
         image_list.append(im)
     img_array = np.transpose(np.asarray(image_list))
     return img_array

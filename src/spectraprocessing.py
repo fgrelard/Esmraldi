@@ -155,6 +155,18 @@ def spectra_peak_indices_adaptative(spectra, factor=1, wlen=10):
         indices.append(indices_current)
     return np.array(indices)
 
+def spectra_peak_mzs_adaptative(spectra, factor=1, wlen=10):
+    mzs = []
+    min_spectra = spectra_min(spectra)
+    size = min_spectra.shape[0]
+    stddev = np.array([np.std(min_spectra[max(0,i-wlen) : min(i+wlen, size-1)]) for i in range(min_spectra.shape[0])])
+    for spectrum in spectra:
+        x, y = spectrum
+        indices_current = peak_indices(y, stddev * factor, wlen)
+        mzs_current = x[indices_current]
+        mzs.append(mzs_current)
+    return np.array(mzs)
+
 def peak_indices(data, prominence, wlen):
     """
     Estimates and extracts significant peaks in the spectrum
@@ -289,6 +301,8 @@ def index_groups(indices, step=1):
         index += 1
     return groups
 
+
+
 def peak_reference_indices_group(group):
     """
     Extracts the reference peak in a group
@@ -325,10 +339,19 @@ def peak_reference_indices_median(groups):
     indices = []
     for group in groups:
         group_copy = sorted(group.copy())
-        index = int(np.median(group_copy))
+        index = np.median(group_copy)
         indices.append(index)
     return indices
 
+def width_peak_mzs(aligned_mzs, groups, default=0.001):
+    indices_to_width = {}
+    aligned_array = np.array(aligned_mzs)
+    for group in groups:
+        diff = max(group) - min(group) + default
+        group_array = np.array(group)
+        index = aligned_array[np.abs(np.mean(group_array)- aligned_array[:, None]).argmin()]
+        indices_to_width[index] = diff
+    return indices_to_width
 
 
 def width_peak_indices(indices, full_indices):
@@ -387,6 +410,22 @@ def closest_peak(num, indices_to_width):
     return mz, width
 
 
+def realign_wrt_peaks_mzs(spectra, aligned_mzs, full_mzs, indices_to_width):
+    realigned_spectra = []
+    for i in range(spectra.shape[0]):
+        spectrum = spectra[i]
+        x, y = spectrum
+        y_realigned = y[abs(np.array(aligned_mzs)[None, :] - x[:, None]).argmin(axis=0)]
+        indices = full_mzs[i]
+        for i in indices:
+            mz, width = closest_peak(i, indices_to_width)
+            mz_index = np.abs(aligned_mzs - mz).argmin()
+            i_index = np.abs(x - i).argmin()
+            if (i != mz and i >= mz - width and i <= mz + width):
+                y_realigned[mz_index] = max(y[i_index], y_realigned[mz_index])
+        realigned_spectra.append((aligned_mzs, y_realigned))
+    return realigned_spectra
+
 def realign_wrt_peaks(spectra, aligned_peaks, full_peaks, indices_to_width):
     realigned_spectra = []
     for i in range(spectra.shape[0]):
@@ -444,14 +483,13 @@ def realign_median(spectra, factor=1, nb_occurrence=4, step=0.02):
     min_diff = mz[1] - mz[0]
     step_index = math.ceil(step / min_diff)
     wlen = max(10, int(1.0 / min_diff))
-    full_indices = spectra_peak_indices_adaptative(spectra, factor, wlen)
-    flat_full_indices = np.hstack(full_indices)
-    unique_indices = np.unique(flat_full_indices)
-    groups = index_groups(flat_full_indices, step_index)
+    full_mzs = spectra_peak_mzs_adaptative(spectra, factor, wlen)
+    flat_full_mzs = np.hstack(full_mzs)
+    groups = index_groups(flat_full_mzs, step)
     groups = [group for group in groups if len(group) > nb_occurrence]
-    aligned_indices = peak_reference_indices_median(groups)
-    indices_to_width = width_peak_indices(aligned_indices, full_indices)
-    realigned_spectra = realign_wrt_peaks(spectra, aligned_indices, full_indices, indices_to_width)
+    aligned_mzs = peak_reference_indices_median(groups)
+    indices_to_width = width_peak_mzs(aligned_mzs, groups)
+    realigned_spectra = realign_wrt_peaks_mzs(spectra, aligned_mzs, full_mzs, indices_to_width)
     return np.array(realigned_spectra)
 
 
@@ -496,6 +534,9 @@ def peaks_derivative_isotopic_pattern(pattern):
         d_previous = derivatives[j - 1]
         previous_peak = pattern[j]
         associated_peak = pattern[j+1]
+        if previous_peak[1] <= 0:
+            continue
+
         ratio = associated_peak[1]/previous_peak[1]
         if (d > 0 and d_previous <= 0) or ratio > 5:
             peaks.append(associated_peak)
