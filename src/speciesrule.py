@@ -72,9 +72,9 @@ class SpeciesRule:
             self.naming_fn = naming_fn
 
         if adduct_fn is None:
-            self.adduct_fn = adduct_fn
-        else:
             self.adduct_fn = ".*"
+        else:
+            self.adduct_fn = adduct_fn
 
 
     def species(self):

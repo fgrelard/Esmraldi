@@ -47,7 +47,7 @@
             "count": 1,
             "naming_fn": "i,MeGlcA",
             "family_number": 3,
-            "adduct_fn": ".*"
+            "adduct_fn": "Pentose.*"
         },
         {
             "name": "Ac",
