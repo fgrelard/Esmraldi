@@ -64,11 +64,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--theoretical", help="Theoretical spectrum")
 parser.add_argument("-o", "--observed", help="Observed spectrum (.csv)")
 parser.add_argument("-c", "--output_csv", help="Output csv file")
+parser.add_argument("-s", "--separate_species", help="Separate each species in different columns", action="store_true")
+
 args = parser.parse_args()
 
 theoretical_name = args.theoretical
 observed_name = args.observed
 output_name = args.output_csv
+is_separate = args.separate_species
 
 species = sr.json_to_species(theoretical_name)
 ions = [mol for mol in species if mol.category=="Ion"]
@@ -88,10 +91,11 @@ print([v for k, v in annotation.items()][:10])
 d = {k:v for k, v in annotation.items() if len(v) > 0}
 keys_sorted = {k:v for k,v in sorted(annotation.items(), key=lambda item: item[0])}
 
-values = keys_sorted.values()
-columns = column_names(values, ions, adducts, modifications)
-new_values = names_to_columns(columns, values)
-keys_sorted = {list(keys_sorted.keys())[i]:new_values[i] for i in range(len(new_values))}
+if is_separate:
+    values = keys_sorted.values()
+    columns = column_names(values, ions, adducts, modifications)
+    new_values = names_to_columns(columns, values)
+    keys_sorted = {list(keys_sorted.keys())[i]:new_values[i] for i in range(len(new_values))}
 
 if output_name:
     with open(output_name, "w") as f:
