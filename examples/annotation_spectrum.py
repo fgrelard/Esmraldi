@@ -53,7 +53,6 @@ def names_to_columns(columns, values, delimiter="_"):
                     if len(split_columns) > max_size:
                         max_size = len(split_columns)
                         index = i
-            print(name, " ",index)
             L[index] = name
         new_values.append(L)
     return new_values
@@ -100,7 +99,8 @@ if is_separate:
 if output_name:
     with open(output_name, "w") as f:
         writer = csv.writer(f, delimiter=";")
-        writer.writerow([""] + columns)
+        if is_separate:
+            writer.writerow([""] + columns)
         for k, v in keys_sorted.items():
             row = [k] + [e for e in v]
             writer.writerow(row)

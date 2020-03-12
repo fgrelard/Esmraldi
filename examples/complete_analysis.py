@@ -27,23 +27,25 @@ def get_col_widths(data):
 
 def split_name(name):
     list_names = name.split("_")
-    new_name = list_names[0] + ("." + list_names[2] if len(list_names) > 2 else "") + " (" + list_names[1] + ")"
+    new_name = list_names[0] + ("." + ".".join(list_names[2:]) if len(list_names) > 2 else "") + " (" + list_names[1] + ")"
     return new_name
 
 def dict_to_array(masses):
     max_len = max([len(v) for k,v in masses.items()])
     mz = list(masses.keys())
     values = list(masses.values())
-    values_array = [ [split_name(names[i]) if i < len(names) else None for names in values] for i in range(max_len)]
+    values_array = [ [split_name(names[i]) if i < len(names) and names[i] != "" else None for names in values] for i in range(max_len)]
     data = np.vstack((mz, *values_array))
     return data
 
-def write_mass_list(worksheet, masses, mean_spectrum):
-    max_len = max([len(v) for k,v in masses.items()])
+def write_mass_list(worksheet, column_names, masses, mean_spectrum):
 
-    headers = ["m/z", "Average intensities"] + ["Ion (#" +str(i+1) +")" for i in range(max_len)]
+
+    headers = ["m/z", "Average intensities"] + column_names
     for i in range(len(headers)):
         worksheet.write(0, i, headers[i], header_format)
+
+    worksheet.freeze_panes(1, 0)
 
     row = 1
     col = 0
@@ -104,7 +106,7 @@ def insertable_image(image, size):
     image_data = BytesIO(a)
     return image_data
 
-def add_images(worksheet, masses, image):
+def add_images(worksheet, column_names, masses, image):
     data = dict_to_array(masses)
     for i in range(image.shape[-1]):
         image_i = image[..., i].T
@@ -112,9 +114,7 @@ def add_images(worksheet, masses, image):
         worksheet.insert_image(0, i+1, "", {'image_data': image_data, 'object_position': 4})
 
 
-    max_len = max([len(v) for k,v in masses.items()])
-
-    headers = ["Sample #"+str(i+1) for i in range(number_replicates)] + ["m/z"] + ["Ion (#" +str(i+1) +")" for i in range(max_len)]
+    headers = ["Sample #"+str(i+1) for i in range(number_replicates)] + ["m/z"] + column_names
 
     for i in range(len(headers)):
         worksheet.write(i, 0, headers[i], header_format)
@@ -195,11 +195,19 @@ number_replicates = image.shape[1]
 
 masses = {}
 with open(annotation_name, "r") as f:
-    reader = csv.reader(f, delimiter=";")
-    for row in reader:
-        k = float(row[0])
-        v = [row[1+i] for i in range(len(row)-1)]
-        masses[k] = v
+    reader = list(csv.reader(f, delimiter=";"))
+
+has_headers = reader[0][0] == ""
+for row in reader[1 if has_headers else 0:]:
+    k = float(row[0])
+    v = [row[1+i] for i in range(len(row)-1)]
+    masses[k] = v
+
+max_len = max([len(v) for k,v in masses.items()])
+if has_headers:
+    column_names = [split_name(r) for r in reader[0][1:]]
+else:
+    column_names = ["Ion (#" +str(i+1) +")" for i in range(max_len)]
 
 mean_spectrum = sp.spectra_mean(spectra)
 
@@ -207,7 +215,7 @@ masses_curated = {}
 mean_spectrum_curated = []
 index = 0
 for k, v in masses.items():
-    if len(v) > 0:
+    if any([value != "" for value in v]):
         masses_curated[k] = v
         mean_spectrum_curated.append(mean_spectrum[index])
     index += 1
@@ -231,10 +239,10 @@ worksheet3 = workbook.add_worksheet("Statistics")
 worksheet4 = workbook.add_worksheet("Images")
 
 
-write_mass_list(worksheet, masses, mean_spectrum)
-write_mass_list(worksheet2, masses_curated, mean_spectrum_curated)
+write_mass_list(worksheet, column_names, masses, mean_spectrum)
+write_mass_list(worksheet2, column_names, masses_curated, mean_spectrum_curated)
 add_table(worksheet3, masses, image)
-add_images(worksheet4, masses, image)
+add_images(worksheet4, column_names, masses, image)
 
 if reduction_dir:
     worksheet5 = workbook.add_worksheet("Reduction")
