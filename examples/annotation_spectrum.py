@@ -80,6 +80,8 @@ print(len(ions), "ions,", len(adducts), "adducts,", len(modifications), "modific
 
 theoretical_spectrum = TheoreticalSpectrum(ions, adducts, modifications)
 
+# print(theoretical_spectrum.spectrum)
+
 with open(observed_name) as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=";")
     observed_spectrum = [float(row[0]) for row in csv_reader]

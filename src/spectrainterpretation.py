@@ -6,12 +6,15 @@ def closest_peak(reference_mz, theoretical_spectrum, tolerance):
     closest = -1
     closest_name = None
     closest_peaks = {}
+
     for v in values:
         diff = abs(reference_mz - v)
         if diff < tolerance or np.isclose(diff, tolerance):
             closest = v
-            closest_name = keys[values.index(closest)]
-            closest_peaks[closest_name] = diff
+            closest_names = [k for k,v in theoretical_spectrum.items() if np.isclose(v, closest)]
+            for closest_name in closest_names:
+                closest_peaks[closest_name] = diff
+
     closest_peaks = {k: v for k, v in sorted(closest_peaks.items(), key=lambda item: item[1])}
     list_closest = list(closest_peaks.keys())
     return list_closest
@@ -20,5 +23,7 @@ def annotation(observed, theoretical, tolerance=0.1):
     annotated = {}
     for peak in observed:
         closest_peaks = closest_peak(peak, theoretical, tolerance)
+        if peak > 1233 and peak <1234:
+            print(closest_peaks)
         annotated[peak] = closest_peaks
     return annotated
