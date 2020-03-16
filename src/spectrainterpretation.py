@@ -23,7 +23,5 @@ def annotation(observed, theoretical, tolerance=0.1):
     annotated = {}
     for peak in observed:
         closest_peaks = closest_peak(peak, theoretical, tolerance)
-        if peak > 1233 and peak <1234:
-            print(closest_peaks)
         annotated[peak] = closest_peaks
     return annotated
