@@ -32,11 +32,19 @@ def missing_annotation(theoretical, observed, tol=0.05):
     names_th = [[t for t in theoretical[k] if t != ""] for k in union_th]
     names_obs = [[o for o in observed[k] if o != ""] for k in union_obs]
 
+    names_th_flatten = np.unique([elem for l in names_th for elem in l]).tolist()
+    names_obs_flatten = np.unique([elem for l in names_obs for elem in l]).tolist()
+    missing = [elem for elem in names_obs_flatten if elem not in names_th_flatten]
+
     missing_in_th = {}
     for i in range(len(names_th)):
-        current_th = np.array(names_th[i])
-        current_obs = np.array(names_obs[i])
-        missing_in_th.update({union_th[i]:elem for elem in current_obs if elem not in current_th})
+        current_th = names_th[i]
+        current_obs = names_obs[i]
+        for elem in current_obs:
+            if elem not in current_th:
+                if i not in missing_in_th:
+                    missing_in_th[union_th[i]] = []
+                missing_in_th[union_th[i]].append(elem)
     return missing_in_th
 
 
@@ -64,12 +72,18 @@ annotated_observed = {k:v for k, v in full_observed.items() if any([elem != "" f
 nb_annotated_theoretical = len(annotated_theoretical)
 nb_annotated_observed = len(annotated_observed)
 
-print([e for v in annotated_theoretical.values() for e in v  if e != ""])
-annotated_peakbypeak_theoretical = [e for v in annotated_theoretical.values() for e in v  if e != ""]
-annotated_peakbypeak_observed = [e for v in annotated_observed.values() for e in v if e != ""]
-nb_annotated_peakbypeak_theoretical = len(annotated_peakbypeak_theoretical)
-nb_annotated_peakbypeak_observed = len(annotated_peakbypeak_observed)
-union_annotated_peakbypeak = [e for e in annotated_peakbypeak_theoretical if e in annotated_peakbypeak_observed]
+masses_th = np.array(list(annotated_theoretical.keys()))
+masses_obs = np.array(list(annotated_observed.keys()))
+union_th = masses_th[(np.abs(masses_obs[:, None] - masses_th) < 0.05).any(0)]
+union_obs = masses_obs[(np.abs(masses_th[:, None] - masses_obs) < 0.05).any(0)]
+names_th = [[t for t in annotated_theoretical[k] if t != ""] for k in union_th]
+names_obs = [[o for o in annotated_observed[k] if o != ""] for k in union_obs]
+
+names_th_flatten = np.unique([elem for l in names_th for elem in l]).tolist()
+names_obs_flatten = np.unique([elem for l in names_obs for elem in l]).tolist()
+union_names = [elem for elem in names_obs_flatten if elem in names_th_flatten]
+missing_th_flatten = [elem for elem in names_obs_flatten if elem not in names_th_flatten]
+missing_obs_flatten = [elem for elem in names_th_flatten if elem not in names_obs_flatten]
 
 missing_full_theoretical = missing_masses(full_observed, full_theoretical)
 missing_full_observed = missing_masses(full_theoretical, full_observed)
@@ -130,8 +144,9 @@ for i in range(len(headers)):
 
 worksheet3.write(1, 0, "Manual", header_format)
 worksheet3.write(2, 0, "Computed", header_format)
-worksheet3.write_row(1, 1, [len(missing_annotation_theoretical), len(union_annotated_peakbypeak), nb_annotated_peakbypeak_theoretical])
-worksheet3.write_row(2, 1, [len(missing_annotation_observed), len(union_annotated_peakbypeak), nb_annotated_peakbypeak_observed])
+
+worksheet3.write_row(1, 1, [len(missing_th_flatten), len(union_names), len(names_th_flatten)])
+worksheet3.write_row(2, 1, [len(missing_obs_flatten), len(union_names), len(names_obs_flatten)])
 
 worksheet3.write(0, 6, "Missing masses in computed", header_format)
 worksheet3.write_column(1, 6, missing_annotation_observed)
