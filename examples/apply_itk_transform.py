@@ -18,7 +18,6 @@ outputname = args.output
 transform = sitk.ReadImage(transformname)
 t64 = sitk.Cast(transform, sitk.sitkVectorFloat64)
 field = sitk.DisplacementFieldTransform(t64)
-
 array = sitk.GetArrayFromImage(transform)
 print(array.shape)
 
@@ -46,9 +45,9 @@ elif len(size) == 3:
 
 if is_imzml:
     mz, y = imzml.getspectrum(0)
-    ########DO SOMETHING
     intensities, coordinates = imzmlio.get_spectra_from_images(sitk.GetArrayFromImage(outRegister).T)
     mzs = [mz] * len(coordinates)
     imzmlio.write_imzml(mzs, intensities, coordinates, outputname)
 else:
+    outRegister = sitk.Cast(outRegister, sitk.sitkFloat32)
     sitk.WriteImage(outRegister, outputname)

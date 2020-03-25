@@ -78,7 +78,7 @@ def best_fit(fixed, array_moving, numberOfBins, samplingPercentage):
 def register(fixed, moving, numberOfBins, samplingPercentage):
     R = sitk.ImageRegistrationMethod()
     R.SetMetricAsMattesMutualInformation(numberOfBins)
-    R.SetMetricSamplingPercentage(samplingPercentage, 121213 )
+    R.SetMetricSamplingPercentage(samplingPercentage, sitk.sitkWallClock )
     # R.SetOptimizerAsOnePlusOneEvolutionary(numberOfIterations=10000,
     #                                        epsilon=1.5e-4,
     #                                        initialRadius=1.01,
@@ -86,11 +86,11 @@ def register(fixed, moving, numberOfBins, samplingPercentage):
     #                                        shrinkFactor=-1.0,
     #                                        seed=121213)
     R.SetOptimizerAsRegularStepGradientDescent(
-        learningRate=1.2,
-        minStep=0.02,
+        learningRate=1.6,
+        minStep=0.001,
         numberOfIterations=100,
-        relaxationFactor=0.80,
-        gradientMagnitudeTolerance = 1e-6,
+        relaxationFactor=0.8,
+        gradientMagnitudeTolerance = 1e-5,
         maximumStepSizeInPhysicalUnits = 0.0)
     tx = sitk.CenteredTransformInitializer(fixed, moving, sitk.Similarity2DTransform(), sitk.CenteredTransformInitializerFilter.MOMENTS)
     R.SetInitialTransform(tx)
