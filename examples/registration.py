@@ -65,7 +65,10 @@ moving = sitk.ReadImage(movingname, sitk.sitkFloat32)
 
 #Resizing
 dim_moving = moving.GetDimension()
-moving = segmentation.resize(moving, fixed.GetSize())
+fixed_size = fixed.GetSize()
+moving_size = (fixed_size[0], int(moving.GetSize()[1]*fixed_size[0]/moving.GetSize()[0]))
+print(moving_size)
+moving = segmentation.resize(moving, moving_size)
 sx = fixed.GetSpacing()
 spacing = tuple([sx[i] for i in range(dim_moving)])
 moving.SetSpacing(spacing)
@@ -137,29 +140,33 @@ if registername:
     else:
         register = sitk.ReadImage(registername, sitk.sitkFloat32)
         if to_flip:
-            register = sitk.Flip(register, (True, False))
+            dim = register.GetDimension()
+            flip = (True, False) + ((False,) if dim > 2 else ())
+            register = sitk.Flip(register, (True, False, False))
             register = sitk.GetImageFromArray(sitk.GetArrayFromImage(register))
 
     dim = register.GetDimension()
-    new_size = fixed.GetSize() + ((register.GetSize()[2],) if dim > 2 else ())
+    new_size = moving_size + ((register.GetSize()[2],) if dim > 2 else ())
     register = segmentation.resize(register, new_size)
+
     identity = np.identity(dim).tolist()
     flat_list = [item for sublist in identity for item in sublist]
     direction = tuple(flat_list)
-    #register.SetDirection(flat_list)
+    register.SetDirection(flat_list)
 
     size = register.GetSize()
     pixel_type = register.GetPixelID()
 
     if len(size) == 2:
-        outRegister = sitk.Image(size[0], size[1], pixel_type )
+        outRegister = sitk.Image(fixed_size[0], fixed_size[1], pixel_type )
 
     if len(size) == 3:
-        outRegister = sitk.Image(size[0], size[1], size[2], pixel_type )
+        outRegister = sitk.Image(fixed_size[0], fixed_size[1], size[2], pixel_type )
 
     sx = fixed.GetSpacing()
     spacing = tuple([sx[0] for i in range(dim)])
     register.SetSpacing(spacing)
+
 
     if len(size) == 2:
         outRegister = best_resampler.Execute(register)
@@ -170,9 +177,11 @@ if registername:
         for i in range(size[2]):
             slice = register[:,:,i]
             slice.SetSpacing(fixed.GetSpacing())
+
             outSlice = best_resampler.Execute(slice)
             # if not is_imzml:
             #     outSlice = sitk.Cast(sitk.RescaleIntensity(outSlice), pixel_type)
+
             outSlice = sitk.JoinSeries(outSlice)
             outRegister = sitk.Paste(outRegister, outSlice, outSlice.GetSize(), destinationIndex=[0,0,i])
 

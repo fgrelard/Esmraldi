@@ -58,6 +58,8 @@ parser.add_argument("-r", "--ratio", help="Compute ratio images", action="store_
 parser.add_argument("-t", "--top", help="#Top", default=0)
 parser.add_argument("-g", "--threshold", help="Mass to charge ratio threshold", default=0)
 parser.add_argument("-n", "--norm", help="Normalization image filename")
+parser.add_argument("-p", "--post_process", help="Post process with tSNE", action="store_true")
+
 args = parser.parse_args()
 
 inputname = args.input
@@ -67,6 +69,7 @@ is_ratio = args.ratio
 top = int(args.top)
 threshold = int(args.threshold)
 normname = args.norm
+post_process = args.post_process
 
 if top <= 0:
     top = None
@@ -113,30 +116,36 @@ image_norm = seg.preprocess_pca(image)
 mri_norm = seg.preprocess_pca(image_mri)
 
 
-print("Computing PCA")
-fit_pca = fusion.pca(image_norm)
+print("Computing Dimension reduction")
+n=6
+fit_red = fusion.nmf(image_norm, n)
 
-point = fit_pca.transform(mri_norm)
-print("Explained variance ratio =", fit_pca.explained_variance_ratio_)
+point = fit_red.transform(mri_norm)
 
-weights = fit_pca.explained_variance_ratio_ / np.sum(fit_pca.explained_variance_ratio_)
-X_r = fit_pca.transform(image_norm)
-X_train, X_test = fusion.post_processing(X_r, point)
-clustering = fusion.clustering_kmeans(X_train)
+is_pca = False
+if is_pca:
+    print("Explained variance ratio =", fit_red.explained_variance_ratio_)
+    weights = fit_red.explained_variance_ratio_ / np.sum(fit_red.explained_variance_ratio_)
+else:
+    print("Explained variance ratio =", fit_red.reconstruction_err_)
+    weights = [1.0/n for i in range(n)]
 
+X_r = fit_red.transform(image_norm)
+centers = X_r
+point_mri = fit_red.transform(mri_norm)
 
-plt.plot(X_r[:, 0], X_r[:, 1], "b.")
-plt.plot(point[:, 0], point[:, 1], "ro")
-plt.show()
-plt.close()
-
-plt.plot(X_train[:, 0], X_train[:, 1], "b.")
-plt.plot(X_test[:, 0], X_test[:, 1], "ro")
-plt.show()
-plt.close()
+if post_process:
+    X_train, X_test = fusion.post_processing(X_r, point)
+    centers = X_train
+    point_mri = X_test
+    clustering = fusion.clustering_kmeans(X_train)
+    plt.plot(X_train[:, 0], X_train[:, 1], "b.")
+    plt.plot(X_test[:, 0], X_test[:, 1], "ro")
+    plt.show()
+    plt.close()
 
 if not is_ratio:
-    X_all = np.concatenate((X_train, X_test), axis=0)
+    X_all = np.concatenate((centers, point_mri), axis=0)
     tsne_all = StandardScaler().fit_transform(X_all)
     X_r_all = np.concatenate((X_r, point), axis=0)
     pca_all = StandardScaler().fit_transform(X_r_all)
@@ -150,15 +159,18 @@ if not is_ratio:
                                   image_mri,
                                   figsize=size,
                                   image_zoom=0.7)
+        # plot_pca(centers, clustering)
 
+plt.plot(X_r[:, 0], X_r[:, 1], "b.")
+plt.plot(point[:, 0], point[:, 1], "ro")
+plt.show()
+plt.close()
 
-# plot_pca(X_train, clustering)
 
 labels = None
 
-centers = X_train
-point_mri = X_test
-weights = [1 for i in range(X_test.shape[1])]
+
+weights = [1 for i in range(X_r.shape[1])]
 
 if top is not None:
     af = fusion.clustering_kmeans(image_norm, X_r)
