@@ -139,11 +139,11 @@ if registername:
         register = sitk.GetImageFromArray(array)
     else:
         register = sitk.ReadImage(registername, sitk.sitkFloat32)
-        if to_flip:
-            dim = register.GetDimension()
-            flip = (True, False) + ((False,) if dim > 2 else ())
-            register = sitk.Flip(register, (True, False, False))
-            register = sitk.GetImageFromArray(sitk.GetArrayFromImage(register))
+    if to_flip:
+        dim = register.GetDimension()
+        flip = (True, False) + ((False,) if dim > 2 else ())
+        register = sitk.Flip(register, (True, False, False))
+        register = sitk.GetImageFromArray(sitk.GetArrayFromImage(register))
 
     dim = register.GetDimension()
     new_size = moving_size + ((register.GetSize()[2],) if dim > 2 else ())
@@ -167,7 +167,8 @@ if registername:
     spacing = tuple([sx[0] for i in range(dim)])
     register.SetSpacing(spacing)
 
-
+    plt.imshow(sitk.GetArrayFromImage(register[:,:,0]))
+    plt.show()
     if len(size) == 2:
         outRegister = best_resampler.Execute(register)
         # if not is_imzml:
