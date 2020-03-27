@@ -29,6 +29,11 @@ if is_imzml:
 else:
     image = sitk.ReadImage(inputname)
 
+dim = image.GetDimension()
+identity = np.identity(dim).tolist()
+flat_list = [item for sublist in identity for item in sublist]
+direction = tuple(flat_list)
+image.SetDirection(flat_list)
 
 size = image.GetSize()
 if len(size) == 2:
@@ -42,6 +47,19 @@ elif len(size) == 3:
         outSlice = sitk.JoinSeries(outSlice)
         outRegister = sitk.Paste(outRegister, outSlice, outSlice.GetSize(), destinationIndex=[0, 0, i])
 
+
+fig, ax = plt.subplots(1, 2)
+
+before = sitk.GetArrayFromImage(image).T
+index = np.unravel_index(np.argmax(np.mean(before, axis=-1), axis=None), before.shape)
+print(index)
+after = sitk.GetArrayFromImage(outRegister).T
+if dim == 3:
+    before = before[:,:, index[-1]]
+    after = after[:,:, index[-1]]
+ax[0].imshow(before.T)
+ax[1].imshow(after.T)
+plt.show()
 
 if is_imzml:
     mz, y = imzml.getspectrum(0)
