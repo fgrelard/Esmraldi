@@ -37,6 +37,7 @@
             "category": "Modification",
             "mz": 42.0105,
             "count": 4,
+            "count_per_mol": 2,
             "naming_fn": "i,Ac",
             "family_number": 3,
             "adduct_fn": "AX.*"

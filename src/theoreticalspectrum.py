@@ -75,15 +75,25 @@ class TheoreticalSpectrum:
         molecules_with_adducts = spectrum.copy()
         for m in mix_modifications:
             molecules_re = self.mix_molecules_regexp(m, molecules_with_adducts)
+            rules_max = {m[i].name:m[i].count_per_mol for i in range(len(m))}
             modifications = self.expand_mix(m)
-            theoretical = self.add_adduct_to_molecules(molecules_re, modifications)
+            theoretical = self.add_adduct_to_molecules(molecules_re, modifications, rules_max)
             spectrum.update(theoretical)
         return spectrum
 
-    def add_adduct_to_molecules(self, molecules, adduct):
+    def add_adduct_to_molecules(self, molecules, adduct, rules_max={}):
         mol_with_adducts = {}
         for name, mz in adduct.items():
+            names = re.findall('\d*\D+', name)
+            keys = [''.join(i for i in n if not i.isdigit()) for n in names]
+            current_numbers = [int(i) for i in re.findall("\d+", name)]
+            number_max = [rules_max[key] for key in keys if key in rules_max]
             for mol_name, mol_mz in molecules.items():
+                current_number = int(re.findall('\d+', mol_name)[0])
+                accepted_numbers = [current_number*number_max[i] for i in range(len(number_max))]
+                condition = [accepted_numbers[i]>=current_numbers[i] for i in range(len(accepted_numbers))]
+                if not all(condition):
+                    continue
                 current_mz = mol_mz + mz
                 current_name = mol_name + "_" + name
                 mol_with_adducts[current_name] = current_mz

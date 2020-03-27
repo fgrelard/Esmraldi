@@ -30,6 +30,7 @@ def json_to_species(filename):
         begin = rule["begin"] if "begin" in rule else None
         end_mz = rule["end_mz"] if "end_mz" in rule else None
         family_number = rule["family_number"] if "family_number" in rule else None
+        count_per_mol = rule["count_per_mol"] if "count_per_mol" in rule else count
         naming_fn = rule["naming_fn"] if "naming_fn" in rule else None
         add_fn = rule["adduct_fn"] if "adduct_fn" in rule else None
         if naming_fn is not None:
@@ -39,13 +40,13 @@ def json_to_species(filename):
         else:
             naming_fn = lambda i: name + str(i)
 
-        s = SpeciesRule(name=name, category=category, mz=mz, count=count, begin=begin, end_mz=end_mz, family_number=family_number, naming_fn=naming_fn, adduct_fn=add_fn)
+        s = SpeciesRule(name=name, category=category, mz=mz, count=count, count_per_mol=count_per_mol, begin=begin, end_mz=end_mz, family_number=family_number, naming_fn=naming_fn, adduct_fn=add_fn)
         species.append(s)
     return species
 
 
 class SpeciesRule:
-    def __init__(self, name, category, mz, count=1, begin=None, end_mz=None, family_number=None, naming_fn=None, adduct_fn=None):
+    def __init__(self, name, category, mz, count=1, count_per_mol=1, begin=None, end_mz=None, family_number=None, naming_fn=None, adduct_fn=None):
         self.name = name
         self.category = category
         self.mz = mz
@@ -60,6 +61,7 @@ class SpeciesRule:
         else:
             self.count = count
 
+        self.count_per_mol = count_per_mol
 
         if family_number is not None:
             self.family_number = family_number
