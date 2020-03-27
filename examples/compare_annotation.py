@@ -32,6 +32,7 @@ def missing_annotation(theoretical, observed, tol=0.05):
     names_th = [[t for t in theoretical[k] if t != ""] for k in union_th]
     names_obs = [[o for o in observed[k] if o != ""] for k in union_obs]
 
+
     names_th_flatten = np.unique([elem for l in names_th for elem in l]).tolist()
     names_obs_flatten = np.unique([elem for l in names_obs for elem in l]).tolist()
     missing = [elem for elem in names_obs_flatten if elem not in names_th_flatten]
@@ -44,6 +45,8 @@ def missing_annotation(theoretical, observed, tol=0.05):
             if elem not in current_th:
                 if i not in missing_in_th:
                     missing_in_th[union_th[i]] = []
+                if i == 4:
+                    print(elem)
                 missing_in_th[union_th[i]].append(elem)
     return missing_in_th
 
@@ -91,7 +94,7 @@ missing_theoretical = missing_masses(annotated_observed, annotated_theoretical)
 missing_observed = missing_masses(annotated_theoretical, annotated_observed)
 missing_annotation_theoretical = missing_annotation(annotated_theoretical, annotated_observed)
 missing_annotation_observed = missing_annotation(annotated_observed, annotated_theoretical)
-
+print(missing_annotation_theoretical)
 
 stats_detection_th = [len(missing_full_theoretical), len(theoretical) - len(missing_full_observed), nb_theoretical]
 stats_detection_obs = [len(missing_full_observed), len(observed) - len(missing_full_theoretical),  nb_observed]
@@ -150,11 +153,11 @@ worksheet3.write_row(2, 1, [len(missing_obs_flatten), len(union_names), len(name
 
 worksheet3.write(0, 6, "Missing masses in computed", header_format)
 worksheet3.write_column(1, 6, missing_annotation_observed)
-worksheet3.write_column(1, 7, [", ".join([name for name in full_theoretical[k] if name != ""]) for k in missing_annotation_observed])
+worksheet3.write_column(1, 7, [", ".join([elem for elem in l]) for l in list(missing_annotation_observed.values()) ])
 
 worksheet3.write(0, 9, "Missing masses in manual", header_format)
 worksheet3.write_column(1, 9, missing_annotation_theoretical)
-worksheet3.write_column(1, 10, [", ".join([name for name in full_theoretical[k] if name != ""]) for k in missing_annotation_theoretical])
+worksheet3.write_column(1, 10, [", ".join([elem for elem in l])  for l in list(missing_annotation_theoretical.values()) ])
 
 
 workbook.close()
