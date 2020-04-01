@@ -43,7 +43,7 @@ if dim_image == 3:
     center_x, center_y, radius = seg.detect_tube(array_image, min_radius=minr, max_radius=maxr, threshold=threshold)
     array_image = seg.fill_circle(center_x, center_y, maxr, array_image)
 
-array_image = seg.remove_pericarp(array_image, radius_selem)
+array_image = seg.binary_closing(array_image, radius_selem)
 
 fig, ax = plt.subplots(1, 2)
 ax[0].imshow(sitk.GetArrayFromImage(image))

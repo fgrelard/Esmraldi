@@ -1,3 +1,8 @@
+"""
+Module for the joint statistical
+analysis of images
+"""
+
 import numpy as np
 import cv2 as cv
 from sklearn.decomposition import PCA
@@ -53,18 +58,36 @@ def pca(image, n=5):
     ----------
     image: np.ndarray
         collection of images
+    n: int
+        number of components
 
     Returns
     ----------
-    type
-        description
-
+    sklearn.decomposition.PCA
+        pca object
     """
     pca = PCA(n_components=n)
     fit_pca = pca.fit(image)
     return fit_pca
 
 def nmf(image, n=5):
+    """
+    Performs PCA on image array
+    Each image is represented as a point after fitting
+    Based on scikit module
+
+    Parameters
+    ----------
+    image: np.ndarray
+        collection of images
+    n: int
+        number of components
+
+    Returns
+    ----------
+    sklearn.decomposition.NMF
+        nmf object
+    """
     nmf_obj = NMF(n_components=n, init='nndsvda', solver='cd', random_state=0)
     fit_nmf = nmf_obj.fit(image)
     return fit_nmf

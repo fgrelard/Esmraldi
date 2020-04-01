@@ -1,19 +1,72 @@
+"""
+Module for the registration of two images
+"""
 import numpy as np
 import SimpleITK as sitk
 import matplotlib.pyplot as plt
 import math
 
 def precision(im1, im2):
+    """
+    Precision between two images
+    defined as |im1 \cap im2|/|im2|
+
+    Parameters
+    ----------
+    im1: np.ndarray
+        first binary image
+    im2: np.ndarray
+        second binary image
+
+    Returns
+    ----------
+    float
+        precision value
+
+    """
     tp = np.count_nonzero((im2 + im1) == 2)
     allp = np.count_nonzero(im2 == 1)
     return tp * 1.0 / allp
 
 def recall(im1, im2):
+    """
+    Recall between two images
+    defined as |im1 \cap im2|/|im1|
+
+    Parameters
+    ----------
+    im1: np.ndarray
+        first binary image
+    im2: np.ndarray
+        second binary image
+
+    Returns
+    ----------
+    float
+        recall value
+    """
     tp = np.count_nonzero((im2 + im1) == 2)
     allr = np.count_nonzero(im1 == 1)
     return tp * 1.0 / allr
 
 def quality_registration(imRef, imRegistered):
+    """
+    Evaluates registration quality
+    Binarizes images
+    Then computes recall and precision
+
+    Parameters
+    ----------
+    imRef: np.ndarray
+        reference (fixed) image
+    imRegistered: np.ndarray
+        deformable (moving) image - after registration
+
+    Returns
+    ----------
+    tuple
+        precision and recall values
+    """
     otsu_filter = sitk.OtsuThresholdImageFilter()
     otsu_filter.SetInsideValue(0)
     otsu_filter.SetOutsideValue(1)
@@ -25,12 +78,44 @@ def quality_registration(imRef, imRegistered):
 
 
 def fmeasure(precision, recall):
+    """
+    Computes the F-Measure, or F1-score,
+    That is the harmonic mean
+    of the precision and recall
+
+    Parameters
+    ----------
+    precision: float
+        precision value
+    recall: float
+        recall value
+
+    Returns
+    ----------
+    float
+        fmeasure
+
+    """
     return 2 * precision * recall / (precision + recall)
 
 
 def mutual_information(imRef, imRegistered):
     """
     Mutual information for joint histogram
+    based on entropy computation
+
+    Parameters
+    ----------
+    imRef: np.ndarray
+        reference (fixed) image
+    imRegistered: np.ndarray
+        deformable (moving)image
+
+    Returns
+    ----------
+    float
+        mutual information
+
     """
 
     fixed_array = sitk.GetArrayFromImage(imRef)
@@ -50,6 +135,28 @@ def mutual_information(imRef, imRegistered):
 
 
 def best_fit(fixed, array_moving, numberOfBins, samplingPercentage):
+    """
+    Finds the best fit between variations of the same image
+    According to mutual information measure
+    Different variations (eg symmetry) are stored in the
+    first dimension of the array
+
+    Parameters
+    ----------
+    fixed: np.ndarray
+        reference (fixed) image
+    array_moving: np.ndarray
+        3D deformable (moving) image
+    numberOfBins: int
+        number of bins for sampling
+    samplingPercentage: float
+        proportion of points to consider in sampling
+
+    Returns
+    ----------
+    sitk.ImageRegistrationMethod
+        registration object
+    """
     width = fixed.GetWidth()
     height = fixed.GetHeight()
     f_max = 0
@@ -76,6 +183,31 @@ def best_fit(fixed, array_moving, numberOfBins, samplingPercentage):
 
 
 def register(fixed, moving, numberOfBins, samplingPercentage):
+    """
+    Registration between reference (fixed)
+    and deformable (moving) images
+    transform initialized with moments
+    metric=mutual information
+    optimization=gradient descent
+    interpolation=nearest neighbor
+
+    Parameters
+    ----------
+    fixed: np.ndarray
+        reference (fixed) image
+    moving: np.ndarray
+        deformable (moving) image
+    numberOfBins: int
+        number of bins for sampling
+    samplingPercentage: float
+        proportion of points to consider in sampling
+
+    Returns
+    ----------
+    sitk.ImageRegistrationMethod
+        registration object
+
+    """
     R = sitk.ImageRegistrationMethod()
     R.SetMetricAsMattesMutualInformation(numberOfBins)
     R.SetMetricSamplingPercentage(samplingPercentage, 15045 )

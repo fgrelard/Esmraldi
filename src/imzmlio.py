@@ -1,3 +1,9 @@
+"""
+Module for the input/output
+of imzML files
+Conversion to numpy array
+"""
+
 import pyimzml.ImzMLWriter as imzmlwriter
 import pyimzml.ImzMLParser as imzmlparser
 import numpy as np
@@ -159,4 +165,16 @@ def to_nifti(image, filename):
     nibimg.to_filename(filename)
 
 def to_csv(array, filename):
+    """
+    Converts a file to csv
+    containing all m/z ratio
+
+    Parameters
+    ----------
+    array: np.ndarray
+        mz array
+    filename: str
+        output filename
+
+    """
     np.savetxt(filename, array, delimiter=";", fmt='%1.4f')

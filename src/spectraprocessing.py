@@ -1,3 +1,12 @@
+"""
+Module for the preprocessing of spectra
+specifically designed for MALDI images
+
+  - Peak picking
+  - Local realignment procedures
+  - Deisotoping
+"""
+
 import ms_peak_picker
 import ms_deisotope
 import math
@@ -8,33 +17,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pyopenms import *
 
-class Peak:
-    def __init__(self, mz, intensity):
-        self.mz = mz
-        self.intensity = intensity
-
-
-def array_to_peaks(array):
-    L = []
-    mzs = array[0, :]
-    intensities = array[1, :]
-    for j in range(len(mzs)):
-        p = Peak(mzs[j], intensities[j])
-        L.append(p)
-    return np.array(L)
-
-def peaks_to_array(peaks):
-    L = [ [peak.mz for peak in peaks],
-          [peak.intensity for peak in peaks] ]
-    return np.array(L)
-
-def spectra_to_peaklist(spectra):
-    L = [ array_to_peaks(array) for array in spectra ]
-    return np.array(L)
-
-def peaklist_to_spectra(peaklist):
-    L = [ peaks_to_array(peaks) for peaks in peaklist ]
-    return np.array(L)
 
 def spectra_sum(spectra):
     """
@@ -145,6 +127,26 @@ def spectra_peak_indices(spectra, prominence=50, wlen=10):
 
 
 def spectra_peak_indices_adaptative(spectra, factor=1, wlen=10):
+    """
+    Estimates and extracts significant peaks in the spectra
+    By using the local prominence (height of the peak relative to the background noise)
+    Background noise is estimated as the standard deviation of the
+    signal over a window of size wlen
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        Spectra as [mz*I] array
+    factor: float
+        prominence factor
+    wlen: int
+        size of the window
+
+    Returns
+    ----------
+    np.ndarray
+        Peak indices relative to spectra
+    """
     indices = []
     min_spectra = spectra_min(spectra)
     size = min_spectra.shape[0]
@@ -156,6 +158,26 @@ def spectra_peak_indices_adaptative(spectra, factor=1, wlen=10):
     return np.array(indices)
 
 def spectra_peak_mzs_adaptative(spectra, factor=1, wlen=10):
+     """
+    Estimates and extracts significant peaks in the spectra
+    By using the local prominence (height of the peak relative to the background noise)
+    Background noise is estimated as the standard deviation of the
+    signal over a window of size wlen
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        Spectra as [mz*I] array
+    factor: float
+        prominence factor
+    wlen: int
+        size of the window
+
+    Returns
+    ----------
+    np.ndarray
+        Peaks m/z
+    """
     mzs = []
     min_spectra = spectra_min(spectra)
     size = min_spectra.shape[0]
@@ -192,12 +214,6 @@ def peak_indices(data, prominence, wlen):
                                          distance=1)
     return peak_indices
 
-
-def peak_indices_cwt(data, widths):
-    peak_indices, _ = signal.find_peaks_cwt(tuple(data),
-                                            widths=widths,
-                                            min_snr=3)
-    return peak_indices
 
 
 def peak_selection_shape(spectra):
@@ -336,6 +352,21 @@ def peak_reference_indices_groups(groups):
     return indices
 
 def peak_reference_indices_median(groups):
+    """
+    Extracts the reference peak in a group
+    as the median peak
+
+    Parameters
+    ----------
+    groups: list
+        list of peak indices
+
+    Returns
+    ----------
+    list
+        list of reference peak indices
+
+    """
     indices = []
     for group in groups:
         group_copy = sorted(group.copy())
@@ -344,6 +375,26 @@ def peak_reference_indices_median(groups):
     return indices
 
 def width_peak_mzs(aligned_mzs, groups, default=0.001):
+    """
+    Computes the width of a peak
+    by computing the difference in m/z
+    between the upper and lower bounds in the group
+
+    Parameters
+    ----------
+    aligned_mzs: list
+        list of m/z
+    groups: list
+        list of peak indices
+    default: float
+        default width of the peak
+
+    Returns
+    ----------
+    dict
+        maps m/z to widths
+
+    """
     indices_to_width = {}
     aligned_array = np.array(aligned_mzs)
     for group in groups:
@@ -411,6 +462,25 @@ def closest_peak(num, indices_to_width):
 
 
 def realign_wrt_peaks_mzs(spectra, aligned_mzs, full_mzs, indices_to_width):
+    """
+    Realign spectra to reference peaks
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        Spectra as [mz*I] array
+    aligned_mzs: list
+        reference mz peaklist
+    full_mzs: np.ndarray
+        complete mz peaklist over all spectra
+    indices_to_width: dict
+        mz to width
+
+    Returns
+    ----------
+    list
+        realigned spectra
+    """
     realigned_spectra = []
     for i in range(spectra.shape[0]):
         spectrum = spectra[i]
@@ -427,6 +497,26 @@ def realign_wrt_peaks_mzs(spectra, aligned_mzs, full_mzs, indices_to_width):
     return realigned_spectra
 
 def realign_wrt_peaks(spectra, aligned_peaks, full_peaks, indices_to_width):
+    """
+    Realign spectra to reference peaks
+    from indices
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        Spectra as [mz*I] array
+    aligned_mzs: list
+        reference mz peaklist
+    full_mzs: np.ndarray
+        complete mz peaklist over all spectra
+    indices_to_width: dict
+        indices to width
+
+    Returns
+    ----------
+    list
+        realigned spectra indices
+    """
     realigned_spectra = []
     for i in range(spectra.shape[0]):
         spectrum = spectra[i]
@@ -479,6 +569,29 @@ def realign(spectra, prominence=50, nb_occurrence=4, step=0.02):
 
 
 def realign_median(spectra, factor=1, nb_occurrence=4, step=0.02):
+    """
+    Main function allowing to realign the spectra
+    First extracts the peaks on all spectra,
+    then extracts the reference peaks
+    and maps each peak to its closest reference peak
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        spectra
+    factor: float
+        local prominence factor
+    nb_occurrence: int
+        minimum number of occurrence of peak in spectra
+    step: float
+        mz range to consider similar mz values
+
+    Returns
+    ----------
+    np.array
+        realigned spectra
+
+    """
     mz, I = spectra[0]
     min_diff = mz[1] - mz[0]
     step_index = math.ceil(step / min_diff)
@@ -494,11 +607,42 @@ def realign_median(spectra, factor=1, nb_occurrence=4, step=0.02):
 
 
 def neighbours(index, n, spectra):
+    """
+    Right-sided neighbours of a point in a spectrum
+
+    Parameters
+    ----------
+    index: int
+        index to search neighbours from
+    n: int
+        number of neighbours
+    spectra: np.ndarray
+        spectrum
+
+    Returns
+    ----------
+    np.ndarray
+        neighbours
+
+    """
     s = index
     e = index + n if index + n < spectra.shape[0] else spectra.shape[0]
     return spectra[s:e, ...]
 
 def forward_derivatives(peaks):
+    """
+    Forward derivatives from peak value distribution
+
+    Parameters
+    ----------
+    peaks: list
+        peaklist
+
+    Returns
+    ----------
+    list
+        derivatives
+    """
     derivatives = []
     for i in range(len(peaks)-1):
         p = peaks[i]
@@ -508,6 +652,26 @@ def forward_derivatives(peaks):
     return derivatives
 
 def find_isotopic_pattern(neighbours, tolerance, nb_charges):
+    """
+    Extracts isotopic pattern based on mz similarity
+    and max number of charges
+
+    Parameters
+    ----------
+    neighbours: np.ndarray
+        neighbouring mz in spectra
+    tolerance: float
+        acceptable mz delta for a peak to be considered isotopic
+    nb_charges: int
+        maximum number of charges
+
+
+    Returns
+    ----------
+    list
+        pattern peaklist
+
+    """
     pattern = [neighbours[0]]
     for j in range(1, neighbours.shape[0]):
         n = neighbours[j]
@@ -522,11 +686,40 @@ def find_isotopic_pattern(neighbours, tolerance, nb_charges):
     return pattern
 
 def peaks_max_intensity_isotopic_pattern(pattern):
+    """
+    Finds the peak with maximum intensity in
+    the isotopic pattern
+
+    Parameters
+    ----------
+    pattern: list
+        pattern peaklist
+
+    Returns
+    ----------
+    list
+        peak with maximum intensity
+    """
     index_max = np.argmax(np.array(pattern), axis=0)[1]
     return [pattern[index_max]]
 
 
 def peaks_derivative_isotopic_pattern(pattern):
+    """
+    Finds the peak where the sign of the derivative changes
+    from negative to positive
+    from the pattern intensities
+
+    Parameters
+    ----------
+    pattern: list
+        pattern peaklist
+
+    Returns
+    ----------
+    list
+        peaks where the derivative sign changes
+    """
     peaks = [pattern[0]]
     derivatives = forward_derivatives(pattern)
     for j in range(1, len(derivatives)):
@@ -544,6 +737,21 @@ def peaks_derivative_isotopic_pattern(pattern):
 
 
 def isotopes_from_pattern(pattern, peaks_in_pattern):
+    """
+    Find isotopes from a pattern
+
+    Parameters
+    ----------
+    pattern: list
+         pattern peaklist
+    peaks_in_pattern: list
+         peaks that correspond to other species in the pattern
+
+    Returns
+    ----------
+    np.ndarray
+        isotopes in the pattern
+    """
     isotopes = []
     for i in range(len(pattern)):
         close = False
@@ -555,6 +763,21 @@ def isotopes_from_pattern(pattern, peaks_in_pattern):
     return np.array(isotopes)
 
 def mz_second_isotope_most_abundant(average_distribution):
+    """
+    Determines where the second isotope becomes the most abundant
+    from a given distribution
+
+    Parameters
+    ----------
+    average_distribution: dict
+        maps atom mass to its average abundance
+
+    Returns
+    ----------
+    float
+        mass at which the second isotope is the most abundant
+
+    """
     masses = {"H": 1.0078, "C": 12, "N": 14.00307, "O": 15.99491, "S": 31.97207, "H2": 2.014, "C13": 13.00335, "N15":15.00011, "O17": 16.999913, "O18": 17.99916, "S33":32.97146, "S34": 33.9678}
     distribution = {"H": 0.99985, "C": 0.9889, "N": 0.9964, "O": 0.9976, "S": 0.95, "H2": 0.00015, "C13": 0.0111, "N15": 0.0036, "O17": 0.0004, "O18": 0.002, "S33": 0.0076, "S34": 0.0422}
     without_isotopes = 0
@@ -573,6 +796,22 @@ def mz_second_isotope_most_abundant(average_distribution):
     return mz
 
 def peak_to_index(peak, pattern):
+    """
+    Gets the index of a peak in a pattern
+
+    Parameters
+    ----------
+    peak: float
+        mass ratio
+    pattern: list
+        pattern peaklist
+
+    Returns
+    ----------
+    int
+        index of peak
+
+    """
     for i in range(len(pattern)):
         p = pattern[i]
         if np.isclose(peak[0], p[0]):
@@ -580,6 +819,33 @@ def peak_to_index(peak, pattern):
     return 0
 
 def deisotoping_simple(spectra, tolerance=0.1, nb_neighbours=8, nb_charges=5, average_distribution={}):
+    """
+    Simple deisotoping depending on the mass of the
+    secondmost abundant isotope:
+      - Before this mass: uses the peak with max intensity
+        as reference
+      - After this mass: use the peak where the sign of the
+        derivative changes
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        peaklist
+    tolerance: float
+        acceptable mz delta
+    nb_neighbours: int
+        size of patterns
+    nb_charges: int
+        maximum number of charges in isotopic pattern
+    average_distribution: dict
+        maps atom mass to its average abundance
+
+    Returns
+    ----------
+    np.ndarray
+        deisotoped spectra
+
+    """
     deisotoped_spectra = []
     deisotoped_indices = []
     ignore_indices = []
@@ -587,7 +853,6 @@ def deisotoping_simple(spectra, tolerance=0.1, nb_neighbours=8, nb_charges=5, av
     mzs = spectra[0][0]
     peaks = spectra_max(spectra)
     peaks = np.array([mzs, peaks])
-    # peaks = peaks[...,(peaks[0] > 860) & (peaks[0] < 880)]
     x = peaks.shape[-1]
     for i in range(x):
         if np.any([np.isclose(ignore_indices[j][0], peaks[0, i]) for j in range(len(ignore_indices))]):
@@ -603,11 +868,6 @@ def deisotoping_simple(spectra, tolerance=0.1, nb_neighbours=8, nb_charges=5, av
         ignore_indices.extend(isotopes)
         indices = [peak_to_index(peak, pattern) for peak in peaks_pattern]
         deisotoped_indices.extend([i+j for j in indices if i+j not in deisotoped_indices])
-        # print("Neighbours=", N)
-        # print("Pattern=", pattern)
-        # print("Other peaks=", peaks_pattern)
-        # print("Isotopes=", isotopes)
-
     deisotoped_indices = np.array(deisotoped_indices)
     for spectrum in spectra:
         mzs, intensities = spectrum

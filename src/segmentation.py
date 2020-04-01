@@ -1,3 +1,7 @@
+"""
+Module for the segmentation
+"""
+
 import pyimzml.ImzMLParser as imzmlparser
 import matplotlib.pyplot as plt
 import numpy as np
@@ -309,6 +313,27 @@ def select_class_area(image_maldi, y_kmeans, nb_class):
 
 
 def detect_circle(image, threshold, min_radius, max_radius):
+    """
+    Detect a circle in an image
+    Uses hough transform over several radii
+
+    Parameters
+    ----------
+    image: np.ndarray
+        image
+    threshold: int
+        threshold for binary image
+    min_radius: float
+        lower bound for radii
+    max_radius: float
+        upper bound for radii
+
+    Returns
+    ----------
+    tuple
+        x,y,r: circle center + radii
+
+    """
     cond = np.where(image < threshold)
     image_copy = np.copy(image)
     image_copy[cond] = 0
@@ -328,6 +353,26 @@ def detect_circle(image, threshold, min_radius, max_radius):
 
 
 def detect_tube(image, threshold=150, min_radius=10, max_radius=50):
+    """
+    Detect the most frequent circle across several slices
+    (3D volume)
+
+    Parameters
+    ----------
+    image: np.ndarray
+        image
+    threshold: int
+        threshold for binary image
+    min_radius: float
+        lower bound for radii
+    max_radius: float
+        upper bound for radii
+
+    Returns
+    ----------
+    tuple
+        x,y,r: circle center + radii
+    """
     cy, cx, radii = [], [], []
     for i in range(image.shape[0]):
         center_x, center_y, radius = detect_circle(image[i, :,:], threshold, min_radius, max_radius)
@@ -341,16 +386,57 @@ def detect_tube(image, threshold=150, min_radius=10, max_radius=50):
     return center_x, center_y, radius
 
 def fill_circle(center_x, center_y, radius, image, color=0):
+    """
+    Fills a circle with a given value (default: 0)
+
+    Parameters
+    ----------
+    center_x: float
+        center_x of circle
+    center_y: float
+        center_y of circle
+    radius: float
+        radius of circle
+    image: np.ndarray
+        image where the circle must be filled
+    color: int
+        value to replace
+
+    Returns
+    ----------
+    np.ndarray
+        image with filled circle
+
+    """
     image2 = np.copy(image)
     dim = len(image2.shape)
     rr, cc = circle(int(center_y), int(center_x), int(radius), image2.shape[dim-2:])
     if dim == 2:
-        image2[rr, cc] = 0
+        image2[rr, cc] = color
     if dim == 3:
-        image2[:, rr,cc] = 0
+        image2[:, rr,cc] = color
     return image2
 
-def remove_pericarp(image, radius_selem=1):
+def binary_closing(image, radius_selem=1):
+    """
+    Specific function to remove thin structures
+    in the wheat grain
+    Performs a morphological closing
+
+
+    Parameters
+    ----------
+    image: np.ndarray
+        image
+    radius_selem: int
+        radius in pixel for the structuring element
+
+    Returns
+    ----------
+    np.ndarray
+        morphologically closed image
+
+    """
     otsu = threshold_otsu(image)
     binary = np.where(image > otsu, 0, 255)
     selem = disk(radius_selem)
@@ -361,6 +447,22 @@ def remove_pericarp(image, radius_selem=1):
 
 
 def resize(image, size):
+    """
+    Resize the image to a given size
+
+    Parameters
+    ----------
+    image: np.ndarray
+        input image
+    size: tuple
+        new size of the image
+
+    Returns
+    ----------
+    np.ndarray
+        new resized image
+
+    """
     dim = len(image.GetSize())
     spacing = [old_sz*old_spc/new_sz  for old_sz, old_spc, new_sz in zip(image.GetSize(), image.GetSpacing(), size)]
     resampled_img = sitk.Resample(image,
