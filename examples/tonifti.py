@@ -1,3 +1,6 @@
+"""
+Converts an imzML file to NIFTI
+"""
 import argparse
 import os
 import src.segmentation as seg

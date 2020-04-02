@@ -1,3 +1,14 @@
+"""
+Generates average images of species
+with the same modifications
+
+Example:
+Species= Mol1, Modification1, Modification2
+
+Average images generated are:
+Mol1+Modification1 and Mol1+Modification2 and
+Mol1+Modification1+Modification2
+"""
 import re
 import argparse
 import os

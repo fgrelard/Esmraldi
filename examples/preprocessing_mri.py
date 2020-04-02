@@ -1,6 +1,6 @@
 """
-Remove tube and pericarp from MRI image
-To ease the registration process
+Various preprocessing functions on MRI image
+Application-driven
 """
 
 import src.segmentation as seg

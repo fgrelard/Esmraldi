@@ -1,3 +1,9 @@
+"""
+MALDI processing:
+  1/ Peak selection
+  2/ Realignment
+  3/ Deisotoping
+"""
 import os
 import math
 import argparse

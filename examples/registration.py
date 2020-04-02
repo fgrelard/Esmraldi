@@ -1,3 +1,11 @@
+"""
+Registration example
+
+Rigid registration
+Transform=rigid, centers initialized with moments
+Metric=Mattes mutual information
+Optimization=Gradient descent
+"""
 import argparse
 import SimpleITK as sitk
 import matplotlib.pyplot as plt
@@ -9,6 +17,15 @@ import src.registration as reg
 import src.segmentation as segmentation
 
 def command_iteration(method) :
+    """
+    Callback called after each registration iteration
+
+    Parameters
+    ----------
+    method: sitk.ImageRegistrationMethod
+        the registration method
+
+    """
     print("{0:3} = {1:10.5f} : {2}".format(method.GetOptimizerIteration(),
                                            method.GetMetricValue(),
                                            method.GetOptimizerPosition()))
@@ -16,6 +33,23 @@ def command_iteration(method) :
 
 
 def resample(image, transform):
+    """
+    Applies a transform to an image
+
+
+    Parameters
+    ----------
+    image: sitk.Image
+        input image
+    transform: sitk.Transform
+        a transform
+
+    Returns
+    ----------
+    sitk.Image
+        transformed image
+
+    """
     # Output image Origin, Spacing, Size, Direction are taken from the reference
     # image in this call to Resample
     reference_image = image
@@ -28,6 +62,20 @@ def resample(image, transform):
 
 
 def registration_number_bins(outputname, min_bins, max_bins):
+    """
+    Registration over a range of bins
+    for the sampling strategy
+
+    Parameters
+    ----------
+    outputname: str
+        output image name
+    min_bins: int
+        minimum number of bins
+    max_bins: int
+        maximum number of bins
+
+    """
     for i in range(min_bins, max_bins):
         outname = os.path.splitext(outputname)[0] + "_bins" + str(i) +".png"
         try:
@@ -37,11 +85,6 @@ def registration_number_bins(outputname, min_bins, max_bins):
             sitk.WriteImage(out, outname)
         except Exception as e:
             pass
-
-
-
-
-
 
 
 parser = argparse.ArgumentParser()

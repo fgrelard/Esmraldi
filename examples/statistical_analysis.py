@@ -1,3 +1,13 @@
+"""
+Statistical analysis
+
+   1/ Matrix factorization of MALDI datacube
+   2/ Projection of the MRI in the space defined
+      by the axes of the dimension reduction method
+   3/ Sort the MALDI images by ascending order of
+      the Euclidean distance between the MALDI image
+      and the MRI image in this reduced space
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 import src.segmentation as seg

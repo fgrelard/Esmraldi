@@ -1,3 +1,7 @@
+"""
+Example which annotates an observed spectrum
+with a reference theoretical spectrum
+"""
 import argparse
 import csv
 import re
@@ -8,6 +12,29 @@ import pprint
 
 
 def column_names(values, ions, adducts, modifications, delimiter="_"):
+    """
+    Extract different column names
+    where observed spectrum is split in
+    different columns
+
+    Parameters
+    ----------
+    values: list
+        all existing species names
+    ions: list
+        SpeciesRule list
+    adducts: list
+        SpeciesRule list
+    modifications: list
+        SpeciesRule list
+    delimiter: str
+        delimiter between species
+
+    Returns
+    ----------
+    list
+        column names
+    """
     s = set()
     flat_list = [item for sublist in values for item in sublist]
     value_names = "\n".join(list(flat_list))
@@ -38,7 +65,24 @@ def column_names(values, ions, adducts, modifications, delimiter="_"):
     return column_names
 
 
-def names_to_columns(columns, values, delimiter="_"):
+def assign_names_to_columns(columns, values, delimiter="_"):
+    """
+    Assign species name to corresponding column
+
+    Parameters
+    ----------
+    columns: list
+        column names
+    values: list
+        all species names
+    delimiter: str
+        separation between species
+
+    Returns
+    ----------
+    list
+        species names in column
+    """
     new_values = []
     for possibilities in values:
         L = [""] * len(columns)
@@ -62,8 +106,8 @@ def names_to_columns(columns, values, delimiter="_"):
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--theoretical", help="Theoretical spectrum")
 parser.add_argument("-o", "--observed", help="Observed spectrum (.csv)")
-parser.add_argument("-c", "--output_csv", help="Output csv file")
-parser.add_argument("-s", "--separate_species", help="Separate each species in different columns", action="store_true")
+parser.add_argument("-c", "--output_csv", help="Output file with annotated observed spectrum (.csv)")
+parser.add_argument("-s", "--separate_species", help="Switch whether species names are split in separate columns", action="store_true")
 
 args = parser.parse_args()
 
@@ -95,7 +139,7 @@ keys_sorted = {k:v for k,v in sorted(annotation.items(), key=lambda item: item[0
 if is_separate:
     values = keys_sorted.values()
     columns = column_names(values, ions, adducts, modifications)
-    new_values = names_to_columns(columns, values)
+    new_values = assign_names_to_columns(columns, values)
     keys_sorted = {list(keys_sorted.keys())[i]:new_values[i] for i in range(len(new_values))}
 
 if output_name:

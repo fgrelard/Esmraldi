@@ -1,3 +1,9 @@
+"""
+Example file to apply a
+non-rigid ITK transform
+based on a displacement field
+"""
+
 import argparse
 import SimpleITK as sitk
 import src.imzmlio as imzmlio
@@ -6,9 +12,9 @@ import matplotlib.pyplot as plt
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--input", help="Input image")
+parser.add_argument("-i", "--input", help="Input image (image before deformation, .imzML or ITK format)")
 parser.add_argument("-t", "--transform", help="Input transform from ITK (.mha)")
-parser.add_argument("-o", "--output", help="Output image")
+parser.add_argument("-o", "--output", help="Output image after deformation (.imzML or ITK format)")
 args = parser.parse_args()
 
 inputname = args.input
