@@ -1,3 +1,11 @@
+"""
+Gives a complete analysis of the
+selected peaks and their annotation
+Helps finding correspondences between different
+samples
+
+Generates a summary file (.xls)
+"""
 import argparse
 import xlsxwriter
 import csv
@@ -20,17 +28,63 @@ import src.spectrainterpretation as si
 from src.theoreticalspectrum import TheoreticalSpectrum
 
 def get_col_widths(data):
+    """
+    Compute the maximum column width
+    (in number of characters)
+
+    Parameters
+    ----------
+    data: np.ndarray
+        input data
+
+    Returns
+    ----------
+    int
+        max width
+    """
     mylen = np.vectorize(len)
     lengths = mylen(data.astype('str'))
     maximum = np.amax(lengths, axis=1)
     return maximum
 
 def split_name(name):
+    """
+    Split the species name
+    to a readable format
+
+    Example:
+    Mol_Adduct_Modif is converted to:
+    Mol Modif (Adduct)
+
+    Parameters
+    ----------
+    name: str
+        input name
+
+    Returns
+    ----------
+    str
+        split name
+    """
     list_names = name.split("_")
     new_name = list_names[0] + ("." + ".".join(list_names[2:]) if len(list_names) > 2 else "") + " (" + list_names[1] + ")"
     return new_name
 
 def dict_to_array(masses):
+    """
+    Converts a mz/name dict
+    to a numpy array
+
+    Parameters
+    ----------
+    masses: dict
+        annotated species dictionary
+
+    Returns
+    ----------
+    np.ndarray
+        annotated species array
+    """
     max_len = max([len(v) for k,v in masses.items()])
     mz = list(masses.keys())
     values = list(masses.values())
@@ -39,8 +93,21 @@ def dict_to_array(masses):
     return data
 
 def write_mass_list(worksheet, column_names, masses, mean_spectrum):
+    """
+    Write annotated mass list to a spreadsheet
 
+    Parameters
+    ----------
+    worksheet: xlsxwriter.Worksheet
+        current worksheet
+    column_names: list
+        column header names
+    masses: np.ndarray
+        data array (mz, annotation)
+    mean_spectrum: np.ndarray
+        average intensity values for the species
 
+    """
     headers = ["m/z", "Average intensities"] + column_names
     for i in range(len(headers)):
         worksheet.write(0, i, headers[i], header_format)
@@ -62,7 +129,19 @@ def write_mass_list(worksheet, column_names, masses, mean_spectrum):
 
 
 def add_table(worksheet, masses, image):
+    """
+    Add statistics table to a spreadsheet
 
+    Parameters
+    ----------
+    worksheet: xlsxwriter.Worksheet
+        current worksheet
+    masses: np.ndarray
+        data array (mz, annotation)
+    image: np.ndarray
+        MALDI image datacube
+
+    """
     mz_curated = list(masses.keys())
     names_curated = list(masses.values())
 
@@ -99,6 +178,22 @@ def add_table(worksheet, masses, image):
 
 
 def insertable_image(image, size):
+    """
+    Converts an image to binary
+    for insertion inside a spreadsheet
+
+    Parameters
+    ----------
+    image: np.ndarray
+        numpy image
+    size: tuple
+        new size
+
+    Returns
+    ----------
+    BytesIO
+        insertable image
+    """
     image_i = ((image - image.min()) * (1/(image.max() - image.min()) * 255)).astype('uint8')
     new_im = np.array(Image.fromarray(image_i).resize(size))
     im, a_numpy = cv2.imencode(".png", new_im)
@@ -107,6 +202,20 @@ def insertable_image(image, size):
     return image_data
 
 def add_images(worksheet, column_names, masses, image):
+    """
+    Add images in spreadsheet
+
+    Parameters
+    ----------
+    worksheet: xlsxwriter.Worksheet
+        spreadsheet
+    column_names: list
+        column header names
+    masses: np.ndarray
+        data: mz and annotation
+    image: np.ndarray
+        MALDI image datacube
+    """
     data = dict_to_array(masses)
     for i in range(image.shape[-1]):
         image_i = image[..., i].T
@@ -131,6 +240,18 @@ def add_images(worksheet, column_names, masses, image):
         worksheet.set_column(i+1, i+1, max_width)
 
 def add_reduction(worksheet, reduction_dir):
+    """
+    Add dimension reduction analysis
+    in a spreadsheet
+
+    Parameters
+    ----------
+    worksheet: xlsxwriter.Worksheet
+        spreadsheet
+    reduction_dir: str
+        directory containing dimension reduction results
+
+    """
     files_reduction = os.listdir(reduction_dir)
     csv_name = [reduction_dir + os.path.sep + filename for filename in files_reduction if filename.endswith(".csv")][0]
     image_names = [reduction_dir + os.path.sep + filename for filename in files_reduction if filename.endswith(".png")]
@@ -161,6 +282,24 @@ def add_reduction(worksheet, reduction_dir):
 
 
 def gradient(n, start, end):
+    """
+    Gray-level gradient (hexadecimal)
+
+    Parameters
+    ----------
+    n:  int
+        number of colors
+    start: int
+        starting gray level
+    end: int
+        end gray level
+
+    Returns
+    ----------
+    list
+        graient list
+
+    """
     g = []
     for i in range(n):
         gray_level = int(i * (end-start) / (n-1) + start)

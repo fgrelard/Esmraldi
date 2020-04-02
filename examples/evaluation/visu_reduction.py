@@ -1,3 +1,10 @@
+"""
+Visualization of dimension
+reduction
+Projects points in the resulting
+reduced subspace
+"""
+
 import math
 import argparse
 import numpy as np
@@ -9,17 +16,71 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Wedge
 
 def dot(u, v):
+    """
+    Dot product of vectors u by v
+
+    Parameters
+    ----------
+    u: list
+        vector
+    v: list
+        vector
+
+    Returns
+    ----------
+    float
+        dot product
+
+    """
     return u[0] * v[0] + u[1] * v[1]
 
 def norm(v):
+    """
+    Norm of vector v
+
+    Parameters
+    ----------
+    v: list
+        vector
+
+    Returns
+    ----------
+    float
+        norm
+    """
     return math.sqrt(math.pow(v[0], 2) + math.pow(v[1], 2))
 
 def ortho_projection(u, v):
+    """
+    Orthogonal projection of u onto v
+
+    Parameters
+    ----------
+    u: list
+        vector
+    v: list
+        vector
+
+    Returns
+    ----------
+    np.array
+        orthogonal projection
+    """
     length = dot(u, v) / math.pow(norm(v), 2)
     proj = np.multiply(v, length)
     return proj
 
 def update(i):
+    """
+    Callback called to create animation
+    designed for PCA representation
+
+    Parameters
+    ----------
+    i: int
+        number of iterations
+
+    """
     angle = (i * math.pi) / (nb-1)
     x = [min_val * math.cos(angle), max_val * math.cos(angle)]
     y = [-min_val * math.sin(angle), -max_val * math.sin(angle)]
@@ -34,6 +95,17 @@ def update(i):
     # plt.scatter(projections[:, 0], projections[:, 1])
 
 def update_cone(i):
+    """
+    Callback called to create animation
+    designed for NMF representation
+
+    Parameters
+    ----------
+    i: int
+        number of iterations
+
+    """
+
 #    ax.clear()
     we = Wedge((0, 0),10,0+i*1.23 ,90-i*2.5,edgecolor='k',facecolor='red',alpha=0.2)
     [p.remove() for p in reversed(ax.patches)]

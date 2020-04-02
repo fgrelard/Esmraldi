@@ -1,3 +1,7 @@
+"""
+Compare quality of segmentation with
+curvature estimation
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 import similaritymeasures
@@ -6,6 +10,22 @@ import src.spectraprocessing as sp
 import scipy.signal as signal
 
 def distance_two_distributions(dis1, dis2):
+    """
+    Distance between two distributions
+    as average pointwise vertical distance
+
+    Parameters
+    ----------
+    dis1: np.ndarray
+        first distribution
+    dis2: np.ndarray
+        second distribution
+
+    Returns
+    ----------
+    float
+        average distance
+    """
     sum = 0
     n1 = len(dis1)
     for i in range(n1):
@@ -16,12 +36,27 @@ def distance_two_distributions(dis1, dis2):
     return sum / n1
 
 
-def weighted_hdistance(dis1, dis2, index, index2):
-    factor = abs(index2 - index)/max(len(dis1), len(dis2))
-    dist = abs(maldi_curvature[index] - mri_curvature[index_closest])
-    return dist * factor
 
 def find_peaks(data, prominence, w):
+    """
+    Find peaks in distribution
+    according to prominence
+
+    Parameters
+    ----------
+    data: np.ndarray
+        data
+    prominence: int
+        threshold on prominence
+    w: int
+        size of window
+
+    Returns
+    ----------
+    list
+        peak list
+
+    """
     peaks, _ = signal.find_peaks(tuple(data),
                                  prominence=prominence,
                                  wlen=w,

@@ -1,3 +1,8 @@
+"""
+Extracts loadings and scores
+For a given dimension reduction method
+(NMF or PCA)
+"""
 import csv
 import argparse
 import os
@@ -13,10 +18,6 @@ import src.fusion as fusion
 from sklearn.decomposition import NMF
 from src.theoreticalspectrum import TheoreticalSpectrum
 
-def transpose_eigenvectors(M, eigenvectors, eigenvalues):
-    p, n = M.shape
-    evT = [np.divide( (np.dot(M, eigenvectors[i])), (np.sqrt(2 * eigenvalues[i] * (n-1)/(p-1)))) for i in range(n)]
-    return np.asarray(evT)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input MALDI image")

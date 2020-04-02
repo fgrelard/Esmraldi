@@ -1,3 +1,12 @@
+"""
+Compare two annotations
+By showing the differences:
+  - in the detected peaks
+  - in the annotation (globally)
+  - in the annotation (peak by peak) :
+    for each peak, compare the names found
+"""
+
 import csv
 import argparse
 import numpy as np
@@ -11,6 +20,20 @@ parser.add_argument("-o", "--output", help="Output file")
 args = parser.parse_args()
 
 def to_dict(annotation):
+    """
+    Converts the annotation list to a
+    dictionary mapping mz to species names
+
+    Parameters
+    ----------
+    annotation: list
+        annotation list
+
+    Returns
+    ----------
+    dict
+        annotation dictionary
+    """
     masses = {}
     for row in annotation:
         k = float(row[0])
@@ -19,12 +42,51 @@ def to_dict(annotation):
     return masses
 
 def missing_masses(theoretical, observed, tol=0.05):
+    """
+    Missing masses in theoretical compared to observed
+
+    Parameters
+    ----------
+    theoretical: dict
+        theoretical annotation
+    observed: dict
+        observed annotation
+    tol: float
+        accepted mz delta for peaks to be the same
+
+    Returns
+    ----------
+    dict
+       missing species in theoretical
+    """
     masses_theoretical = np.array(list(theoretical.keys()))
     masses_observed = np.array(list(observed.keys()))
     out = masses_theoretical[(np.abs(masses_observed[:, None] - masses_theoretical) >= tol).all(0)]
     return out
 
 def missing_annotation(theoretical, observed, tol=0.05):
+    """
+    Missing annotation peak by peak
+    For all peaks that are common between
+    the theoretical and observed spectra,
+    finds the names that are missing in theoretical
+    and present in observed
+
+    Parameters
+    ----------
+    theoretical: dict
+        theoretical annotation
+    observed: dict
+        observed annotation
+    tol: float
+        accepted mz delta for peaks to be the same
+
+    Returns
+    ----------
+    dict
+       missing annotation in theoretical
+
+    """
     masses_th = np.array(list(theoretical.keys()))
     masses_obs = np.array(list(observed.keys()))
     union_th = masses_th[(np.abs(masses_obs[:, None] - masses_th) < tol).any(0)]

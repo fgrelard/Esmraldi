@@ -1,3 +1,9 @@
+"""
+Registration quantification
+Computes precision, recall, f-measure
+Mutual information,
+Superimposes fixed and moving image
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 import SimpleITK as sitk
@@ -9,24 +15,73 @@ from src.registration import *
 import matplotlib.colors as mcolors
 
 def tryint(s):
+    """
+    Casts to integer
+
+    Parameters
+    ----------
+    s: type
+        any variable
+
+    Returns
+    ----------
+    int
+        s variable to int
+
+    """
     try:
         return int(s)
     except:
         return s
 
 def alphanum_key(s):
-    """ Turn a string into a list of string and number chunks.
+    """
+    Turn a string into a list of string and number chunks.
         "z23a" -> ["z", 23, "a"]
+
+    Parameters
+    ----------
+    s: str
+        a string
+
+    Returns
+    ----------
+    list
+        split string
+
     """
     return [ tryint(c) for c in re.split('([0-9]+)', s) ]
 
 def sort_nicely(l):
-    """ Sort the given list in the way that humans expect.
+    """
+    Sort the given list according to alphanum_key
+
+    Parameters
+    ----------
+    l: list
+        input list
+
+    Returns
+    ----------
+    list
+        sorted list
     """
     l.sort(key=alphanum_key)
 
 
 def plot_similarity(imRef, imRegistered):
+    """
+    Plot histogram side-by-side between two images
+    Displays correlation coefficient
+
+    Parameters
+    ----------
+    imRef: np.ndarray
+        reference image
+    imRegistered: np.ndarray
+        moving image
+
+    """
     fig, axes = plt.subplots(1, 2)
     axes[0].hist(imRef.ravel(), bins=20, normed=True)
     axes[0].set_title('Histogramme image IRM')
@@ -45,6 +100,18 @@ def plot_similarity(imRef, imRegistered):
 
 
 def quality_registration_size_bin(fixed, registered_dir):
+    """
+    Evaluates registration quality
+    through precision on several images
+
+    Parameters
+    ----------
+    fixed: np.ndarray
+        fixed image
+    registered_dir: str
+        path to registered images
+
+    """
     precision = {}
     l = os.listdir(registered_dir)
     sort_nicely(l)

@@ -1,3 +1,7 @@
+"""
+Quantify realignement of spectra
+with various measures
+"""
 import numpy as np
 import skimage.restoration as restoration
 import src.spectraprocessing as sp
@@ -6,20 +10,81 @@ from ordered_set import OrderedSet
 import scipy.signal as signal
 
 def complete_sum(spectra):
+    """
+    Intensity sum
+    across all spectra
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        spectra
+
+    Returns
+    ----------
+    float
+        intensity sum
+
+    """
     sum = 0
     for x, y in spectra:
         sum = np.add(sum, np.sum(y))
     return sum
 
 def full_ratio(reduced, full):
+    """
+    Measure of lost information
+    between reduced spectra and full
+    spectra
+
+    Parameters
+    ----------
+    reduced: float
+        measure on reduced spectra
+    full: float
+        measure on full spectra
+
+    Returns
+    ----------
+    float
+        ratio
+    """
     return reduced * 1.0 / full
 
 def estimate_noise_ratio(spectra):
+    """
+    Estimates the SNR
+    in MALDI spectra
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        spectra
+
+    Returns
+    ----------
+    tuple
+        noise level, signal median
+    """
     sigma = restoration.estimate_sigma(spectra)
     median = np.median(spectra)
     return sigma, median
 
 def estimate_noise_proportion(y, median, sigma):
+    """
+    Proportion of points in a spectrum
+    that are considered noise
+    that is to say their intensity
+    is lower than signal median + noise
+
+    Parameters
+    ----------
+    y: list
+        intensities
+    median: float
+        signal median
+    sigma: float
+        noise level
+    """
     total_count = 0
     for elem in y:
         if elem <= median + sigma:
@@ -29,6 +94,22 @@ def estimate_noise_proportion(y, median, sigma):
 
 
 def distance_indices(indices1, indices2):
+    """
+    Distances between closest indices in
+    two lists
+
+    Parameters
+    ----------
+    indices1: np.ndarray
+        first list of indices
+    indices2: np.ndarray
+        second list of indices
+
+    Returns
+    ----------
+    list
+        lowest distances between indices
+    """
     l = []
     for val in indices1:
         idx = (np.abs(indices2 - val)).argmin()
@@ -38,6 +119,22 @@ def distance_indices(indices1, indices2):
     return l
 
 def realign_close_peaks(array1, array2):
+    """
+    Get a list of close peaks in two arrays
+
+    Parameters
+    ----------
+    array1: np.ndarray
+        first array
+    array2: np.ndarray
+        second array
+
+    Returns
+    ----------
+    list
+        close peaks
+
+    """
     l = []
     for val in array1:
         idx = (np.abs(array2 - val)).argmin()
@@ -48,12 +145,44 @@ def realign_close_peaks(array1, array2):
 
 
 def precision(array1, array2):
-    set_a1 = OrderedSet(array1)
+    """
+    Precision : |a1 \cap a2|/|a2|
+
+    Parameters
+    ----------
+    array1: np.ndarray
+        first array
+    array2: np.ndarray
+        second array
+
+    Returns
+    ----------
+    float
+        precision
+
+    """
+    dset_a1 = OrderedSet(array1)
     set_a2 = OrderedSet(array2)
     inters = set_a1.intersection(set_a2)
     return len(inters) * 1.0 / len(set_a1)
 
 def recall(array1, array2):
+     """
+    Recall : |a1 \cap a2|/|a1|
+
+    Parameters
+    ----------
+    array1: np.ndarray
+        first array
+    array2: np.ndarray
+        second array
+
+    Returns
+    ----------
+    float
+        recall
+
+    """
     set_a1 = OrderedSet(array1)
     set_a2 = OrderedSet(array2)
     inters = set_a1.intersection(set_a2)
@@ -61,21 +190,45 @@ def recall(array1, array2):
     return len(inters) * 1.0 / len(set_a2)
 
 def missing_indices(array1, array2):
+    """
+    Set difference between array2 and array1
+
+    Parameters
+    ----------
+    array1: np.ndarray
+        first array
+    array2: np.ndarray
+        second array
+
+    Returns
+    ----------
+    list
+        set difference
+
+    """
     set_a1 = OrderedSet(array1)
     set_a2 = OrderedSet(array2)
     diff = set_a2.difference(set_a1)
     return list(diff)
 
-def cwt_peak_indices(spectra):
-    cwt_indices = []
-    for spectrum in full_spectra:
-        x, y = spectrum
-        indices_current = signal.find_peaks_cwt(y, np.arange(1, 14))
-        cwt_indices = cwt_indices + indices_current.tolist()
-    return cwt_indices
-
 
 def extract_indices_from_mz(mzs, x):
+    """
+    From a list of mzs, extract
+    corresponding indices in x
+
+    Parameters
+    ----------
+    mzs: np.ndarray
+        reference mass to charge list
+    x: list
+        observed mass to charge list
+
+    Returns
+    ----------
+    list
+        indices of x associated to mzs
+    """
     l = []
     for i in range(len(x)):
         if x[i] in mzs:
@@ -91,8 +244,6 @@ snoise_realigned, median_realigned = estimate_noise_ratio(realigned_spectra[:, 1
 
 full_spectra =  np.load("data/old/spectra.npy")
 indices_realigned = extract_indices_from_mz(realigned_spectra[0, 0, :], full_spectra[0,0,:])
-#cwt_indices = cwt_peak_indices(full_spectra)
-#np.save("indices_cwt.npy", cwt_indices)
 
 distance_between_mz = full_spectra[0,0,1] - full_spectra[0,0,0]
 prominence = 50

@@ -1,9 +1,24 @@
+"""
+Quantify statistical analysis
+and clustering
+through silhouette profile and scores
+"""
 from sklearn import metrics
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
 def plot_silhouette(silhouette_values, labels):
+    """
+    Plot the silhouette coefficient
+
+    Parameters
+    ----------
+    silhouette_values: list
+        silhouette values
+    labels: list
+        list of labels
+    """
     fig, ax1 = plt.subplots(1, 1)
     n_clusters = labels.max() + 1
     ax1.set_xlim([-0.1, 1])
