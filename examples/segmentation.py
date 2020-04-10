@@ -16,6 +16,7 @@ import numpy as np
 import cv2 as cv
 import argparse
 import os
+import math
 
 from skimage import segmentation
 from skimage import measure
@@ -25,6 +26,7 @@ from skimage.filters import gaussian
 from skimage.morphology import binary_erosion, opening, disk
 from skimage.filters import threshold_otsu, rank
 from sklearn import manifold
+
 
 
 parser = argparse.ArgumentParser()
@@ -49,13 +51,15 @@ img_data = np.pad(img_data, (padding,padding), 'constant')
 chaos_measures = seg.spatial_chaos(img_data)
 chaos_array = np.array(chaos_measures)
 chaos_indices = np.where( (chaos_array > 0) & (chaos_array < 1.013))
-print(chaos_array)
-spatially_coherent = img_data[..., chaos_indices]
+spatially_coherent = np.take(img_data, chaos_indices[0], axis=-1)
 n = spatially_coherent.shape[-1]
+w = math.ceil(math.sqrt(n))
 print(spatially_coherent.shape)
-fig, ax = plt.subplots(1, n)
+fig, ax = plt.subplots(w, w)
+print(chaos_array[chaos_indices])
 for i in range(n):
-    ax[i].imshow(spatially_coherent[..., i])
+    ndindex = np.unravel_index(i, ax.shape)
+    ax[ndindex].imshow(spatially_coherent[..., i])
 plt.show()
 exit(0)
 factor_variance = 0.05
