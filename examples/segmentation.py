@@ -46,6 +46,8 @@ img_data = image.get_data()
 padding = 3
 img_data = np.pad(img_data, (padding,padding), 'constant')
 
+seg.spatial_chaos(img_data, [60, 65, 70, 75, 80, 85, 90, 95])
+exit(0)
 factor_variance = 0.05
 similar_images = seg.find_similar_images_variance(img_data, factor_variance)
 mean_image = np.uint8(cv.normalize(np.average(similar_images, axis=2), None, 0, 255, cv.NORM_MINMAX))

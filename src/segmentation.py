@@ -6,17 +6,20 @@ import pyimzml.ImzMLParser as imzmlparser
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA
+from sklearn.feature_extraction import grid_to_graph
 from sklearn.cluster import KMeans
 from skimage.measure import find_contours
 from skimage import measure
-from skimage.filters import threshold_otsu, rank
+from skimage.filters import threshold_otsu, rank, sobel
 from skimage.transform import hough_circle, hough_circle_peaks
 from skimage.feature import canny
 from skimage import data, color
 from skimage.draw import circle
 from skimage.morphology import binary_erosion, closing, disk
+import scipy.spatial.distance as dist
 import cv2 as cv
 import SimpleITK as sitk
+import sys
 
 def max_variance_sort(image_maldi):
     """
@@ -475,3 +478,37 @@ def resize(image, size):
                                   0.0,
                                   image.GetPixelID())
     return resampled_img
+
+
+def distances_closest_neighbour(points):
+    dists = dist.cdist(points, points)
+    dists = np.ma.masked_equal(dists, 0)
+    min_dist = np.min(dists, axis=1)
+    return min_dist
+
+def spatial_chaos(image, quantiles):
+    chaos_measures = []
+    for i in range(image.shape[-1]):
+        image_2D = image[..., i]
+        norm_img = np.uint8(cv.normalize(image_2D, None, 0, 255, cv.NORM_MINMAX))
+        edges = sobel(norm_img)
+        min_distance = sys.maxsize
+        for quantile in quantiles:
+            threshold = np.percentile(edges, quantile)
+            binary = np.where(edges > threshold, 255, 0)
+            indices = np.where(binary == 255)
+            adj = grid_to_graph(binary.shape[0], binary.shape[1], mask=binary, return_as=np.ndarray)
+            indices = np.where(binary > 0)
+            indices_array = np.asarray(indices).T
+            if len(indices_array) > 0:
+                distances = distances_closest_neighbour(indices_array)
+                average_distance = np.mean(distances)
+                if average_distance < min_distance:
+                    min_distance = average_distance
+        chaos_measures.append(min_distance)
+    return chaos_measures
+        # print(min_distance)
+        # fig, ax = plt.subplots(1, 2)
+        # ax[0].imshow(norm_img)
+        # ax[1].imshow(edges)
+        # plt.show()
