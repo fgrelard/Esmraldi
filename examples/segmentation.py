@@ -48,11 +48,15 @@ img_data = np.pad(img_data, (padding,padding), 'constant')
 
 chaos_measures = seg.spatial_chaos(img_data)
 chaos_array = np.array(chaos_measures)
-for i in range(len(chaos_measures)):
-    chaos_measure = chaos_measures[i]
-    if chaos_measure < 1.04 and chaos_measure > 0:
-        plt.imshow(img_data[..., i])
-        plt.show()
+chaos_indices = np.where( (chaos_array > 0) & (chaos_array < 1.013))
+print(chaos_array)
+spatially_coherent = img_data[..., chaos_indices]
+n = spatially_coherent.shape[-1]
+print(spatially_coherent.shape)
+fig, ax = plt.subplots(1, n)
+for i in range(n):
+    ax[i].imshow(spatially_coherent[..., i])
+plt.show()
 exit(0)
 factor_variance = 0.05
 similar_images = seg.find_similar_images_variance(img_data, factor_variance)
