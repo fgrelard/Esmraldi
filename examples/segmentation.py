@@ -46,7 +46,13 @@ img_data = image.get_data()
 padding = 3
 img_data = np.pad(img_data, (padding,padding), 'constant')
 
-seg.spatial_chaos(img_data, [60, 65, 70, 75, 80, 85, 90, 95])
+chaos_measures = seg.spatial_chaos(img_data)
+chaos_array = np.array(chaos_measures)
+for i in range(len(chaos_measures)):
+    chaos_measure = chaos_measures[i]
+    if chaos_measure < 1.04 and chaos_measure > 0:
+        plt.imshow(img_data[..., i])
+        plt.show()
 exit(0)
 factor_variance = 0.05
 similar_images = seg.find_similar_images_variance(img_data, factor_variance)

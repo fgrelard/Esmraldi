@@ -486,29 +486,35 @@ def distances_closest_neighbour(points):
     min_dist = np.min(dists, axis=1)
     return min_dist
 
-def spatial_chaos(image, quantiles):
+
+def average_distance_graph(image, threshold):
+    binary = np.where(image > threshold, 255, 0)
+    indices = np.where(binary > 0)
+    indices_array = np.asarray(indices).T
+    if len(indices_array) > 0:
+        distances = distances_closest_neighbour(indices_array)
+        average_distance = np.mean(distances)
+        return average_distance
+    return 0
+
+def spatial_chaos(image, quantiles=[]):
     chaos_measures = []
     for i in range(image.shape[-1]):
         image_2D = image[..., i]
         norm_img = np.uint8(cv.normalize(image_2D, None, 0, 255, cv.NORM_MINMAX))
         edges = sobel(norm_img)
-        min_distance = sys.maxsize
-        for quantile in quantiles:
-            threshold = np.percentile(edges, quantile)
-            binary = np.where(edges > threshold, 255, 0)
-            indices = np.where(binary == 255)
-            adj = grid_to_graph(binary.shape[0], binary.shape[1], mask=binary, return_as=np.ndarray)
-            indices = np.where(binary > 0)
-            indices_array = np.asarray(indices).T
-            if len(indices_array) > 0:
-                distances = distances_closest_neighbour(indices_array)
-                average_distance = np.mean(distances)
-                if average_distance < min_distance:
-                    min_distance = average_distance
+        if len(quantiles):
+            min_distance = sys.maxsize
+            for quantile in quantiles:
+                threshold = np.percentile(edges, quantile)
+                dist_edges = average_distance_graph(edges, threshold)
+                if dist_edges < min_distance:
+                    min_distance = dist_edges
+        else:
+            try:
+                threshold = threshold_otsu(edges)
+                min_distance = average_distance_graph(edges, threshold)
+            except:
+                min_distance = 0
         chaos_measures.append(min_distance)
     return chaos_measures
-        # print(min_distance)
-        # fig, ax = plt.subplots(1, 2)
-        # ax[0].imshow(norm_img)
-        # ax[1].imshow(edges)
-        # plt.show()
