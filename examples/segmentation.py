@@ -37,13 +37,6 @@ def display_stack(img):
         ax[ndindex].imshow(img[..., i])
     plt.show()
 
-def spatially_coherent(img, threshold):
-    chaos_measures = seg.spatial_chaos(img)
-    chaos_array = np.array(chaos_measures)
-    chaos_indices = np.where( (chaos_array > 1) & (chaos_array < threshold))
-    spatially_coherent = np.take(img_data, chaos_indices[0], axis=-1)
-    return spatially_coherent
-
 
 
 parser = argparse.ArgumentParser()
@@ -67,8 +60,8 @@ img_data = image.get_data()
 padding = 3
 img_data = np.pad(img_data, (padding,padding), 'constant')
 
-similar_images = spatially_coherent(img_data, 1.013)
-# similar_images = seg.find_similar_images_area(img_data, factor, quantiles=[60, 70, 80, 90])
+# similar_images = seg.spatially_coherent(img_data, factor, quantiles=[50, 60, 70, 80, 90])
+similar_images = seg.find_similar_images_area(img_data, factor, quantiles=[70, 80, 90])
 # similar_images = seg.find_similar_images_variance(img_data, factor)
 print(similar_images.shape)
 

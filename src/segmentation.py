@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.feature_extraction import grid_to_graph
 from sklearn.cluster import KMeans
+from sklearn.neighbors import NearestNeighbors
 from skimage.measure import find_contours
 from skimage import measure
 from skimage.filters import threshold_otsu, rank, sobel
@@ -212,18 +213,16 @@ def find_similar_images_area(image_maldi, factor, quantiles=[]):
     for i in range(image_maldi.shape[-1]):
         image2D = image_maldi[..., i]
         norm_img = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
-        try:
-            min_area = sys.maxsize
-            for quantile in quantiles:
-                threshold = int(np.percentile(norm_img, quantile))
-                labels = measure.label(norm_img > threshold, background=0)
-                r = properties_largest_area_cc(labels)
-                if r.area < min_area:
-                    min_area = r.area
-
-            values.append(min_area)
-        except:
-            values.append(0)
+        min_area = sys.maxsize
+        for quantile in quantiles:
+            threshold = int(np.percentile(norm_img, quantile))
+            labels = measure.label(norm_img > threshold, background=0)
+            r = properties_largest_area_cc(labels)
+            if r == -1:
+                min_area = -1
+            elif r.area < min_area:
+                min_area = r.area
+        values.append(min_area)
     value_array = np.array(values)
     similar_images = image_maldi[..., value_array > factor]
     return similar_images
@@ -516,9 +515,11 @@ def resize(image, size):
 
 
 def distances_closest_neighbour(points):
-    dists = dist.cdist(points, points)
-    dists = np.ma.masked_equal(dists, 0)
-    min_dist = np.min(dists, axis=1)
+    nbrs = NearestNeighbors(n_neighbors=2, algorithm='auto').fit(points)
+    distances, indices = nbrs.kneighbors(points)
+    # distances = dist.squareform(dist.pdist(points))
+    distances = np.ma.masked_equal(distances, 0)
+    min_dist = np.min(distances, axis=1)
     return min_dist
 
 
@@ -559,3 +560,13 @@ def spatial_chaos(image, quantiles=[]):
                 min_distance = 0
         chaos_measures.append(min_distance)
     return chaos_measures
+
+
+def spatially_coherent(img, threshold, quantiles):
+    chaos_measures = spatial_chaos(img, quantiles)
+    print(chaos_measures)
+    chaos_array = np.array(chaos_measures)
+    print(threshold)
+    chaos_indices = np.where( (chaos_array > 1) & (chaos_array < threshold))
+    spatially_coherent = np.take(img, chaos_indices[0], axis=-1)
+    return spatially_coherent
