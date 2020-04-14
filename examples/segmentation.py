@@ -27,17 +27,36 @@ from skimage.morphology import binary_erosion, opening, disk
 from skimage.filters import threshold_otsu, rank
 from sklearn import manifold
 
+def display_stack(img):
+    n = img.shape[-1]
+    w = math.ceil(math.sqrt(n))
+    fig, ax = plt.subplots(w, w)
+
+    for i in range(n):
+        ndindex = np.unravel_index(i, ax.shape)
+        ax[ndindex].imshow(img[..., i])
+    plt.show()
+
+def spatially_coherent(img, threshold):
+    chaos_measures = seg.spatial_chaos(img)
+    chaos_array = np.array(chaos_measures)
+    chaos_indices = np.where( (chaos_array > 1) & (chaos_array < threshold))
+    spatially_coherent = np.take(img_data, chaos_indices[0], axis=-1)
+    return spatially_coherent
+
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--input", help="Input .nii")
-parser.add_argument("-o", "--output", help="Output segmentation")
+parser.add_argument("-i", "--input", help="Input (.nii)")
+parser.add_argument("-o", "--output", help="Output segmentation (.nii)")
+parser.add_argument("-f", "--factor", help="Factor for the spatially coherent images")
 parser.add_argument("-t", "--threshold", help="Lower threshold for region growing", default=60)
 args = parser.parse_args()
 
 threshold = int(args.threshold)
 inputname = args.input
 outname = args.output
+factor = float(args.factor)
 
 radius = 1
 selem = disk(radius)
@@ -48,22 +67,13 @@ img_data = image.get_data()
 padding = 3
 img_data = np.pad(img_data, (padding,padding), 'constant')
 
-chaos_measures = seg.spatial_chaos(img_data)
-chaos_array = np.array(chaos_measures)
-chaos_indices = np.where( (chaos_array > 0) & (chaos_array < 1.013))
-spatially_coherent = np.take(img_data, chaos_indices[0], axis=-1)
-n = spatially_coherent.shape[-1]
-w = math.ceil(math.sqrt(n))
-print(spatially_coherent.shape)
-fig, ax = plt.subplots(w, w)
-print(chaos_array[chaos_indices])
-for i in range(n):
-    ndindex = np.unravel_index(i, ax.shape)
-    ax[ndindex].imshow(spatially_coherent[..., i])
-plt.show()
-exit(0)
-factor_variance = 0.05
-similar_images = seg.find_similar_images_variance(img_data, factor_variance)
+similar_images = spatially_coherent(img_data, 1.013)
+# similar_images = seg.find_similar_images_area(img_data, factor, quantiles=[60, 70, 80, 90])
+# similar_images = seg.find_similar_images_variance(img_data, factor)
+print(similar_images.shape)
+
+display_stack(similar_images)
+
 mean_image = np.uint8(cv.normalize(np.average(similar_images, axis=2), None, 0, 255, cv.NORM_MINMAX))
 otsu = threshold_otsu(mean_image)
 labels = measure.label(mean_image > otsu, background=0)

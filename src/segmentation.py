@@ -1,10 +1,11 @@
 """
 Module for the segmentation
 """
-
+import sys
+import math
+import numpy as np
 import pyimzml.ImzMLParser as imzmlparser
 import matplotlib.pyplot as plt
-import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.feature_extraction import grid_to_graph
 from sklearn.cluster import KMeans
@@ -17,9 +18,9 @@ from skimage import data, color
 from skimage.draw import circle
 from skimage.morphology import binary_erosion, closing, disk
 import scipy.spatial.distance as dist
+import scipy.signal as signal
 import cv2 as cv
 import SimpleITK as sitk
-import sys
 
 def max_variance_sort(image_maldi):
     """
@@ -167,6 +168,17 @@ def region_growing(images, seedList, lower_threshold):
             seeds = seeds.union(set(((int(coord[0]), int(coord[1])) for coord in regionprop.coords)))
     return list(seeds)
 
+def estimate_noise(I):
+  H, W = I.shape
+
+  M = [[1, -2, 1],
+       [-2, 4, -2],
+       [1, -2, 1]]
+
+  sigma = np.sum(np.sum(np.absolute(signal.convolve2d(I, M))))
+  sigma = sigma * math.sqrt(0.5 * math.pi) / (6 * (W-2) * (H-2))
+
+  return sigma
 
 def find_similar_images_variance(image_maldi, factor_variance=0.1):
     """
@@ -190,7 +202,30 @@ def find_similar_images_variance(image_maldi, factor_variance=0.1):
     reshaped = image_maldi.reshape(-1, image_maldi.shape[-1])
     variance = np.var(reshaped, axis=0)
     max_variance = np.amax(variance)
-    similar_images = image_maldi[..., variance > factor_variance * max_variance]
+    print(reshaped.shape)
+    similar_images = image_maldi[..., variance < factor_variance * max_variance]
+    return similar_images
+
+
+def find_similar_images_area(image_maldi, factor, quantiles=[]):
+    values = []
+    for i in range(image_maldi.shape[-1]):
+        image2D = image_maldi[..., i]
+        norm_img = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
+        try:
+            min_area = sys.maxsize
+            for quantile in quantiles:
+                threshold = int(np.percentile(norm_img, quantile))
+                labels = measure.label(norm_img > threshold, background=0)
+                r = properties_largest_area_cc(labels)
+                if r.area < min_area:
+                    min_area = r.area
+
+            values.append(min_area)
+        except:
+            values.append(0)
+    value_array = np.array(values)
+    similar_images = image_maldi[..., value_array > factor]
     return similar_images
 
 
@@ -504,6 +539,12 @@ def spatial_chaos(image, quantiles=[]):
         norm_img = np.uint8(cv.normalize(image_2D, None, 0, 255, cv.NORM_MINMAX))
         edges = sobel(norm_img)
         if len(quantiles):
+            min_distance = sys.maxsize
+            for quantile in quantiles:
+                threshold = np.percentile(edges, quantile)
+                dist_edges = average_distance_graph(edges, threshold)
+                if dist_edges < min_distance:
+                    min_distance = dist_edges
             min_distance = sys.maxsize
             for quantile in quantiles:
                 threshold = np.percentile(edges, quantile)
