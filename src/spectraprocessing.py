@@ -158,7 +158,7 @@ def spectra_peak_indices_adaptative(spectra, factor=1, wlen=10):
     return np.array(indices)
 
 def spectra_peak_mzs_adaptative(spectra, factor=1, wlen=10):
-     """
+    """
     Estimates and extracts significant peaks in the spectra
     By using the local prominence (height of the peak relative to the background noise)
     Background noise is estimated as the standard deviation of the
@@ -214,7 +214,38 @@ def peak_indices(data, prominence, wlen):
                                          distance=1)
     return peak_indices
 
+def peak_indices_cwt(data, factor, widths):
+    """
+    Peak indices using continuous wavelet
+    transform
 
+    Parameters
+    ----------
+    data: np.ndarray
+        Spectra as [mz*I] array
+    factor: float
+        Threshold SNR
+    widths: list
+        scales
+
+    Returns
+    ----------
+    np.ndarray
+        Peak indices relative to spectrum
+
+    """
+    peak_indices = signal.find_peaks_cwt(tuple(data),
+                                            widths=widths,
+                                            min_snr=factor)
+    return peak_indices
+
+def spectra_peak_mzs_cwt(spectra, factor, widths):
+    mzs = []
+    for spectrum in spectra:
+        x, y = spectrum
+        indices_current = peak_indices_cwt(y, factor, widths)
+        mzs.append(x[indices_current])
+    return np.array(mzs)
 
 def peak_selection_shape(spectra):
     """
