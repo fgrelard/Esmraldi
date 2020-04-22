@@ -10,11 +10,28 @@ from scipy.ndimage import gaussian_filter
 import scipy.sparse as sparse
 from scipy.sparse.linalg import spsolve
 from itertools import *
+import re
 
+def sorted_alphanumeric(data):
+    convert = lambda text: int(text) if text.isdigit() else text.lower()
+    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ]
+    return sorted(data, key=alphanum_key)
 
 def intersection_spectra(theoretical, observed, tol):
-    intersection_th = theoretical[(np.abs(observed[:, None] - theoretical) < tol).any(0)]
-    return intersection_th
+    I = []
+    for i in range(observed.shape[0]):
+        o = observed[i]
+        t = theoretical[i][0]
+        o = o[~np.isnan(o)]
+        t = np.array(t)
+        intersection_th = t[(np.abs(o[:, None] - t) < tol).any(0)]
+        fraction_intersection = len(intersection_th) * 1.0 / len(t)
+        # print("mising")
+        # for elem in t:
+        #     if elem not in intersection_th:
+        #         print(elem, o[-10:])
+        I.append(fraction_intersection)
+    return I
 
 def baseline_als(y, lam, p, niter=10):
   L = len(y)
@@ -29,14 +46,16 @@ def baseline_als(y, lam, p, niter=10):
 
 def build_spectra(inputdir):
     spectra = []
-    for filename in os.listdir(inputdir):
+    i = 0
+    for filename in sorted_alphanumeric(os.listdir(inputdir)):
         with open(inputdir + os.path.sep + filename) as f:
             data = list(csv.reader(f, delimiter=" "))
             masses = [float(data[i][0]) for i in range(1, len(data))]
             intensities = [float(data[i][1]) for i in range(1, len(data))]
             spectra.append([masses, intensities])
-        break
+        i+=1
     return np.array(spectra)
+
 
 
 parser = argparse.ArgumentParser()
@@ -49,25 +68,30 @@ theoreticaldir = args.theoretical
 
 
 spectra = build_spectra(inputdir)
+spectra = sp.same_mz_axis(spectra)
 spectra_bc = []
+index = 0
 for x,y in spectra:
-    str_el = np.repeat([1], 100)
-    I = gaussian_filter(y, 4)
+    str_el = np.repeat([1], 20)
+    I = gaussian_filter(y, 1)
     I = white_tophat(I, None, str_el)
     # plt.plot(x, I)
     # plt.show()
     spectra_bc.append([x, I])
+    index += 1
 
 spectra_bc = np.array(spectra_bc)
 theoretical = build_spectra(theoreticaldir)
-mzs = sp.spectra_peak_mzs_adaptative(spectra_bc, 0.62, 50)
+mzs = sp.spectra_peak_mzs_adaptative(spectra_bc, 1.15, 3000)
+
+inters_prominence = intersection_spectra(theoretical, mzs, 70)
+size_prominence = [len(m) for m in mzs]
+print(inters_prominence, size_prominence)
 
 
-mzs_cwt = sp.spectra_peak_mzs_cwt(spectra, 2.35, [1, 2, 5, 10, 20, 50])
+mzs_cwt = sp.spectra_peak_mzs_cwt(spectra, 1.35, [1, 2, 5, 10, 20, 50, 100, 500])
+inters_cwt = intersection_spectra(theoretical, mzs_cwt, 70)
+size_cwt = [len(m) for m in mzs_cwt]
+print(inters_cwt, size_cwt)
 
-inters_prominence = intersection_spectra(theoretical[0, 0], mzs[0], 70)
-inters_cwt = intersection_spectra(theoretical[0, 0], mzs_cwt[0], 70)
-
-print(mzs_cwt.shape, mzs.shape)
-print(inters_cwt.shape, inters_prominence.shape, theoretical.shape)
 # print(mzs)

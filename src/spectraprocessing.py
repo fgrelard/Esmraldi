@@ -16,6 +16,7 @@ import scipy.signal as signal
 import numpy as np
 import matplotlib.pyplot as plt
 from pyopenms import *
+from functools import reduce
 
 
 def spectra_sum(spectra):
@@ -76,7 +77,7 @@ def spectra_max(spectra):
     """
     spectra_max = [0 for i in range(len(spectra[0][0]))]
     for x, y in spectra:
-        spectra_max = np.maximum(spectra_max, y)
+        spectra_max = np.fmax(spectra_max, y)
     return spectra_max
 
 def spectra_min(spectra):
@@ -96,7 +97,7 @@ def spectra_min(spectra):
     """
     spectra_min = [sys.maxsize for i in range(len(spectra[0][0]))]
     for x, y in spectra:
-        spectra_min = np.minimum(spectra_min, y)
+        spectra_min = np.fmin(spectra_min, y)
     return spectra_min
 
 def spectra_peak_indices(spectra, prominence=50, wlen=10):
@@ -181,12 +182,14 @@ def spectra_peak_mzs_adaptative(spectra, factor=1, wlen=10):
     mzs = []
     min_spectra = spectra_min(spectra)
     size = min_spectra.shape[0]
-    stddev = np.array([np.std(min_spectra[max(0,i-wlen) : min(i+wlen, size-1)]) for i in range(min_spectra.shape[0])])
+    stddev = np.array([np.nanstd(min_spectra[max(0,i-wlen) : min(i+wlen, size-1)]) for i in range(min_spectra.shape[0])])
+    index = 0
     for spectrum in spectra:
         x, y = spectrum
-        indices_current = peak_indices(y, stddev * factor, wlen)
+        indices_current = peak_indices(y, stddev[index] * factor, wlen)
         mzs_current = x[indices_current]
         mzs.append(mzs_current)
+        index += 1
     return np.array(mzs)
 
 def peak_indices(data, prominence, wlen):
@@ -208,6 +211,7 @@ def peak_indices(data, prominence, wlen):
     np.ndarray
         Peak indices relative to spectrum
     """
+    intensities = np.ma.masked_invalid(data)
     peak_indices, _ = signal.find_peaks(tuple(data),
                                          prominence=prominence,
                                          wlen=wlen,
@@ -244,8 +248,26 @@ def spectra_peak_mzs_cwt(spectra, factor, widths):
     for spectrum in spectra:
         x, y = spectrum
         indices_current = peak_indices_cwt(y, factor, widths)
-        mzs.append(x[indices_current])
+        if len(indices_current) > 0:
+            mzs.append(x[indices_current])
+        else:
+            mzs.append([])
     return np.array(mzs)
+
+def same_mz_axis(spectra):
+    masses = spectra[..., 0]
+    masses_union = reduce(np.union1d, masses)
+    new_matrix = np.zeros(shape=(spectra.shape[0], spectra.shape[1], masses_union.shape[0]))
+    new_matrix.fill(np.nan)
+    index = 0
+    for x, y in spectra:
+        x_array = np.array(x)
+        y_array = np.array(y)
+        indices = np.nonzero(np.isin(masses_union, x_array))[0]
+        new_matrix[index, 0] = masses_union
+        np.put(new_matrix[index, 1], indices, y_array)
+        index += 1
+    return new_matrix
 
 def peak_selection_shape(spectra):
     """
