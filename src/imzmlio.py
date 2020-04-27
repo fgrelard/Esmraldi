@@ -71,7 +71,7 @@ def normalize(image):
         image_normalized[..., k] = slice2DNorm
     return image_normalized
 
-def get_spectra(imzml):
+def get_spectra(imzml, pixel_numbers=[]):
     """
     Extracts spectra from imzML
     into numpy format
@@ -88,9 +88,55 @@ def get_spectra(imzml):
     """
     spectra = []
     for i, (x, y, z) in enumerate(imzml.coordinates):
-        mz, ints = imzml.getspectrum(i)
-        spectra.append([mz, ints])
+        if (len(pixel_numbers) > 0 and i in pixel_numbers) or len(pixel_numbers) == 0:
+            mz, ints = imzml.getspectrum(i)
+            spectra.append([mz, ints])
     return np.asarray(spectra)
+
+def get_spectra_intensities(imzml, pixel_numbers=[]):
+    """
+    Extracts spectra intensities from imzML
+    into numpy format
+
+    Parameters
+    ----------
+    imzml: imzmlparser.ImzMLParser
+        parser
+
+    Returns
+    ----------
+    np.array
+        collection of spectra
+    """
+    spectra = np.zeros(shape=(len(imzml.coordinates), len(imzml.getspectrum(0)[1])), dtype="float32")
+    for i, (x, y, z) in enumerate(imzml.coordinates):
+        if (len(pixel_numbers) > 0 and i in pixel_numbers) or len(pixel_numbers) == 0:
+            mz, ints = imzml.getspectrum(i)
+            spectra[i] = ints.astype("float32")
+    return spectra
+
+def get_spectra_mzs(imzml, pixel_numbers=[]):
+    """
+    Extracts spectra mzs from imzML
+    into numpy format
+
+    Parameters
+    ----------
+    imzml: imzmlparser.ImzMLParser
+        parser
+
+    Returns
+    ----------
+    np.array
+        collection of spectra
+    """
+    spectra = np.zeros(shape=(len(imzml.coordinates), len(imzml.getspectrum(0)[0])), dtype="float32")
+    for i, (x, y, z) in enumerate(imzml.coordinates):
+        if (len(pixel_numbers) > 0 and i in pixel_numbers) or len(pixel_numbers) == 0:
+            mz, ints = imzml.getspectrum(i)
+            spectra[i] = mz.astype("float32")
+    return spectra
+
 
 def get_spectra_from_images(images):
     """

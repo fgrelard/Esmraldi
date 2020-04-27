@@ -18,7 +18,6 @@ import matplotlib.pyplot as plt
 from pyopenms import *
 from functools import reduce
 
-
 def spectra_sum(spectra):
     """
     Computes the spectrum from the sum of all spectra
@@ -288,30 +287,10 @@ def peak_selection_shape(spectra):
     for spectrum in spectra:
         x, y = spectrum
         peak_list = ms_peak_picker.pick_peaks(x, y, fit_type="quadratic", signal_to_noise_threshold=2)
-        print([p.mz for p in peak_list.peaks.peaks])
         break
         spectra_peak_list = spectra_peak_list + list(peak_list.peaks.peaks)
     return spectra_peak_list
 
-def peak_reference_indices(indices):
-    """
-    Extracts the peaks on the histogram of peaks
-    for realignment purposes
-
-    Parameters
-    ----------
-    indices: np.ndarray
-        indices corresponding to peaks
-
-    Returns
-    ----------
-    np.ndarray
-        indices of peaks on the histogram
-
-    """
-    counts = np.bincount(indices)
-    indices_second = peak_indices(counts, prominence=4, wlen=10)
-    return indices_second
 
 def normalization_tic(y):
     """
@@ -382,7 +361,9 @@ def peak_reference_indices_group(group):
     group: list
         list of peak indices
     """
-    return max(set(group), key=group.count)
+    unique, counts = np.unique(group, return_counts=True)
+    most_frequent = unique[counts == counts.max()][0]
+    return most_frequent
 
 def peak_reference_indices_groups(groups):
     """
@@ -551,7 +532,7 @@ def realign_wrt_peaks_mzs(spectra, aligned_mzs, full_mzs, indices_to_width):
 
 def realign_wrt_peaks(spectra, aligned_peaks, full_peaks, indices_to_width):
     """
-    Realign spectra to reference peaks
+s    Realign spectra to reference peaks
     from indices
 
     Parameters
@@ -586,7 +567,7 @@ def realign_wrt_peaks(spectra, aligned_peaks, full_peaks, indices_to_width):
         realigned_spectra.append((x_realigned, y_realigned))
     return realigned_spectra
 
-def realign(spectra, prominence=50, nb_occurrence=4, step=0.02):
+def realign_indices(spectra, indices, reference="frequence", nb_occurrence=4, step=0.02):
     """
     Main function allowing to realign the spectra
     First extracts the peaks on all spectra,
@@ -597,8 +578,8 @@ def realign(spectra, prominence=50, nb_occurrence=4, step=0.02):
     ----------
     spectra: np.ndarray
         spectra
-    prominence: int
-        threshold on prominence
+    indices: np.ndarray
+        indices of peaks relative to spectra
 
     Returns
     ----------
@@ -609,22 +590,23 @@ def realign(spectra, prominence=50, nb_occurrence=4, step=0.02):
     mz, I = spectra[0]
     min_diff = mz[1] - mz[0]
     step_index = math.ceil(step / min_diff)
-    wlen = max(10, int(0.2 / min_diff))
-    full_indices = spectra_peak_indices(spectra, prominence, wlen)
-    flat_full_indices = np.hstack(full_indices)
+    flat_full_indices = np.hstack(indices)
     unique_indices = np.unique(flat_full_indices)
     groups = index_groups(flat_full_indices, step_index)
     groups = [group for group in groups if len(group) > nb_occurrence]
-    aligned_indices = peak_reference_indices_groups(groups)
-    indices_to_width = width_peak_indices(aligned_indices, full_indices)
-    realigned_spectra = realign_wrt_peaks(spectra, aligned_indices, full_indices, indices_to_width)
+    if reference == "frequence":
+        aligned_indices = peak_reference_indices_groups(groups)
+    else:
+        aligned_indices = peak_reference_indices_median(groups)
+    indices_to_width = width_peak_indices(aligned_indices, indices)
+    realigned_spectra = realign_wrt_peaks(spectra, aligned_indices, indices, indices_to_width)
     return np.array(realigned_spectra)
 
 
-def realign_median(spectra, factor=1, nb_occurrence=4, step=0.02):
+def realign_mzs(spectra, mzs, reference="frequence", nb_occurrence=4, step=0.02):
     """
     Main function allowing to realign the spectra
-    First extracts the peaks on all spectra,
+    First extracts the peaks on all spectra based on local prominence,
     then extracts the reference peaks
     and maps each peak to its closest reference peak
 
@@ -632,31 +614,27 @@ def realign_median(spectra, factor=1, nb_occurrence=4, step=0.02):
     ----------
     spectra: np.ndarray
         spectra
-    factor: float
-        local prominence factor
-    nb_occurrence: int
-        minimum number of occurrence of peak in spectra
-    step: float
-        mz range to consider similar mz values
+    mzs: np.ndarray
+        peaklist of mzs ratio
 
     Returns
     ----------
-    np.array
+    list
         realigned spectra
 
     """
     mz, I = spectra[0]
-    min_diff = mz[1] - mz[0]
-    step_index = math.ceil(step / min_diff)
-    wlen = max(10, int(1.0 / min_diff))
-    full_mzs = spectra_peak_mzs_adaptative(spectra, factor, wlen)
-    flat_full_mzs = np.hstack(full_mzs)
+    flat_full_mzs = np.hstack(mzs)
     groups = index_groups(flat_full_mzs, step)
     groups = [group for group in groups if len(group) > nb_occurrence]
-    aligned_mzs = peak_reference_indices_median(groups)
+    if reference == "frequence":
+        aligned_mzs = peak_reference_indices_groups(groups)
+    else:
+        aligned_mzs = peak_reference_indices_median(groups)
     indices_to_width = width_peak_mzs(aligned_mzs, groups)
-    realigned_spectra = realign_wrt_peaks_mzs(spectra, aligned_mzs, full_mzs, indices_to_width)
+    realigned_spectra = realign_wrt_peaks_mzs(spectra, aligned_mzs, mzs, indices_to_width)
     return np.array(realigned_spectra)
+
 
 
 def neighbours(index, n, spectra):

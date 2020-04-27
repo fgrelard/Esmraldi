@@ -78,8 +78,9 @@ class TestSpectraProcessing(unittest.TestCase):
         indices_to_width = sp.width_peak_indices(reference_indices, flat_indices)
         nptest.assert_equal(indices_to_width[18], 3.0)
 
-    def test_realign(self):
-        s = sp.realign(self.spectra, 0.5)
+    def test_realign_indices(self):
+        indices = sp.spectra_peak_indices(self.spectra, 0.5)
+        s = sp.realign_indices(self.spectra, indices)
         x = np.unique([i[0][0] for i in s])
         sum_before = sp.spectra_sum(self.spectra)
         sum_after = sp.spectra_sum(s)

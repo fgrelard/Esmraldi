@@ -63,14 +63,14 @@ np.set_printoptions(threshold=sys.maxsize)
 p = io.open_imzml(inputname)
 spectra = io.get_spectra(p)
 
-mz, I = spectra[0]
-indices = sp.spectra_peak_indices_adaptative(spectra, prominence, 250)
-max_spectra = sp.spectra_max(spectra)
-print(mz[indices[0]])
+
 
 print("Realignment")
+min_diff = mz[1] - mz[0]
+wlen = max(10, int(1.0 / min_diff))
+mzs = sp.spectra_peak_mzs_adaptative(spectra, factor=prominence, wlen=wlen)
 # realigned_spectra = sp.realign(spectra, prominence, nb_peaks)
-realigned_spectra = sp.realign_median(spectra, factor=prominence, nb_occurrence=nb_peaks, step=step_mz)
+realigned_spectra = sp.realign_mzs(spectra, mzs, reference="median", nb_occurrence=nb_peaks, step=step_mz)
 print(realigned_spectra.shape)
 print("Before deisotoping", realigned_spectra[0, 0, ...])
 
