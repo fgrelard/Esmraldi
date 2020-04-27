@@ -127,6 +127,21 @@ def region_property_to_cc(ccs, regionprop):
     cc = np.where(ccs == label, 0, 255)
     return cc
 
+def sort_size_ascending(images, threshold):
+    sizes = []
+    for index in np.ndindex(images.shape[2:]):
+        current_index = (slice(None), slice(None)) + (index)
+        current_image = images[current_index]
+        current_image = np.uint8(cv.normalize(current_image, None, 0, 255, cv.NORM_MINMAX))
+        size = np.count_nonzero(current_image > threshold)
+        sizes.append(size)
+    indices_sort = np.argsort(sizes)
+    new_images = images[..., indices_sort]
+    return new_images
+
+
+
+
 def region_growing(images, seedList, lower_threshold):
     """
     Region growing in an image stack
@@ -151,7 +166,7 @@ def region_growing(images, seedList, lower_threshold):
 
     """
     seeds = seedList.copy()
-    print(images.shape)
+    evolution_segmentation = np.zeros_like(images)
     for index in np.ndindex(images.shape[2:]):
         current_index = (slice(None), slice(None)) + (index)
         current_image = images[current_index]
@@ -167,7 +182,13 @@ def region_growing(images, seedList, lower_threshold):
         if regionprop != -1:
             largest_cc = region_property_to_cc(labels, regionprop)
             seeds = seeds.union(set(((int(coord[0]), int(coord[1])) for coord in regionprop.coords)))
-    return list(seeds)
+            image = np.zeros_like(current_image)
+            x = [elem[0] for elem in seeds]
+            y = [elem[1] for elem in seeds]
+            coordinates = np.array(list(seeds))
+            image[x,y] = 1
+            evolution_segmentation[current_index] = image
+    return list(seeds), evolution_segmentation
 
 def estimate_noise(I):
   H, W = I.shape
@@ -562,11 +583,9 @@ def spatial_chaos(image, quantiles=[]):
     return chaos_measures
 
 
-def spatially_coherent(img, threshold, quantiles):
+def find_similar_images_spatial_chaos(img, threshold, quantiles):
     chaos_measures = spatial_chaos(img, quantiles)
-    print(chaos_measures)
     chaos_array = np.array(chaos_measures)
-    print(threshold)
     chaos_indices = np.where( (chaos_array > 1) & (chaos_array < threshold))
     spatially_coherent = np.take(img, chaos_indices[0], axis=-1)
     return spatially_coherent

@@ -1,0 +1,38 @@
+{
+    "rules": [
+        {
+            "name": "AX",
+            "category": "Ion",
+            "mz": 132.0423,
+            "begin": 4,
+            "end_mz": 2500,
+            "naming_fn": "AX,i"
+        },
+        {
+            "name": "H2O",
+            "category": "Adduct",
+            "mz": 18.0106,
+            "count": 1,
+            "naming_fn": "",
+            "family_number": 1
+        },
+        {
+            "name": "Na+",
+            "category": "Adduct",
+            "mz": 22.9898,
+            "count": 1,
+            "naming_fn": "Na+",
+            "family_number": 2
+        },
+        {
+            "name": "Ac",
+            "category": "Modification",
+            "mz": 42.0105,
+            "count": 4,
+            "count_per_mol": 2,
+            "naming_fn": "i,Ac",
+            "family_number": 3,
+            "adduct_fn": "AX.*"
+        }
+    ]
+}

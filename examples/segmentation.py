@@ -60,13 +60,11 @@ img_data = image.get_data()
 padding = 3
 img_data = np.pad(img_data, (padding,padding), 'constant')
 
-# similar_images = seg.spatially_coherent(img_data, factor, quantiles=[50, 60, 70, 80, 90])
-similar_images = seg.find_similar_images_area(img_data, factor, quantiles=[70, 80, 90])
+similar_images = seg.find_similar_images_spatial_chaos(img_data, factor, quantiles=[60, 70, 80, 90])
+# similar_images = seg.find_similar_images_area(img_data, factor, quantiles=[60, 70, 80, 90])
 # similar_images = seg.find_similar_images_variance(img_data, factor)
 print(similar_images.shape)
-
-display_stack(similar_images)
-
+similar_images = seg.sort_size_ascending(similar_images, threshold)
 mean_image = np.uint8(cv.normalize(np.average(similar_images, axis=2), None, 0, 255, cv.NORM_MINMAX))
 otsu = threshold_otsu(mean_image)
 labels = measure.label(mean_image > otsu, background=0)
@@ -74,14 +72,15 @@ regionprop = seg.properties_largest_area_cc(labels)
 largest_cc = seg.region_property_to_cc(labels, regionprop)
 seeds = set(((int(coord[0]), int(coord[1])) for coord in regionprop.coords))
 
-list_end = seg.region_growing(similar_images, seeds, threshold)
+list_end, evolution_segmentation = seg.region_growing(similar_images, seeds, threshold)
+
+
+
 x = [elem[0] for elem in list_end]
 y = [elem[1] for elem in list_end]
 mask = np.ones_like(mean_image)
 mask[x, y] = 0
 mask = opening(mask, selem)
-plt.imshow(mask)
-plt.show()
 masked_mean_image = np.ma.array(mean_image, mask=mask)
 masked_mean_image = masked_mean_image.filled(0)
 masked_mean_image = masked_mean_image[padding:-padding, padding:-padding]
@@ -96,3 +95,7 @@ nibimg_similar.to_filename(similar_name)
 
 nibimg = nib.Nifti1Image(masked_mean_image, np.eye(4))
 nibimg.to_filename(outname)
+
+nibimg_evolution = nib.Nifti1Image(evolution_segmentation, np.eye(4))
+evolution_name = os.path.splitext(outname)[0] + "_evolution.nii"
+nibimg_evolution.to_filename(evolution_name)
