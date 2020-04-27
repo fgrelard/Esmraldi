@@ -22,7 +22,7 @@ def sorted_alphanumeric(data):
 def intersection_spectra(theoretical, observed, tol):
     I = []
     for i in range(observed.shape[0]):
-        o = observed[i]
+        o = np.array(observed[i])
         t = theoretical[i][0]
         o = o[~np.isnan(o)]
         t = np.array(t)
@@ -104,10 +104,6 @@ for x,y in spectra:
     # plt.show()
     spectra_bc.append([x, I])
     index += 1
-
-def foo():
-    time.sleep(1)
-    return 123
 
 
 spectra_bc = np.array(spectra_bc)

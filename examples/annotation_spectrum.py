@@ -102,6 +102,14 @@ def assign_names_to_columns(columns, values, delimiter="_"):
     return new_values
 
 
+def export_theoretical_to_csv(theoretical, filename):
+    keys_sorted = {k:v for k,v in sorted(theoretical_spectrum.spectrum.items(), key=lambda item: item[1])}
+    with open(filename, "w") as f:
+        writer = csv.writer(f, delimiter=";")
+        for k, v in keys_sorted.items():
+            writer.writerow([k, v])
+
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--theoretical", help="Theoretical spectrum")
@@ -125,6 +133,8 @@ print(len(ions), "ions,", len(adducts), "adducts,", len(modifications), "modific
 theoretical_spectrum = TheoreticalSpectrum(ions, adducts, modifications)
 
 print(theoretical_spectrum.spectrum)
+
+# export_theoretical_to_csv(theoretical_spectrum, "100_spectra_wheat_theoretical.csv")
 
 with open(observed_name) as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=";")
