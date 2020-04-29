@@ -185,7 +185,6 @@ def region_growing(images, seedList, lower_threshold):
             image = np.zeros_like(current_image)
             x = [elem[0] for elem in seeds]
             y = [elem[1] for elem in seeds]
-            coordinates = np.array(list(seeds))
             image[x,y] = 1
             evolution_segmentation[current_index] = image
     return list(seeds), evolution_segmentation
