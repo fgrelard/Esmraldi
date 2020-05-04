@@ -76,9 +76,33 @@ def h_distance(mri, maldi):
     t = np.array(mri)
     current_values = np.array(maldi)
     closest = current_values[(np.abs(t[:, None] - current_values).argmin(axis=1))]
-    print(mri, maldi, closest)
     diff = np.mean(np.abs(t - closest))
     return diff
+
+def h_distance_tol(mri, maldi, tol):
+    t = np.array(mri)
+    o = np.array(maldi)
+    cap_o = o[(np.abs(t[:, None] - o) < tol).any(0)]
+    closest = t[(np.abs(cap_o[:, None] - t).argmin(axis=1))]
+    print(t, o, cap_o, closest)
+    diff = np.mean(np.abs(closest - cap_o))
+    return diff
+
+def fhmeasure(mri, maldi, tol):
+    t = np.array(mri)
+    o = np.array(maldi)
+    common_o = o[(np.abs(t[:, None] - o) < tol).any(0)]
+    common_t = t[(np.abs(o[:, None] - t)< tol).any(0)]
+    p = len(common_t) * 1.0 / len(t)
+    r = len(common_o) * 1.0 / len(t)
+    print(common_o, o, common_t, t)
+    print(len(common_o))
+    if p+r == 0:
+        return 0
+    print(p, r)
+    f = 2 * p * r / (p+r)
+    return f
+
 
 def h_distances(image_names, mri):
     values = []
@@ -87,13 +111,26 @@ def h_distances(image_names, mri):
         image_sdp_name = image_name.split("_curvature.txt")[0] + "_ensured.sdp"
         X_image, Y_image = coordinates_from_sdp(image_sdp_name)
         translation_image = np.array(Y_image).argmax()
+        if image_name in image_names[-2:]:
+            translation_image-=50
+        # translation_image = np.array(X_image).argmin()
         image_curvature = np.roll(image_curvature, -translation_image)
-        image_curvature = scipy.ndimage.gaussian_filter1d(np.copy(image_curvature), 5)
-        indices_image = (find_peaks(image_curvature, 0.10, 50)).tolist()
+        if (X_image[translation_image] < X_image[translation_image+1]):
+            image_curvature[1:] = np.flip(image_curvature[1:])
+
+        image_curvature = scipy.ndimage.gaussian_filter1d(np.copy(image_curvature), 3)
+        indices_image = (find_peaks(image_curvature, 0.23, 50)).tolist()
         mri_curvature = scipy.ndimage.zoom(mri, len(image_curvature)/len(mri), order=3)
         mri_curvature = scipy.ndimage.gaussian_filter1d(np.copy(mri_curvature), 2)
-        indices_mri = (find_peaks(mri_curvature, 0.15, 50)).tolist()
-        h_d = h_distance(indices_mri, indices_image)
+        indices_mri = (find_peaks(mri_curvature, 0.2, 50)).tolist()
+        h_d = fhmeasure(indices_mri, indices_image, 35)
+        # h_d = h_distance(indices_mri, indices_image)
+        # h_d, _ = best_hdistance(indices_mri, indices_image, len(image_curvature))
+        if image_name == image_names[-1]:
+            # display_starting_point(image_curvature, X_image, Y_image, translation_image)
+            plt.plot(mri_curvature)
+            plt.plot(image_curvature)
+            plt.show()
         values.append(h_d)
     return values
 
@@ -121,6 +158,15 @@ def coordinates_from_sdp(name):
     return X, Y
 
 
+def display_starting_point(data, X, Y, translation):
+    upx,upy = np.amax(X, axis=0), np.amax(Y, axis=0)
+    M = np.zeros(shape=(upx+1, upy+1))
+    values = [(len(data)+i-translation)%len(data) for i in range(len(data))]
+    M[X, Y] = values
+    plt.imshow(M)
+    plt.show()
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--fixed", help="Fixed curvature")
 parser.add_argument("-m", "--moving", help="Moving curvature directory")
@@ -145,50 +191,15 @@ X_fixed, Y_fixed = coordinates_from_sdp(fixed_sdp_name)
 # X_moving, Y_moving = coordinates_from_sdp(moving_sdp_name)
 
 translation_fixed = 240
-# translation_moving = np.array(Y_moving).argmax()
+translation_fixed = np.array(X_fixed).argmin()
+# display_starting_point(mri_curvature, X_fixed, Y_fixed, translation_fixed)
 
-# upx,upy = np.amax(X_moving, axis=0), np.amax(Y_moving, axis=0)
-# M = np.zeros(shape=(upx+1, upy+1))
-# values = [(len(maldi_curvature)+i-translation_moving)%len(maldi_curvature) for i in range(len(maldi_curvature))]
-# M[X_moving, Y_moving] = values
-# plt.imshow(M)
-# plt.show()
-
-upx,upy = np.amax(X_fixed, axis=0), np.amax(Y_fixed, axis=0)
-M = np.zeros(shape=(upx+1, upy+1))
-values = [(len(mri_curvature)+i-translation_fixed)%len(mri_curvature) for i in range(len(mri_curvature))]
-M[X_fixed, Y_fixed] = values
-plt.imshow(M)
-plt.show()
 
 
 #Shift distribution
 mri_curvature = np.roll(mri_curvature, -translation_fixed)
-# maldi_curvature = np.roll(maldi_curvature, -translation_moving)
 
-
-#Resize distribution
-# mri_curvature = scipy.ndimage.zoom(mri_curvature, len(maldi_curvature)/len(mri_curvature), order=3)
-
-# mri_curvature = scipy.ndimage.gaussian_filter1d(np.copy(mri_curvature), 2)
-# indices_mri = (find_peaks(mri_curvature, 0.15, 50)).tolist()
-# maldi_curvature = scipy.ndimage.gaussian_filter1d(np.copy(maldi_curvature), 5)
-# indices_maldi = (find_peaks(maldi_curvature, 0.10, 50)).tolist()
 
 h_ds = h_distances(image_names, mri_curvature)
 plt.plot(h_ds)
 plt.show()
-# Extract closest peak from MALDI to MRI in horizontal distance
-# h_d = h_distance(indices_mri, indices_maldi)
-
-#Average and stddev of horizontal distance
-print("Average h-distance=", h_d)
-
-plt.plot(mri_curvature, "b", label="Courbure IRM")
-plt.plot(maldi_curvature, "g", label="Courbure MALDI")
-plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-plt.show()
-
-#Average vertical relative distance
-d = distance_two_distributions(maldi_curvature, mri_curvature, 3)
-print("Average v-distance =", d)
