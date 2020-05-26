@@ -68,7 +68,7 @@ with open(theoreticalname, "r") as f:
 p = io.open_imzml(inputname)
 size = len(p.coordinates)
 # r = range(size//2 - 50, size//2 + 50)
-r = range(size//2 - 50, size//2 +50)
+r = range(size//2 - 50, size//2 + 50)
 spectra = io.get_spectra(p, r)
 tolerance = 0.5
 
@@ -76,16 +76,22 @@ time_prominence, mzs = timeit.timeit(lambda: sp.spectra_peak_mzs_adaptative(spec
 diffs = average_diffs_common_peaks(theoretical, mzs, tolerance)
 inters_prominence = intersection_spectra(theoretical, mzs, tolerance)
 size_prominence = [len(m) for m in mzs]
+recall_prominence = np.mean(inters_prominence)
+precision_prominence = len(theoretical) / np.mean(size_prominence)
 print(diffs)
 print(np.mean(diffs))
-print(time_prominence, inters_prominence, size_prominence)
+print(inters_prominence, size_prominence)
+print(time_prominence, precision_prominence, recall_prominence)
 
 
-time_cwt, mzs_cwt = timeit.timeit(lambda: sp.spectra_peak_mzs_cwt(spectra, 2, [1, 2, 5, 10, 20, 50, 100, 150, 200]), number=1)
+time_cwt, mzs_cwt = timeit.timeit(lambda: sp.spectra_peak_mzs_cwt(spectra, 0.95, [10, 20, 30, 40, 50, 100]), number=1)
 inters_cwt = intersection_spectra(theoretical, mzs_cwt, tolerance)
 diffs_cwt = average_diffs_common_peaks(theoretical, mzs_cwt, tolerance)
 size_cwt = [len(m) for m in mzs_cwt]
+recall_cwt = np.mean(inters_cwt)
+precision_cwt = len(theoretical) / np.mean(size_cwt)
 print(diffs_cwt)
 print(np.mean(diffs_cwt))
-print(time_cwt, inters_cwt, size_cwt)
+print(inters_cwt, size_cwt)
+print(time_cwt, precision_cwt, recall_cwt)
 # print(s.shape)

@@ -113,16 +113,22 @@ time_prominence, mzs = timeit.timeit(lambda: sp.spectra_peak_mzs_adaptative(spec
 diffs = average_diffs_common_peaks(theoretical, mzs, 70)
 inters_prominence = intersection_spectra(theoretical, mzs, 70)
 size_prominence = [len(m) for m in mzs]
+recall_prominence = np.mean(inters_prominence)
+precision_prominence = len(theoretical) / np.mean(size_prominence)
 print(diffs)
 print(np.mean(diffs))
-print(time_prominence, inters_prominence, size_prominence)
+print(inters_prominence, size_prominence)
+print(time_prominence, precision_prominence, recall_prominence)
 
 time_cwt, mzs_cwt = timeit.timeit(lambda: sp.spectra_peak_mzs_cwt(spectra_bc, 1.45, [1, 2, 5, 10, 20, 50]), number=1)
 inters_cwt = intersection_spectra(theoretical, mzs_cwt, 70)
 diffs_cwt = average_diffs_common_peaks(theoretical, mzs_cwt, 70)
 size_cwt = [len(m) for m in mzs_cwt]
+recall_cwt = np.mean(inters_cwt)
+precision_cwt = len(theoretical) / np.mean(size_cwt)
 print(diffs_cwt)
 print(np.mean(diffs_cwt))
-print(time_cwt, inters_cwt, size_cwt)
+print(inters_cwt, size_cwt)
+print(time_cwt, precision_cwt, recall_cwt)
 
 # print(mzs)

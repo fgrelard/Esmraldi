@@ -3,7 +3,6 @@ Compare quality of segmentation with
 curvature estimation
 """
 import numpy as np
-import matplotlib.pyplot as plt
 # import similaritymeasures
 import scipy.ndimage
 import src.spectraprocessing as sp
@@ -12,6 +11,16 @@ import argparse
 import csv
 import os
 import re
+import seaborn as sns
+import matplotlib.pyplot as plt
+from matplotlib import rc
+from scipy.stats.stats import spearmanr
+# rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+## for Palatino and other serif fonts use:
+sns.set(style="darkgrid")
+
+# rc('font',**{'family':'serif','serif':['Palatino']})
+rc('text', usetex=True)
 
 def distance_two_distributions(dis1, dis2, delta):
     """
@@ -84,7 +93,6 @@ def h_distance_tol(mri, maldi, tol):
     o = np.array(maldi)
     cap_o = o[(np.abs(t[:, None] - o) < tol).any(0)]
     closest = t[(np.abs(cap_o[:, None] - t).argmin(axis=1))]
-    print(t, o, cap_o, closest)
     diff = np.mean(np.abs(closest - cap_o))
     return diff
 
@@ -95,14 +103,29 @@ def fhmeasure(mri, maldi, tol):
     common_t = t[(np.abs(o[:, None] - t)< tol).any(0)]
     p = len(common_t) * 1.0 / len(t)
     r = len(common_o) * 1.0 / len(t)
-    print(common_o, o, common_t, t)
-    print(len(common_o))
+    # print(common_o, o, common_t, t)
+    # print(len(common_o))
     if p+r == 0:
         return 0
-    print(p, r)
+    # print(p, r)
     f = 2 * p * r / (p+r)
     return f
 
+def fhmeasure_aligned(image_curvature, mri, image_sdp_name, threshold=0.2, sigma=2):
+    X_image, Y_image = coordinates_from_sdp(image_sdp_name)
+    translation_image = np.array(Y_image).argmax()
+
+    image_curvature = scipy.ndimage.gaussian_filter1d(np.copy(image_curvature), sigma)
+    indices_image = (find_peaks(image_curvature, threshold, 50)).tolist()
+    mri_curvature = scipy.ndimage.zoom(mri, len(image_curvature)/len(mri), order=3)
+    mri_curvature = scipy.ndimage.gaussian_filter1d(np.copy(mri_curvature), sigma)
+    indices_mri = (find_peaks(mri_curvature, threshold, 50)).tolist()
+    h_d, trans = best_hdistance(indices_mri, indices_image, len(image_curvature))
+    image_curvature = np.roll(image_curvature, -trans)
+    indices_image = (find_peaks(image_curvature, threshold, 50)).tolist()
+    h_d = spearmanr(mri_curvature, image_curvature)[0]
+    # h_d = fhmeasure(indices_mri, indices_image, 35)
+    return h_d
 
 def h_distances(image_names, mri):
     values = []
@@ -118,19 +141,13 @@ def h_distances(image_names, mri):
         if (X_image[translation_image] < X_image[translation_image+1]):
             image_curvature[1:] = np.flip(image_curvature[1:])
 
-        image_curvature = scipy.ndimage.gaussian_filter1d(np.copy(image_curvature), 3)
-        indices_image = (find_peaks(image_curvature, 0.23, 50)).tolist()
-        mri_curvature = scipy.ndimage.zoom(mri, len(image_curvature)/len(mri), order=3)
+        image_curvature = scipy.ndimage.gaussian_filter1d(np.copy(image_curvature), 1)
+        indices_image = (find_peaks(image_curvature, 0.12, 50)).tolist()
+        mri_curvature = scipy.ndimage.zoom(mri, len(image_curvature)/len(mri), order=1)
         mri_curvature = scipy.ndimage.gaussian_filter1d(np.copy(mri_curvature), 2)
         indices_mri = (find_peaks(mri_curvature, 0.2, 50)).tolist()
-        h_d = fhmeasure(indices_mri, indices_image, 35)
-        # h_d = h_distance(indices_mri, indices_image)
+        h_d = h_distance(indices_mri, indices_image)
         # h_d, _ = best_hdistance(indices_mri, indices_image, len(image_curvature))
-        if image_name == image_names[-1]:
-            # display_starting_point(image_curvature, X_image, Y_image, translation_image)
-            plt.plot(mri_curvature)
-            plt.plot(image_curvature)
-            plt.show()
         values.append(h_d)
     return values
 
@@ -199,7 +216,25 @@ translation_fixed = np.array(X_fixed).argmin()
 #Shift distribution
 mri_curvature = np.roll(mri_curvature, -translation_fixed)
 
+fhs, lengths = [], []
+for image_name in image_names:
+    image_curvature = np.loadtxt(image_name)
+    image_sdp_name = image_name.split("_curvature.txt")[0] + "_ensured.sdp"
+    fh = fhmeasure_aligned(image_curvature, mri_curvature, image_sdp_name)
+    length = len(image_curvature)
+    fhs.append(fh)
+    lengths.append(length)
 
-h_ds = h_distances(image_names, mri_curvature)
-plt.plot(h_ds)
+fig,ax1 = plt.subplots()
+ax1.set_xlabel("Image number")
+ax1.set_ylabel("Length")
+ln1 = ax1.plot(lengths, "tab:blue")
+ax2 = ax1.twinx()
+ln2 = ax2.plot(fhs, "tab:orange", lw=2, alpha=0.7)
+ax2.set_ylabel("Curvature F-measure")
+lns = ln1 + ln2
+labs = ["Length", "Curvature F-measure"]
+ax1.legend(lns, labs, loc=0)
+ax2.grid(False)
+# ax2.figure.legend()
 plt.show()

@@ -13,6 +13,8 @@ import os
 import re
 from src.registration import *
 import matplotlib.colors as mcolors
+import scipy.ndimage
+import src.segmentation as seg
 
 def tryint(s):
     """
@@ -128,14 +130,17 @@ def quality_registration_size_bin(fixed, registered_dir):
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--fixed", help="Fixed image")
 parser.add_argument("-r", "--registered", help="Moving image")
+parser.add_argument("-o", "--original", help="Original before registration image")
 parser.add_argument("-b", "--bins", help="number of bins", default=5)
 
 args = parser.parse_args()
 fixedname = args.fixed
 registeredname = args.registered
+originalname = args.original
 
 args = parser.parse_args()
 fixed = sitk.ReadImage(fixedname, sitk.sitkFloat32)
+original = sitk.ReadImage(originalname, sitk.sitkFloat32)
 
 # precision = quality_registration_size_bin(fixed, registeredname)
 # plt.plot(*precision, ".b-")
@@ -158,16 +163,23 @@ print("Precision=", p, " recall=", r, " fmeasure=", f)
 
 fixed_array = sitk.GetArrayFromImage(fixed)
 registered_array = sitk.GetArrayFromImage(registered)
-
+original_array = sitk.GetArrayFromImage(original)
+size = original.GetSize()
+scaled_registered = seg.resize(registered, (size[1], size[0]))
+scaled_registered_array = sitk.GetArrayFromImage(scaled_registered)
+print(scaled_registered_array.shape, original_array.shape)
+# fig, ax = plt.subplots(1,2)
+# ax[0].imshow(original_array)
+# ax[1].imshow(scaled_registered_array)
+# plt.show()
 # The one-dimensional histograms of the example slices:
 
 #plot_similarity(fixed_array, registered_array)
 
 hist_2d, x_edges, y_edges = np.histogram2d(
-    fixed_array.ravel(),
-    registered_array.ravel(),
+    original_array.ravel(),
+    scaled_registered_array.ravel(),
     bins=20)
 
 
-
-print("Mutual information = ", mutual_information(fixed, registered))
+print("Mutual information = ", mutual_information(original, scaled_registered))
