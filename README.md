@@ -2,10 +2,10 @@
 
 Workflow for the fusion of MALDI and MRI images
 Four main steps:
-(1) Pre-processing of images: MALDI reduction by peak detection, alignment and deisotoping (based on [ms-deisotope](https://pypi.org/project/ms-deisotope/))
-(2) Segmentation: definition of spatial coherence measure, region growing
-(3) Registration: rigid registration uses SimpleITK, followed by variational registration of ([Modersitzki et al., 2009](#Modersitzki2009)) in C++ ITK (Module [VariationalRegistration](https://itk.org/Doxygen/html/group__VariationalRegistration.html))
-(4) Statistical analysis: MALDI dimension reduction, finding correlations with MRI image by ascending Euclidean distances in the reduced space.
+1. Pre-processing of images: MALDI reduction by peak detection, alignment and deisotoping (based on [ms-deisotope](https://pypi.org/project/ms-deisotope/))
+2. Segmentation: definition of spatial coherence measure, region growing
+3. Registration: rigid registration uses SimpleITK, followed by variational registration of ([Modersitzki et al., 2009](#Modersitzki2009)) in C++ ITK (Module [VariationalRegistration](https://itk.org/Doxygen/html/group__VariationalRegistration.html))
+4. Statistical analysis: MALDI dimension reduction, finding correlations with MRI image by ascending Euclidean distances in the reduced space.
 
 ## Data
 MALDI images must be in the [imzML](https://ms-imaging.org/wp/imzml/) format. Various tools are available online to convert from proprietary format to mzML or imzML (e.g. [imzMLConverter](https://github.com/AlanRace/imzMLConverter))
