@@ -1,0 +1,235 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>quantify_peak_picking &#8212; Esmraldi 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-quantify_peak_picking">
+<span id="quantify-peak-picking"></span><h1><a class="reference internal" href="#module-quantify_peak_picking" title="quantify_peak_picking"><code class="xref py py-mod docutils literal"><span class="pre">quantify_peak_picking</span></code></a><a class="headerlink" href="#module-quantify_peak_picking" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="quantify_peak_picking.sorted_alphanumeric">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">sorted_alphanumeric</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="headerlink" href="#quantify_peak_picking.sorted_alphanumeric" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="quantify_peak_picking.intersection_spectra">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">intersection_spectra</code><span class="sig-paren">(</span><em>theoretical</em>, <em>observed</em>, <em>tol</em><span class="sig-paren">)</span><a class="headerlink" href="#quantify_peak_picking.intersection_spectra" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="quantify_peak_picking.average_diffs_common_peaks">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">average_diffs_common_peaks</code><span class="sig-paren">(</span><em>theoretical</em>, <em>observed</em>, <em>tol</em><span class="sig-paren">)</span><a class="headerlink" href="#quantify_peak_picking.average_diffs_common_peaks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="quantify_peak_picking.baseline_als">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">baseline_als</code><span class="sig-paren">(</span><em>y</em>, <em>lam</em>, <em>p</em>, <em>niter=10</em><span class="sig-paren">)</span><a class="headerlink" href="#quantify_peak_picking.baseline_als" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="quantify_peak_picking.build_spectra">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">build_spectra</code><span class="sig-paren">(</span><em>inputdir</em><span class="sig-paren">)</span><a class="headerlink" href="#quantify_peak_picking.build_spectra" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.template">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">template</code><em class="property"> =</em><a class="headerlink" href="#quantify_peak_picking.template" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="docutils">
+<dt>def inner(_it, _timer{init}):</dt>
+<dd><p class="first">{setup}
+_t0 = _timer()
+for _i in _it:</p>
+<blockquote>
+<div>retval = {stmt}</div></blockquote>
+<p class="last">_t1 = _timer()
+return _t1 - _t0, retval</p>
+</dd>
+</dl>
+<dl class="data">
+<dt id="quantify_peak_picking.parser">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">parser</code><a class="headerlink" href="#quantify_peak_picking.parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.args">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">args</code><a class="headerlink" href="#quantify_peak_picking.args" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.inputdir">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">inputdir</code><a class="headerlink" href="#quantify_peak_picking.inputdir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.theoreticaldir">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">theoreticaldir</code><a class="headerlink" href="#quantify_peak_picking.theoreticaldir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.spectra">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">spectra</code><a class="headerlink" href="#quantify_peak_picking.spectra" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt>
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">spectra</code></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.spectra_bc">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">spectra_bc</code><em class="property"> = []</em><a class="headerlink" href="#quantify_peak_picking.spectra_bc" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.index">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">index</code><em class="property"> = 0</em><a class="headerlink" href="#quantify_peak_picking.index" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.str_el">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">str_el</code><a class="headerlink" href="#quantify_peak_picking.str_el" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt>
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">spectra_bc</code></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.theoretical">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">theoretical</code><a class="headerlink" href="#quantify_peak_picking.theoretical" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.diffs">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">diffs</code><a class="headerlink" href="#quantify_peak_picking.diffs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.inters_prominence">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">inters_prominence</code><a class="headerlink" href="#quantify_peak_picking.inters_prominence" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.size_prominence">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">size_prominence</code><a class="headerlink" href="#quantify_peak_picking.size_prominence" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.recall_prominence">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">recall_prominence</code><a class="headerlink" href="#quantify_peak_picking.recall_prominence" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.precision_prominence">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">precision_prominence</code><a class="headerlink" href="#quantify_peak_picking.precision_prominence" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.inters_cwt">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">inters_cwt</code><a class="headerlink" href="#quantify_peak_picking.inters_cwt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.diffs_cwt">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">diffs_cwt</code><a class="headerlink" href="#quantify_peak_picking.diffs_cwt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.size_cwt">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">size_cwt</code><a class="headerlink" href="#quantify_peak_picking.size_cwt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.recall_cwt">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">recall_cwt</code><a class="headerlink" href="#quantify_peak_picking.recall_cwt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_peak_picking.precision_cwt">
+<code class="descclassname">quantify_peak_picking.</code><code class="descname">precision_cwt</code><a class="headerlink" href="#quantify_peak_picking.precision_cwt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Florent Grélard.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+      |
+      <a href="../../_sources/autoapi/quantify_peak_picking/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

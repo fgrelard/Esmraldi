@@ -1,0 +1,113 @@
+:mod:`examples.preprocessing_mri`
+=================================
+
+.. py:module:: examples.preprocessing_mri
+
+.. autoapi-nested-parse::
+
+   Various preprocessing functions on MRI image
+   Application-driven
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+Module Contents
+---------------
+
+.. data:: parser
+   
+
+   
+
+.. data:: args
+   
+
+   
+
+.. data:: filename_in
+   
+
+   
+
+.. data:: filename_out
+   
+
+   
+
+.. data:: radius_selem
+   
+
+   
+
+.. data:: minr
+   
+
+   
+
+.. data:: maxr
+   
+
+   
+
+.. data:: threshold
+   
+
+   
+
+.. data:: image
+   
+
+   
+
+.. data:: start_size
+   
+
+   
+
+.. data:: image
+   
+
+   
+
+.. data:: image
+   
+
+   
+
+.. data:: array_image
+   
+
+   
+
+.. data:: dim_image
+   
+
+   
+
+.. data:: array_image
+   
+
+   
+
+.. data:: array_image
+   
+
+   
+
+.. data:: array_image
+   
+
+   
+
+.. data:: image
+   
+
+   
+
+.. data:: image
+   
+
+   
+

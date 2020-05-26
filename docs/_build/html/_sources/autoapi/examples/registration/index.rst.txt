@@ -1,0 +1,268 @@
+:mod:`examples.registration`
+============================
+
+.. py:module:: examples.registration
+
+.. autoapi-nested-parse::
+
+   Registration example
+
+   Rigid registration
+   Transform=rigid, centers initialized with moments
+   Metric=Mattes mutual information
+   Optimization=Gradient descent
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+Module Contents
+---------------
+
+
+.. function:: command_iteration(method)
+
+   Callback called after each registration iteration
+
+
+   :Parameters:
+
+       **method: sitk.ImageRegistrationMethod**
+           the registration method
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: resample(image, transform)
+
+   Applies a transform to an image
+
+
+   :Parameters:
+
+       **image: sitk.Image**
+           input image
+
+       **transform: sitk.Transform**
+           a transform
+
+   :Returns:
+
+       sitk.Image
+           transformed image
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: registration_number_bins(outputname, min_bins, max_bins)
+
+   Registration over a range of bins
+   for the sampling strategy
+
+
+   :Parameters:
+
+       **outputname: str**
+           output image name
+
+       **min_bins: int**
+           minimum number of bins
+
+       **max_bins: int**
+           maximum number of bins
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. data:: parser
+   
+
+   
+
+.. data:: args
+   
+
+   
+
+.. data:: fixedname
+   
+
+   
+
+.. data:: movingname
+   
+
+   
+
+.. data:: outputname
+   
+
+   
+
+.. data:: registername
+   
+
+   
+
+.. data:: bins
+   
+
+   
+
+.. data:: flipped
+   
+
+   
+
+.. data:: fixed
+   
+
+   
+
+.. data:: moving
+   
+
+   
+
+.. data:: dim_moving
+   
+
+   
+
+.. data:: fixed_size
+   
+
+   
+
+.. data:: moving_size
+   
+
+   
+
+.. data:: moving
+   
+
+   
+
+.. data:: sx
+   
+
+   
+
+.. data:: spacing
+   
+
+   
+
+.. data:: moving
+   
+
+   
+
+.. data:: moving
+   
+
+   
+
+.. data:: array_moving
+   
+
+   
+
+.. data:: dim_moving
+   :annotation: = 3
+
+   
+
+.. data:: width
+   
+
+   
+
+.. data:: height
+   
+
+   
+
+.. data:: numberOfBins
+   
+
+   
+
+.. data:: samplingPercentage
+   :annotation: = 0.1
+
+   
+
+.. data:: to_flip
+   :annotation: = False
+
+   
+
+.. data:: best_resampler
+   
+
+   
+
+.. data:: to_flip
+   :annotation: = True
+
+   
+
+.. data:: simg1
+   
+
+   
+
+.. data:: moving
+   
+
+   
+
+.. data:: is_imzml
+   
+
+   
+

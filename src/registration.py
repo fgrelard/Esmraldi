@@ -9,7 +9,7 @@ import math
 def precision(im1, im2):
     """
     Precision between two images
-    defined as |im1 \cap im2|/|im2|
+    defined as card(im1 \cap im2)/card(im2)
 
     Parameters
     ----------
@@ -31,7 +31,7 @@ def precision(im1, im2):
 def recall(im1, im2):
     """
     Recall between two images
-    defined as |im1 \cap im2|/|im1|
+    defined as card(im1 \cap im2)/card(im1)
 
     Parameters
     ----------

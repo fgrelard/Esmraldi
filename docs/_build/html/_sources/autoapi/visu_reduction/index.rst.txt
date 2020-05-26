@@ -1,0 +1,241 @@
+:mod:`visu_reduction`
+=====================
+
+.. py:module:: visu_reduction
+
+.. autoapi-nested-parse::
+
+   Visualization of dimension
+   reduction
+   Projects points in the resulting
+   reduced subspace
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+Module Contents
+---------------
+
+
+.. function:: dot(u, v)
+
+   Dot product of vectors u by v
+
+
+   :Parameters:
+
+       **u: list**
+           vector
+
+       **v: list**
+           vector
+
+   :Returns:
+
+       float
+           dot product
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: norm(v)
+
+   Norm of vector v
+
+
+   :Parameters:
+
+       **v: list**
+           vector
+
+   :Returns:
+
+       float
+           norm
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: ortho_projection(u, v)
+
+   Orthogonal projection of u onto v
+
+
+   :Parameters:
+
+       **u: list**
+           vector
+
+       **v: list**
+           vector
+
+   :Returns:
+
+       np.array
+           orthogonal projection
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: update(i)
+
+   Callback called to create animation
+   designed for PCA representation
+
+
+   :Parameters:
+
+       **i: int**
+           number of iterations
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: update_cone(i)
+
+   Callback called to create animation
+   designed for NMF representation
+
+
+   :Parameters:
+
+       **i: int**
+           number of iterations
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. data:: parser
+   
+
+   
+
+.. data:: args
+   
+
+   
+
+.. data:: is_pca
+   
+
+   
+
+.. data:: output
+   
+
+   
+
+.. data:: rng
+   
+
+   
+
+.. data:: X
+   
+
+   
+
+.. data:: pca
+   
+
+   
+
+.. data:: first_component
+   
+
+   
+
+.. data:: first_component_xy
+   
+
+   
+
+.. data:: min_val
+   
+
+   
+
+.. data:: max_val
+   
+
+   
+
+.. data:: nb
+   :annotation: = 20
+
+   
+
+.. data:: anim
+   
+
+   
+

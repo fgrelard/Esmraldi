@@ -1,0 +1,189 @@
+:mod:`examples.annotation_spectrum`
+===================================
+
+.. py:module:: examples.annotation_spectrum
+
+.. autoapi-nested-parse::
+
+   Example which annotates an observed spectrum
+   with a reference theoretical spectrum
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+Module Contents
+---------------
+
+
+.. function:: column_names(values, ions, adducts, modifications, delimiter='_')
+
+   Extract different column names
+   where observed spectrum is split in
+   different columns
+
+
+   :Parameters:
+
+       **values: list**
+           all existing species names
+
+       **ions: list**
+           SpeciesRule list
+
+       **adducts: list**
+           SpeciesRule list
+
+       **modifications: list**
+           SpeciesRule list
+
+       **delimiter: str**
+           delimiter between species
+
+   :Returns:
+
+       list
+           column names
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: assign_names_to_columns(columns, values, delimiter='_')
+
+   Assign species name to corresponding column
+
+
+   :Parameters:
+
+       **columns: list**
+           column names
+
+       **values: list**
+           all species names
+
+       **delimiter: str**
+           separation between species
+
+   :Returns:
+
+       list
+           species names in column
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: export_theoretical_to_csv(theoretical, filename)
+
+
+.. data:: parser
+   
+
+   
+
+.. data:: args
+   
+
+   
+
+.. data:: theoretical_name
+   
+
+   
+
+.. data:: observed_name
+   
+
+   
+
+.. data:: output_name
+   
+
+   
+
+.. data:: is_separate
+   
+
+   
+
+.. data:: species
+   
+
+   
+
+.. data:: ions
+   
+
+   
+
+.. data:: adducts
+   
+
+   
+
+.. data:: modifications
+   
+
+   
+
+.. data:: theoretical_spectrum
+   
+
+   
+
+.. data:: csv_reader
+   
+
+   
+
+.. data:: annotation
+   
+
+   
+
+.. data:: d
+   
+
+   
+
+.. data:: keys_sorted
+   
+
+   
+
+.. data:: values
+   
+
+   
+
+.. data:: writer
+   
+
+   
+

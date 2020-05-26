@@ -1,0 +1,283 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>examples.registration_cv &#8212; Esmraldi 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '1.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-examples.registration_cv">
+<span id="examples-registration-cv"></span><h1><a class="reference internal" href="#module-examples.registration_cv" title="examples.registration_cv"><code class="xref py py-mod docutils literal"><span class="pre">examples.registration_cv</span></code></a><a class="headerlink" href="#module-examples.registration_cv" title="Permalink to this headline">¶</a></h1>
+<p><p>Rigid registration based on the shape
+of the object</p>
+<p>Finds salient features automatically in the image
+and registers the shape onto these features</p>
+</p>
+<div class="section" id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+<dl class="data">
+<dt id="examples.registration_cv.MAX_FEATURES">
+<code class="descclassname">examples.registration_cv.</code><code class="descname">MAX_FEATURES</code><em class="property"> = 1000</em><a class="headerlink" href="#examples.registration_cv.MAX_FEATURES" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration_cv.GOOD_MATCH_PERCENT">
+<code class="descclassname">examples.registration_cv.</code><code class="descname">GOOD_MATCH_PERCENT</code><em class="property"> = 0.1</em><a class="headerlink" href="#examples.registration_cv.GOOD_MATCH_PERCENT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration_cv.parser">
+<code class="descclassname">examples.registration_cv.</code><code class="descname">parser</code><a class="headerlink" href="#examples.registration_cv.parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration_cv.args">
+<code class="descclassname">examples.registration_cv.</code><code class="descname">args</code><a class="headerlink" href="#examples.registration_cv.args" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration_cv.fixedname">
+<code class="descclassname">examples.registration_cv.</code><code class="descname">fixedname</code><a class="headerlink" href="#examples.registration_cv.fixedname" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration_cv.movingname">
+<code class="descclassname">examples.registration_cv.</code><code class="descname">movingname</code><a class="headerlink" href="#examples.registration_cv.movingname" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration_cv.outputname">
+<code class="descclassname">examples.registration_cv.</code><code class="descname">outputname</code><a class="headerlink" href="#examples.registration_cv.outputname" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="examples.registration_cv.edge">
+<code class="descclassname">examples.registration_cv.</code><code class="descname">edge</code><span class="sig-paren">(</span><em>im</em><span class="sig-paren">)</span><a class="headerlink" href="#examples.registration_cv.edge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the edge image</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>im: np.ndarray</strong></dt>
+<dd><p class="first last">input image</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>np.ndarray</dt>
+<dd><p class="first last">edge image</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="examples.registration_cv.drawKeypoints">
+<code class="descclassname">examples.registration_cv.</code><code class="descname">drawKeypoints</code><span class="sig-paren">(</span><em>img</em>, <em>kp</em>, <em>color</em><span class="sig-paren">)</span><a class="headerlink" href="#examples.registration_cv.drawKeypoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Draw keypoints</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>img: np.ndarray</strong></dt>
+<dd><p class="first last">image</p>
+</dd>
+<dt><strong>kp: list</strong></dt>
+<dd><p class="first last">list of opencv kepoints</p>
+</dd>
+<dt><strong>color: tuple</strong></dt>
+<dd><p class="first last">(r,g,b,) color of the keypoints in the image</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>np.ndarray</dt>
+<dd><p class="first last">image with markers</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="examples.registration_cv.sift">
+<code class="descclassname">examples.registration_cv.</code><code class="descname">sift</code><span class="sig-paren">(</span><em>im1</em>, <em>im2</em><span class="sig-paren">)</span><a class="headerlink" href="#examples.registration_cv.sift" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds common features between two images
+SIFT features detection</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>im1: np.ndarray</strong></dt>
+<dd><p class="first last">first image</p>
+</dd>
+<dt><strong>im2: np.ndarray</strong></dt>
+<dd><p class="first last">second image</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>tuple</dt>
+<dd><p class="first last">(m,k1,k2): common keypoints, keypoints in image 1, keypoints in image2</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="examples.registration_cv.orb">
+<code class="descclassname">examples.registration_cv.</code><code class="descname">orb</code><span class="sig-paren">(</span><em>im1</em>, <em>im2</em><span class="sig-paren">)</span><a class="headerlink" href="#examples.registration_cv.orb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds common features between two images
+ORB feature detection</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>im1: np.ndarray</strong></dt>
+<dd><p class="first last">first image</p>
+</dd>
+<dt><strong>im2: np.ndarray</strong></dt>
+<dd><p class="first last">second image</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>tuple</dt>
+<dd><p class="first last">(m,k1,k2): common keypoints, keypoints in image 1, keypoints in image 2</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="examples.registration_cv.alignImages">
+<code class="descclassname">examples.registration_cv.</code><code class="descname">alignImages</code><span class="sig-paren">(</span><em>im1</em>, <em>im2</em><span class="sig-paren">)</span><a class="headerlink" href="#examples.registration_cv.alignImages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Align two images
+Thanks to common keypoints detection
+And homography between the two images</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>im1: np.ndarray</strong></dt>
+<dd><p class="first last">first image</p>
+</dd>
+<dt><strong>im2: np.ndarray</strong></dt>
+<dd><p class="first last">second image</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>tuple</dt>
+<dd><p class="first last">(im, h) image and homography</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="data">
+<dt id="examples.registration_cv.imReference">
+<code class="descclassname">examples.registration_cv.</code><code class="descname">imReference</code><a class="headerlink" href="#examples.registration_cv.imReference" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Florent Grélard.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+      |
+      <a href="../../../_sources/autoapi/examples/registration_cv/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

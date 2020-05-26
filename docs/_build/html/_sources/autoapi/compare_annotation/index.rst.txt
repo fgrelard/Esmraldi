@@ -1,0 +1,333 @@
+:mod:`compare_annotation`
+=========================
+
+.. py:module:: compare_annotation
+
+.. autoapi-nested-parse::
+
+   Compare two annotations
+   By showing the differences:
+     - in the detected peaks
+     - in the annotation (globally)
+     - in the annotation (peak by peak) :
+       for each peak, compare the names found
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+Module Contents
+---------------
+
+
+.. data:: parser
+   
+
+   
+
+.. data:: args
+   
+
+   
+
+.. function:: to_dict(annotation)
+
+   Converts the annotation list to a
+   dictionary mapping mz to species names
+
+
+   :Parameters:
+
+       **annotation: list**
+           annotation list
+
+   :Returns:
+
+       dict
+           annotation dictionary
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: missing_masses(theoretical, observed, tol=0.05)
+
+   Missing masses in theoretical compared to observed
+
+
+   :Parameters:
+
+       **theoretical: dict**
+           theoretical annotation
+
+       **observed: dict**
+           observed annotation
+
+       **tol: float**
+           accepted mz delta for peaks to be the same
+
+   :Returns:
+
+       dict
+           missing species in theoretical
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: missing_annotation(theoretical, observed, tol=0.05)
+
+   Missing annotation peak by peak
+   For all peaks that are common between
+   the theoretical and observed spectra,
+   finds the names that are missing in theoretical
+   and present in observed
+
+
+   :Parameters:
+
+       **theoretical: dict**
+           theoretical annotation
+
+       **observed: dict**
+           observed annotation
+
+       **tol: float**
+           accepted mz delta for peaks to be the same
+
+   :Returns:
+
+       dict
+           missing annotation in theoretical
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. data:: theoretical_name
+   
+
+   
+
+.. data:: observed_name
+   
+
+   
+
+.. data:: output_name
+   
+
+   
+
+.. data:: theoretical
+   
+
+   
+
+.. data:: observed
+   
+
+   
+
+.. data:: nb_theoretical
+   
+
+   
+
+.. data:: nb_observed
+   
+
+   
+
+.. data:: full_theoretical
+   
+
+   
+
+.. data:: full_observed
+   
+
+   
+
+.. data:: annotated_theoretical
+   
+
+   
+
+.. data:: annotated_observed
+   
+
+   
+
+.. data:: nb_annotated_theoretical
+   
+
+   
+
+.. data:: nb_annotated_observed
+   
+
+   
+
+.. data:: masses_th
+   
+
+   
+
+.. data:: masses_obs
+   
+
+   
+
+.. data:: union_th
+   
+
+   
+
+.. data:: union_obs
+   
+
+   
+
+.. data:: names_th
+   
+
+   
+
+.. data:: names_obs
+   
+
+   
+
+.. data:: names_th_flatten
+   
+
+   
+
+.. data:: names_obs_flatten
+   
+
+   
+
+.. data:: union_names
+   
+
+   
+
+.. data:: missing_th_flatten
+   
+
+   
+
+.. data:: missing_obs_flatten
+   
+
+   
+
+.. data:: missing_full_theoretical
+   
+
+   
+
+.. data:: missing_full_observed
+   
+
+   
+
+.. data:: missing_theoretical
+   
+
+   
+
+.. data:: missing_observed
+   
+
+   
+
+.. data:: missing_annotation_theoretical
+   
+
+   
+
+.. data:: missing_annotation_observed
+   
+
+   
+
+.. data:: stats_detection_th
+   
+
+   
+
+.. data:: stats_detection_obs
+   
+
+   
+
+.. data:: workbook
+   
+
+   
+
+.. data:: header_format
+   
+
+   
+
+.. data:: worksheet
+   
+
+   
+
+.. data:: worksheet2
+   
+
+   
+
+.. data:: worksheet3
+   
+
+   
+
+.. data:: headers
+   :annotation: = ['Missing', 'Common', 'Total']
+
+   
+

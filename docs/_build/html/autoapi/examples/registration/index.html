@@ -1,0 +1,319 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>examples.registration &#8212; Esmraldi 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '1.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-examples.registration">
+<span id="examples-registration"></span><h1><a class="reference internal" href="#module-examples.registration" title="examples.registration"><code class="xref py py-mod docutils literal"><span class="pre">examples.registration</span></code></a><a class="headerlink" href="#module-examples.registration" title="Permalink to this headline">¶</a></h1>
+<p><p>Registration example</p>
+<p>Rigid registration
+Transform=rigid, centers initialized with moments
+Metric=Mattes mutual information
+Optimization=Gradient descent</p>
+</p>
+<div class="section" id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="examples.registration.command_iteration">
+<code class="descclassname">examples.registration.</code><code class="descname">command_iteration</code><span class="sig-paren">(</span><em>method</em><span class="sig-paren">)</span><a class="headerlink" href="#examples.registration.command_iteration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Callback called after each registration iteration</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>method: sitk.ImageRegistrationMethod</strong></dt>
+<dd><p class="first last">the registration method</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="examples.registration.resample">
+<code class="descclassname">examples.registration.</code><code class="descname">resample</code><span class="sig-paren">(</span><em>image</em>, <em>transform</em><span class="sig-paren">)</span><a class="headerlink" href="#examples.registration.resample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies a transform to an image</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>image: sitk.Image</strong></dt>
+<dd><p class="first last">input image</p>
+</dd>
+<dt><strong>transform: sitk.Transform</strong></dt>
+<dd><p class="first last">a transform</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>sitk.Image</dt>
+<dd><p class="first last">transformed image</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="examples.registration.registration_number_bins">
+<code class="descclassname">examples.registration.</code><code class="descname">registration_number_bins</code><span class="sig-paren">(</span><em>outputname</em>, <em>min_bins</em>, <em>max_bins</em><span class="sig-paren">)</span><a class="headerlink" href="#examples.registration.registration_number_bins" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registration over a range of bins
+for the sampling strategy</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>outputname: str</strong></dt>
+<dd><p class="first last">output image name</p>
+</dd>
+<dt><strong>min_bins: int</strong></dt>
+<dd><p class="first last">minimum number of bins</p>
+</dd>
+<dt><strong>max_bins: int</strong></dt>
+<dd><p class="first last">maximum number of bins</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.parser">
+<code class="descclassname">examples.registration.</code><code class="descname">parser</code><a class="headerlink" href="#examples.registration.parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.args">
+<code class="descclassname">examples.registration.</code><code class="descname">args</code><a class="headerlink" href="#examples.registration.args" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.fixedname">
+<code class="descclassname">examples.registration.</code><code class="descname">fixedname</code><a class="headerlink" href="#examples.registration.fixedname" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.movingname">
+<code class="descclassname">examples.registration.</code><code class="descname">movingname</code><a class="headerlink" href="#examples.registration.movingname" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.outputname">
+<code class="descclassname">examples.registration.</code><code class="descname">outputname</code><a class="headerlink" href="#examples.registration.outputname" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.registername">
+<code class="descclassname">examples.registration.</code><code class="descname">registername</code><a class="headerlink" href="#examples.registration.registername" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.bins">
+<code class="descclassname">examples.registration.</code><code class="descname">bins</code><a class="headerlink" href="#examples.registration.bins" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.flipped">
+<code class="descclassname">examples.registration.</code><code class="descname">flipped</code><a class="headerlink" href="#examples.registration.flipped" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.fixed">
+<code class="descclassname">examples.registration.</code><code class="descname">fixed</code><a class="headerlink" href="#examples.registration.fixed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.moving">
+<code class="descclassname">examples.registration.</code><code class="descname">moving</code><a class="headerlink" href="#examples.registration.moving" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.dim_moving">
+<code class="descclassname">examples.registration.</code><code class="descname">dim_moving</code><a class="headerlink" href="#examples.registration.dim_moving" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.fixed_size">
+<code class="descclassname">examples.registration.</code><code class="descname">fixed_size</code><a class="headerlink" href="#examples.registration.fixed_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.moving_size">
+<code class="descclassname">examples.registration.</code><code class="descname">moving_size</code><a class="headerlink" href="#examples.registration.moving_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt>
+<code class="descclassname">examples.registration.</code><code class="descname">moving</code></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.sx">
+<code class="descclassname">examples.registration.</code><code class="descname">sx</code><a class="headerlink" href="#examples.registration.sx" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.spacing">
+<code class="descclassname">examples.registration.</code><code class="descname">spacing</code><a class="headerlink" href="#examples.registration.spacing" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt>
+<code class="descclassname">examples.registration.</code><code class="descname">moving</code></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt>
+<code class="descclassname">examples.registration.</code><code class="descname">moving</code></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.array_moving">
+<code class="descclassname">examples.registration.</code><code class="descname">array_moving</code><a class="headerlink" href="#examples.registration.array_moving" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt>
+<code class="descclassname">examples.registration.</code><code class="descname">dim_moving</code><em class="property"> = 3</em></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.width">
+<code class="descclassname">examples.registration.</code><code class="descname">width</code><a class="headerlink" href="#examples.registration.width" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.height">
+<code class="descclassname">examples.registration.</code><code class="descname">height</code><a class="headerlink" href="#examples.registration.height" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.numberOfBins">
+<code class="descclassname">examples.registration.</code><code class="descname">numberOfBins</code><a class="headerlink" href="#examples.registration.numberOfBins" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.samplingPercentage">
+<code class="descclassname">examples.registration.</code><code class="descname">samplingPercentage</code><em class="property"> = 0.1</em><a class="headerlink" href="#examples.registration.samplingPercentage" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.to_flip">
+<code class="descclassname">examples.registration.</code><code class="descname">to_flip</code><em class="property"> = False</em><a class="headerlink" href="#examples.registration.to_flip" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.best_resampler">
+<code class="descclassname">examples.registration.</code><code class="descname">best_resampler</code><a class="headerlink" href="#examples.registration.best_resampler" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt>
+<code class="descclassname">examples.registration.</code><code class="descname">to_flip</code><em class="property"> = True</em></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.simg1">
+<code class="descclassname">examples.registration.</code><code class="descname">simg1</code><a class="headerlink" href="#examples.registration.simg1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt>
+<code class="descclassname">examples.registration.</code><code class="descname">moving</code></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.registration.is_imzml">
+<code class="descclassname">examples.registration.</code><code class="descname">is_imzml</code><a class="headerlink" href="#examples.registration.is_imzml" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Florent Grélard.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+      |
+      <a href="../../../_sources/autoapi/examples/registration/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
