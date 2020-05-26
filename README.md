@@ -13,9 +13,11 @@ MALDI images must be in the [imzML](https://ms-imaging.org/wp/imzml/) format. Va
 MRI images can be in any [ITK format](https://itk.org/Wiki/ITK/File_Formats) (.png, .tif, .hdr...)
 
 ## Installation
-```
+``` bash
 cd Esmraldi
-pip install -r requirements.txt
+
+#Install dependencies:
+cat requirements.txt | xargs -n 1 -L 1 pip install
 ```
 
 ## Usage
