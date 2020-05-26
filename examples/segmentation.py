@@ -60,8 +60,8 @@ img_data = image.get_data()
 padding = 3
 img_data = np.pad(img_data, (padding,padding), 'constant')
 
-similar_images = seg.find_similar_images_spatial_chaos(img_data, factor, quantiles=[60, 70, 80, 90])
-# similar_images = seg.find_similar_images_area(img_data, factor, quantiles=[60, 70, 80, 90])
+similar_images = seg.find_similar_images_area(img_data, factor, quantiles=[60, 70, 80, 90])
+# similar_images = seg.find_similar_images_spatial_chaos(img_data, factor, quantiles=[60, 70, 80, 90])
 # similar_images = seg.find_similar_images_variance(img_data, factor)
 print(similar_images.shape)
 similar_images = seg.sort_size_ascending(similar_images, threshold)

@@ -167,7 +167,7 @@ def precision(array1, array2):
     return len(inters) * 1.0 / len(set_a1)
 
 def recall(array1, array2):
-     """
+    """
     Recall : |a1 \cap a2|/|a1|
 
     Parameters
