@@ -3,8 +3,8 @@ Converts an imzML file to NIFTI
 """
 import argparse
 import os
-import src.segmentation as seg
-import src.imzmlio as imzmlio
+import esmraldi.segmentation as seg
+import esmraldi.imzmlio as imzmlio
 
 def reduce_image(image):
     mzs = []

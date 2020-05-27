@@ -14,7 +14,7 @@ import re
 from src.registration import *
 import matplotlib.colors as mcolors
 import scipy.ndimage
-import src.segmentation as seg
+import esmraldi.segmentation as seg
 
 def tryint(s):
     """

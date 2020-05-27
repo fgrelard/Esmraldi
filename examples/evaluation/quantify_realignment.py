@@ -4,7 +4,7 @@ with various measures
 """
 import numpy as np
 import skimage.restoration as restoration
-import src.spectraprocessing as sp
+import esmraldi.spectraprocessing as sp
 import matplotlib.pyplot as plt
 from ordered_set import OrderedSet
 import scipy.signal as signal

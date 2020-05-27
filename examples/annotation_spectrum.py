@@ -5,8 +5,8 @@ with a reference theoretical spectrum
 import argparse
 import csv
 import re
-import src.speciesrule as sr
-import src.spectrainterpretation as si
+import esmraldi.speciesrule as sr
+import esmraldi.spectrainterpretation as si
 from src.theoreticalspectrum import TheoreticalSpectrum
 import pprint
 

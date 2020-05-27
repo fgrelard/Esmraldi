@@ -10,9 +10,9 @@ Statistical analysis
 """
 import numpy as np
 import matplotlib.pyplot as plt
-import src.segmentation as seg
-import src.imzmlio as imzmlio
-import src.fusion as fusion
+import esmraldi.segmentation as seg
+import esmraldi.imzmlio as imzmlio
+import esmraldi.fusion as fusion
 import argparse
 import nibabel as nib
 import SimpleITK as sitk

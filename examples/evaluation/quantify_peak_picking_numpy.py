@@ -2,14 +2,14 @@ import csv
 import argparse
 import os
 import csv
-import src.spectraprocessing as sp
+import esmraldi.spectraprocessing as sp
 import numpy as np
 import matplotlib.pyplot as plt
 from itertools import *
 import re
 import timeit
 import time
-import src.imzmlio as io
+import esmraldi.imzmlio as io
 
 def intersection_spectra(theoretical, observed, tol):
     I = []

@@ -5,7 +5,7 @@ curvature estimation
 import numpy as np
 # import similaritymeasures
 import scipy.ndimage
-import src.spectraprocessing as sp
+import esmraldi.spectraprocessing as sp
 import scipy.signal as signal
 import argparse
 import csv

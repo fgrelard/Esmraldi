@@ -10,8 +10,8 @@ import argparse
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-import src.spectraprocessing as sp
-import src.imzmlio as io
+import esmraldi.spectraprocessing as sp
+import esmraldi.imzmlio as io
 import sys
 
 def plot_peak_selected(spectra, realigned_spectra):

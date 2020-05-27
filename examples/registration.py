@@ -11,10 +11,10 @@ import SimpleITK as sitk
 import matplotlib.pyplot as plt
 import math
 import numpy as np
-import src.imzmlio as imzmlio
+import esmraldi.imzmlio as imzmlio
 import os
-import src.registration as reg
-import src.segmentation as segmentation
+import esmraldi.registration as reg
+import esmraldi.segmentation as segmentation
 
 def command_iteration(method) :
     """

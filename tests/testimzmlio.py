@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import unittest
 import numpy as np
 import numpy.testing as nptest
-import src.imzmlio as io
+import esmraldi.imzmlio as io
 import matplotlib.pyplot as plt
 
 

@@ -3,7 +3,7 @@ Various preprocessing functions on MRI image
 Application-driven
 """
 
-import src.segmentation as seg
+import esmraldi.segmentation as seg
 import numpy as np
 import argparse
 import SimpleITK as sitk

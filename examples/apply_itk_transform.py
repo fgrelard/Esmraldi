@@ -6,7 +6,7 @@ based on a displacement field
 
 import argparse
 import SimpleITK as sitk
-import src.imzmlio as imzmlio
+import esmraldi.imzmlio as imzmlio
 import numpy as np
 import matplotlib.pyplot as plt
 

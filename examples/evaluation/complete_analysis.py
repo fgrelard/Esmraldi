@@ -21,10 +21,10 @@ from PIL import Image
 from io import BytesIO
 from urllib.request import urlopen
 
-import src.imzmlio as imzmlio
-import src.speciesrule as sr
-import src.spectraprocessing as sp
-import src.spectrainterpretation as si
+import esmraldi.imzmlio as imzmlio
+import esmraldi.speciesrule as sr
+import esmraldi.spectraprocessing as sp
+import esmraldi.spectrainterpretation as si
 from src.theoreticalspectrum import TheoreticalSpectrum
 
 def get_col_widths(data):

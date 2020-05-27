@@ -2,7 +2,7 @@ import csv
 import argparse
 import os
 import csv
-import src.spectraprocessing as sp
+import esmraldi.spectraprocessing as sp
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage.morphology import white_tophat

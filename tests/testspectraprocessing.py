@@ -4,9 +4,9 @@ import unittest
 import numpy as np
 import pandas as pd
 import numpy.testing as nptest
-import src.spectraprocessing as sp
+import esmraldi.spectraprocessing as sp
 import matplotlib.pyplot as plt
-import src.imzmlio as io
+import esmraldi.imzmlio as io
 from ms_deisotope import plot
 from ms_deisotope import Averagine
 

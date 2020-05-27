@@ -10,11 +10,11 @@ import SimpleITK as sitk
 import numpy as np
 import matplotlib.pyplot as plt
 
-import src.imzmlio as imzmlio
-import src.segmentation as seg
-import src.speciesrule as sr
-import src.spectrainterpretation as si
-import src.fusion as fusion
+import esmraldi.imzmlio as imzmlio
+import esmraldi.segmentation as seg
+import esmraldi.speciesrule as sr
+import esmraldi.spectrainterpretation as si
+import esmraldi.fusion as fusion
 from sklearn.decomposition import NMF
 from src.theoreticalspectrum import TheoreticalSpectrum
 

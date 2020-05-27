@@ -4,7 +4,7 @@ import unittest
 import numpy as np
 import numpy.testing as nptest
 import matplotlib.pyplot as plt
-import src.speciesrule as sr
+import esmraldi.speciesrule as sr
 import random
 
 class TestSpeciesRule(unittest.TestCase):

@@ -8,8 +8,8 @@ to obtain a complete segmentation
 on this subset
 """
 
-import src.segmentation as seg
-import src.imzmlio as imzmlio
+import esmraldi.segmentation as seg
+import esmraldi.imzmlio as imzmlio
 import nibabel as nib
 import matplotlib.pyplot as plt
 import numpy as np
