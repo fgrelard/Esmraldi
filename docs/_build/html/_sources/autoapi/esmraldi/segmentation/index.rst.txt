@@ -1,0 +1,582 @@
+:mod:`esmraldi.segmentation`
+============================
+
+.. py:module:: esmraldi.segmentation
+
+.. autoapi-nested-parse::
+
+   Module for the segmentation
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+Module Contents
+---------------
+
+
+.. function:: max_variance_sort(image_maldi)
+
+   Sort a stack image along the z-axis
+   according to the maximum intensity variation
+
+
+   :Parameters:
+
+       **image_maldi: numpy.ndarray**
+           input image
+
+   :Returns:
+
+       numpy.ndarray
+           the sorted image stack
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: preprocess_pca(image_maldi)
+
+   Preprocess for PCA : normalizes and flattens
+   a stack image with OpenCV
+
+
+   :Parameters:
+
+       **image_maldi: numpy.ndarray**
+           input image
+
+   :Returns:
+
+       numpy.ndarray
+           normalized image
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: properties_largest_area_cc(ccs)
+
+   Extracts the connected component
+   with the largest area
+
+
+   :Parameters:
+
+       **ccs: numpy.ndarray**
+           connected components
+
+   :Returns:
+
+       RegionProperties
+           connected component with largest area
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: region_property_to_cc(ccs, regionprop)
+
+   Extracts the connected component associated
+   with the region
+
+
+   :Parameters:
+
+       **ccs: numpy.ndarray**
+           connected components
+
+       **regionprop: RegionProperties**
+           desired region
+
+   :Returns:
+
+       numpy.ndarray
+           the binary image (mask) of the desired region
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: sort_size_ascending(images, threshold)
+
+
+.. function:: region_growing(images, seedList, lower_threshold)
+
+   Region growing in an image stack
+   with ITK
+   All the images in the stack are processed sequentially
+   and the seeds at step n depends on the segmentation
+   by region growing at step n-1
+
+
+   :Parameters:
+
+       **images: numpy.ndarray**
+           image stack
+
+       **seedList: list**
+           list of 2D points to initialize the region growing
+
+       **lower_threshold: int**
+           lower threshold for the region growing
+
+   :Returns:
+
+       list
+           seeds as 2d points
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: estimate_noise(I)
+
+
+.. function:: find_similar_images_variance(image_maldi, factor_variance=0.1)
+
+   Find images that have a high variance in their intensities
+   Selects images according to a factor of max variance
+
+
+   :Parameters:
+
+       **image_maldi: np.ndarray**
+           input image
+
+       **factor_variance: int**
+           factor by which max variance is multiplied to
+           determine a threshold above which images are selected
+
+   :Returns:
+
+       np.ndarray
+           array of high variability images
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: find_similar_images_area(image_maldi, factor, quantiles=[])
+
+
+.. function:: find_similar_images(image_maldi)
+
+   Performs a PCA to group similar images based on
+   their intensities
+
+   Selects the first cluster
+
+   :Parameters:
+
+       **image_maldi: numpy.ndarray**
+           image stack
+
+   :Returns:
+
+       numpy.ndarray
+           trimmed stack with images of high similarity
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: average_area(images)
+
+   Average area of largest CCs on a collection of images
+
+
+   :Parameters:
+
+       **images: np.ndarray**
+           collection of images
+
+   :Returns:
+
+       int
+           average area of largest CCs
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: select_class_max_value(image_maldi, y_kmeans, nb_class)
+
+   Chooses label associated with kmeans cluster with
+   images with highest average intensity
+
+
+   :Parameters:
+
+       **image_maldi: np.ndarray**
+           images
+
+       **y_kmeans: np.ndarray**
+           labels
+
+       **nb_class: int**
+           number of clusters used by kmeans
+
+   :Returns:
+
+       int
+           class label
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: select_class_area(image_maldi, y_kmeans, nb_class)
+
+   Chooses labels associated with highest average
+   area of largest CCs
+
+
+   :Parameters:
+
+       **image_maldi: np.ndarray**
+           images
+
+       **y_kmeans: np.ndarray**
+           labels
+
+       **nb_class: int**
+           number of clsuters used by kmeans
+
+   :Returns:
+
+       int
+           class label
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: detect_circle(image, threshold, min_radius, max_radius)
+
+   Detect a circle in an image
+   Uses hough transform over several radii
+
+
+   :Parameters:
+
+       **image: np.ndarray**
+           image
+
+       **threshold: int**
+           threshold for binary image
+
+       **min_radius: float**
+           lower bound for radii
+
+       **max_radius: float**
+           upper bound for radii
+
+   :Returns:
+
+       tuple
+           x,y,r: circle center + radii
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: detect_tube(image, threshold=150, min_radius=10, max_radius=50)
+
+   Detect the most frequent circle across several slices
+   (3D volume)
+
+
+   :Parameters:
+
+       **image: np.ndarray**
+           image
+
+       **threshold: int**
+           threshold for binary image
+
+       **min_radius: float**
+           lower bound for radii
+
+       **max_radius: float**
+           upper bound for radii
+
+   :Returns:
+
+       tuple
+           x,y,r: circle center + radii
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: fill_circle(center_x, center_y, radius, image, color=0)
+
+   Fills a circle with a given value (default: 0)
+
+
+   :Parameters:
+
+       **center_x: float**
+           center_x of circle
+
+       **center_y: float**
+           center_y of circle
+
+       **radius: float**
+           radius of circle
+
+       **image: np.ndarray**
+           image where the circle must be filled
+
+       **color: int**
+           value to replace
+
+   :Returns:
+
+       np.ndarray
+           image with filled circle
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: binary_closing(image, radius_selem=1)
+
+   Specific function to remove thin structures
+   in the wheat grain
+   Performs a morphological closing
+
+
+   :Parameters:
+
+       **image: np.ndarray**
+           image
+
+       **radius_selem: int**
+           radius in pixel for the structuring element
+
+   :Returns:
+
+       np.ndarray
+           morphologically closed image
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: resize(image, size)
+
+   Resize the image to a given size
+
+
+   :Parameters:
+
+       **image: np.ndarray**
+           input image
+
+       **size: tuple**
+           new size of the image
+
+   :Returns:
+
+       np.ndarray
+           new resized image
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: distances_closest_neighbour(points)
+
+
+.. function:: average_distance_graph(image, threshold)
+
+
+.. function:: spatial_chaos(image, quantiles=[])
+
+
+.. function:: find_similar_images_spatial_chaos(img, threshold, quantiles)
+
+

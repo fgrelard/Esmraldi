@@ -1,0 +1,341 @@
+:mod:`esmraldi.imzmlio`
+=======================
+
+.. py:module:: esmraldi.imzmlio
+
+.. autoapi-nested-parse::
+
+   Module for the input/output
+   of imzML files
+   Conversion to numpy array
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+Module Contents
+---------------
+
+
+.. function:: open_imzml(filename)
+
+   Opens an imzML file
+
+
+   :Parameters:
+
+       **filename: string**
+           input file
+
+   :Returns:
+
+       imzmlparser.ImzMLParser
+           parser of file
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: write_imzml(mzs, intensities, coordinates, filename)
+
+   Writes a file to imzML
+
+
+   :Parameters:
+
+       **mzs: list**
+           list of list of m/z ratios
+
+       **intensities: list**
+           list of list of intensities
+
+       **coordinates: list**
+           pixel coordinates associated to each spectrum
+
+       **filename: string**
+           output file
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: normalize(image)
+
+   Normalizes an image : 0 -- 255 scale
+
+
+   :Parameters:
+
+       **image: np.ndarray**
+           input image
+
+   :Returns:
+
+       np.ndarray
+           normalized image
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: get_spectra(imzml, pixel_numbers=[])
+
+   Extracts spectra from imzML
+   into numpy format
+
+
+   :Parameters:
+
+       **imzml: imzmlparser.ImzMLParser**
+           parser
+
+   :Returns:
+
+       np.array
+           collection of spectra
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: get_spectra_intensities(imzml, pixel_numbers=[])
+
+   Extracts spectra intensities from imzML
+   into numpy format
+
+
+   :Parameters:
+
+       **imzml: imzmlparser.ImzMLParser**
+           parser
+
+   :Returns:
+
+       np.array
+           collection of spectra
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: get_spectra_mzs(imzml, pixel_numbers=[])
+
+   Extracts spectra mzs from imzML
+   into numpy format
+
+
+   :Parameters:
+
+       **imzml: imzmlparser.ImzMLParser**
+           parser
+
+   :Returns:
+
+       np.array
+           collection of spectra
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: get_spectra_from_images(images)
+
+   Extracts spectra intensities and coordinates
+   from numpy array
+
+
+   :Parameters:
+
+       **images: np.ndarray**
+           images as numpy array
+
+   :Returns:
+
+       list
+           intensities
+
+       list
+           coordinates
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: to_image_array(image)
+
+   Extracts all existing images from imzML
+
+
+   :Parameters:
+
+       **image: imzmlparser.ImzMLParser**
+           parser
+
+   :Returns:
+
+       np.ndarray
+           image array
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: to_nifti(image, filename)
+
+   Converts to nifti
+
+
+   :Parameters:
+
+       **image: np.ndarray**
+           image
+
+       **filename: string**
+           output filename
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: to_csv(array, filename)
+
+   Converts a file to csv
+   containing all m/z ratio
+
+
+   :Parameters:
+
+       **array: np.ndarray**
+           mz array
+
+       **filename: str**
+           output filename
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+

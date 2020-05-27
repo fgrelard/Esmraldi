@@ -1,0 +1,93 @@
+:mod:`esmraldi.spectrainterpretation`
+=====================================
+
+.. py:module:: esmraldi.spectrainterpretation
+
+.. autoapi-nested-parse::
+
+   Module for the annotation of a spectrum
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+Module Contents
+---------------
+
+
+.. function:: closest_peak(reference_mz, theoretical_spectrum, tolerance)
+
+   Closest peak for a given m/z ratio, from a theoretical spectrum
+
+
+   :Parameters:
+
+       **reference_mz: float**
+           peak m/z
+
+       **theoretical_spectrum: dict**
+           theoretical spectrum, where keys are m/z ratio and values the names
+
+       **tolerance: float**
+           acceptable mz delta to consider peaks are equal
+
+   :Returns:
+
+       list
+           peaks in theoretical spectrum closest to reference_mz
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: annotation(observed, theoretical, tolerance=0.1)
+
+   Annotate an observed spectrum
+   Compared to a theoretical spectrum
+
+
+   :Parameters:
+
+       **observed: list**
+           mass list
+
+       **theoretical: dict**
+           theoretical spectrum generated from several species rule
+
+       **tolerance: float**
+           acceptable mz delta to consider peaks are equal
+
+   :Returns:
+
+       dict
+           annotated mass list
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+

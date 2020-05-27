@@ -1,0 +1,309 @@
+:mod:`esmraldi.theoreticalspectrum`
+===================================
+
+.. py:module:: esmraldi.theoreticalspectrum
+
+
+Module Contents
+---------------
+
+
+.. py:class:: TheoreticalSpectrum(molecules, adducts, modifications=[])
+
+   This class aims at generating a theoretical spectrum from a list of species
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+   .. method:: mix_species(self, species, optional=False)
+
+      Mix species of different families
+      All possible combinations are extracted
+
+
+      :Parameters:
+
+          **species: list**
+              SpeciesRule list
+
+          **optional: bool**
+              whether this species if optional or not
+
+      :Returns:
+
+          np.ndarray
+              mix of SpeciesRule
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. method:: merge_dicts_mz(self, dict1, dict2)
+
+      Merges two dictionaries, where keys=values
+      and values=mz
+      by summing their keys and values
+
+
+      :Parameters:
+
+          **dict1: dict**
+              first dictionary
+
+          **dict2: dict**
+              second dictionary
+
+      :Returns:
+
+          dict
+              merged dictionary
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. method:: expand_mix(self, mix)
+
+      Generates the full list of species from
+      all species rules contained in the mix
+      Maps the masses to all possible names
+
+
+      :Parameters:
+
+          **mix: np.ndarray**
+              mix of SpeciesRule
+
+      :Returns:
+
+          dict
+              mapping of all species (name to mz)
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. method:: molecules_regexp(self, adduct, molecules)
+
+      Extracts all molecules with fit the
+      regexp in adduct
+
+
+      :Parameters:
+
+          **adduct: SpeciesRule**
+              adduct or modification
+
+          **molecules: dict**
+              all molecules
+
+      :Returns:
+
+          dict
+              molecules which match the adduct or modification
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. method:: mix_molecules_regexp(self, mix, molecules)
+
+      All molecules matching regexp from species in a mix
+
+
+      :Parameters:
+
+          **mix: list**
+              list of SpeciesRule
+
+          **molecules: dict**
+              all molecules
+
+      :Returns:
+
+          dict
+              molecules matching every modification add functions
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. method:: add_all_adducts_to_molecules(self, molecules, adducts)
+
+      Add adducts and modifications, and every permutation
+      of them to molecules
+
+
+      :Parameters:
+
+          **molecules: dict**
+              molecule mapping names to mz
+
+          **adducts: list**
+              adduct species rule list
+
+      :Returns:
+
+          dict
+              theoretical spectrum
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. method:: add_adduct_to_molecules(self, molecules, adduct, rules_max={})
+
+      Add one adduct to all molecules
+
+
+      :Parameters:
+
+          **molecules: list**
+              molecule molecule names to mz
+
+          **adduct: SpeciesRule**
+              adduct or modification
+
+          **rules_max: dict**
+              rules constraining number of adduct per molecule
+
+      :Returns:
+
+          dict
+              molecules with every combination of adduct
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+   .. method:: add_adducts_to_molecules_regexp(self, adduct)
+
+      Add adducts based on regexp
+
+
+      :Parameters:
+
+          **adduct: SpeciesRule**
+              adduct or modification
+
+      :Returns:
+
+          dict
+              molecules matching regexp of adduct
+
+
+
+
+
+
+
+
+
+
+
+
+
+      ..
+          !! processed by numpydoc !!
+
+
+
