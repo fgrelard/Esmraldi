@@ -130,7 +130,7 @@ mri_norm = seg.preprocess_pca(mri_norm)
 
 
 print("Computing Dimension reduction")
-n=10
+n=6
 
 fit_red = fusion.nmf(image_norm, n)
 
