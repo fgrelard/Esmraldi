@@ -5,6 +5,7 @@ analysis of images
 
 import numpy as np
 import cv2 as cv
+from sklearn import metrics
 from sklearn.decomposition import PCA
 from sklearn.decomposition import NMF
 from sklearn.cluster import KMeans, AffinityPropagation
@@ -88,7 +89,7 @@ def nmf(image, n=5):
     sklearn.decomposition.NMF
         nmf object
     """
-    nmf_obj = NMF(n_components=n, init='nndsvda', solver='cd', random_state=0)
+    nmf_obj = NMF(n_components=n, init='nndsvda', solver='mu', random_state=0, beta_loss="kullback-leibler")
     fit_nmf = nmf_obj.fit(image)
     return fit_nmf
 
@@ -208,3 +209,26 @@ def extract_ratio_images(image, mzs):
             new_mzs[c] = current_ratio
             c += 1
     return ratio_images, new_mzs
+
+
+def get_score(model, data, scorer=metrics.explained_variance_score):
+    """
+    Estimate performance of the model on the data
+
+    Parameters
+    ----------
+    model: sklearn.decomposition
+        matrix-factorization technique
+    data: np.ndarray
+        matrix used to estimate performance
+    scorer: sklearn.metrics
+        metric
+
+    Returns
+    ----------
+    float
+        performance metric
+
+    """
+    prediction = model.inverse_transform(model.transform(data))
+    return scorer(data, prediction)

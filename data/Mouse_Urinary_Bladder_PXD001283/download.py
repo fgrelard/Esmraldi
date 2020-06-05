@@ -13,7 +13,7 @@ ibd = "HR2MSI%20mouse%20urinary%20bladder%20S096.ibd"
 optical = "HR2MSI%20mouse%20urinary%20bladder%20S096%20-%20optical%20image.tif"
 
 print("Downloading imzML")
-download(ftp, imzml, "ms_image.imzml")
+download(ftp, imzml, "ms_image.imzML")
 
 print("Downloading ibd")
 download(ftp, ibd, "ms_image.ibd")

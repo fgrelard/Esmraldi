@@ -681,20 +681,23 @@ Module Contents
 
 .. function:: realign_wrt_peaks(spectra, aligned_peaks, full_peaks, indices_to_width)
 
-   s    Realign spectra to reference peaks
-       from indices
+   Realign spectra to reference peaks
+   from indices
 
 
    :Parameters:
 
        **spectra: np.ndarray**
-               Spectra as [mz*I] array
-           aligned_mzs: list
-               reference mz peaklist
-           full_mzs: np.ndarray
-               complete mz peaklist over all spectra
-           indices_to_width: dict
-               indices to width
+           Spectra as [mz*I] array
+
+       **aligned_mzs: list**
+           reference mz peaklist
+
+       **full_mzs: np.ndarray**
+           complete mz peaklist over all spectra
+
+       **indices_to_width: dict**
+           indices to width
 
    :Returns:
 

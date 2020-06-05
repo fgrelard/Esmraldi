@@ -95,6 +95,7 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../user/introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/gettingstarted.html">Getting started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../user/quickstart.html">Quickstart tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../user/examples.html">Demos and examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../user/data.html">Data</a></li>
@@ -744,30 +745,24 @@ by checking neighbor indices</p>
 <dl class="function">
 <dt id="esmraldi.spectraprocessing.realign_wrt_peaks">
 <code class="descclassname">esmraldi.spectraprocessing.</code><code class="descname">realign_wrt_peaks</code><span class="sig-paren">(</span><em>spectra</em>, <em>aligned_peaks</em>, <em>full_peaks</em>, <em>indices_to_width</em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.realign_wrt_peaks" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>s    Realign spectra to reference peaks</dt>
-<dd>from indices</dd>
-</dl>
+<dd><p>Realign spectra to reference peaks
+from indices</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
 <dt><strong>spectra: np.ndarray</strong></dt>
-<dd><blockquote class="first">
-<div><p>Spectra as [mz*I] array</p>
-</div></blockquote>
-<dl class="last docutils">
-<dt>aligned_mzs: list</dt>
+<dd><p class="first last">Spectra as [mz*I] array</p>
+</dd>
+<dt><strong>aligned_mzs: list</strong></dt>
 <dd><p class="first last">reference mz peaklist</p>
 </dd>
-<dt>full_mzs: np.ndarray</dt>
+<dt><strong>full_mzs: np.ndarray</strong></dt>
 <dd><p class="first last">complete mz peaklist over all spectra</p>
 </dd>
-<dt>indices_to_width: dict</dt>
+<dt><strong>indices_to_width: dict</strong></dt>
 <dd><p class="first last">indices to width</p>
-</dd>
-</dl>
 </dd>
 </dl>
 </td>

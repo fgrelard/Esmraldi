@@ -11,6 +11,7 @@ Esmraldi Documentation
    :caption: Contents:
 
    user/introduction.rst
+   user/gettingstarted.rst
    user/quickstart.rst
    user/examples.rst
    user/data.rst

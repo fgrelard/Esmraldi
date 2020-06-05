@@ -532,7 +532,7 @@ def realign_wrt_peaks_mzs(spectra, aligned_mzs, full_mzs, indices_to_width):
 
 def realign_wrt_peaks(spectra, aligned_peaks, full_peaks, indices_to_width):
     """
-s    Realign spectra to reference peaks
+    Realign spectra to reference peaks
     from indices
 
     Parameters

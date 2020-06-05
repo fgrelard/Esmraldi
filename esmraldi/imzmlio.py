@@ -64,11 +64,14 @@ def normalize(image):
         normalized image
     """
     image_normalized = np.zeros_like(image, dtype=np.uint8)
-    z = image.shape[-1]
-    for k in range(z):
-        slice2D = image[..., k]
-        slice2DNorm = np.uint8(cv.normalize(slice2D, None, 0, 255, cv.NORM_MINMAX))
-        image_normalized[..., k] = slice2DNorm
+    if len(image.shape) <= 2:
+        image_normalized = np.uint8(cv.normalize(image, None, 0, 255, cv.NORM_MINMAX))
+    else:
+        z = image.shape[-1]
+        for k in range(z):
+            slice2D = image[..., k]
+            slice2DNorm = np.uint8(cv.normalize(slice2D, None, 0, 255, cv.NORM_MINMAX))
+            image_normalized[..., k] = slice2DNorm
     return image_normalized
 
 def get_spectra(imzml, pixel_numbers=[]):
@@ -172,6 +175,19 @@ def get_spectra_from_images(images):
             coordinates.append(imzml_index)
     return intensities, coordinates
 
+def get_image(imzml, mz, tol=0.01):
+    """
+    Parameters
+    ----------
+    imzml: imzmlparser.ImzMLParser
+        parser
+    mz: float
+        m/z ratio of desired image
+    tol: float
+        tolerance on accepted m/z
+
+    """
+    return imzmlparser.getionimage(imzml, mz, tol)
 
 def to_image_array(image):
     """
@@ -190,7 +206,7 @@ def to_image_array(image):
     x, y = image.getspectrum(0)
     image_list = []
     for mz in x:
-        im = imzmlparser.getionimage(image, mz, tol=0.01)
+        im = get_image(image, mz)
         image_list.append(im)
     img_array = np.transpose(np.asarray(image_list))
     return img_array

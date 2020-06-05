@@ -18,12 +18,13 @@ import nibabel as nib
 import SimpleITK as sitk
 import math
 import os
+import cv2
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 from sklearn.preprocessing import StandardScaler
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
-import cv2
+from skimage.filters import threshold_otsu
 
 def plot_clustering(X, labels, mri):
     n_clusters = len(np.unique(labels))
@@ -123,26 +124,23 @@ if is_ratio:
 
 image = imzmlio.normalize(image)
 image_norm = seg.preprocess_pca(image)
-mri_norm = seg.preprocess_pca(image_mri)
+
+mri_norm = imzmlio.normalize(image_mri)
+mri_norm = seg.preprocess_pca(mri_norm)
 
 
 print("Computing Dimension reduction")
-n=6
+n=10
+
 fit_red = fusion.nmf(image_norm, n)
 
 point = fit_red.transform(mri_norm)
 
-is_pca = False
-if is_pca:
-    print("Explained variance ratio =", fit_red.explained_variance_ratio_)
-    weights = fit_red.explained_variance_ratio_ / np.sum(fit_red.explained_variance_ratio_)
-else:
-    print("Explained variance ratio =", fit_red.reconstruction_err_)
-    weights = [1.0/n for i in range(n)]
+print("Explained variance ratio=", fusion.get_score(fit_red, image_norm))
 
 X_r = fit_red.transform(image_norm)
 centers = X_r
-point_mri = fit_red.transform(mri_norm)
+point_mri = point
 
 if post_process:
     X_train, X_test = fusion.post_processing(X_r, point)
@@ -169,7 +167,6 @@ if not is_ratio:
                                   image_mri,
                                   figsize=size,
                                   image_zoom=0.7)
-        # plot_pca(centers, clustering)
 
 plt.plot(X_r[:, 0], X_r[:, 1], "b.")
 plt.plot(point[:, 0], point[:, 1], "ro")
@@ -180,7 +177,8 @@ plt.close()
 labels = None
 
 
-weights = [1 for i in range(X_r.shape[1])]
+weights = [1 for i in range(centers.shape[1])]
+
 
 if top is not None:
     af = fusion.clustering_kmeans(image_norm, X_r)
@@ -196,7 +194,3 @@ sitk.WriteImage(itk_similar_images, outname)
 
 outname_csv = os.path.splitext(outname)[0] + ".csv"
 np.savetxt(outname_csv, np.transpose((similar_mzs, distances)), delimiter=";", fmt="%s")
-#np.save("data/labels_maldi.npy", labels)
-#plt.plot(point[0, 0], point[0, 1], "rx")
-
-#plot_clustering(X_r, labels, point)

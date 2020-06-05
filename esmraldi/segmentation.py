@@ -72,13 +72,11 @@ def preprocess_pca(image_maldi):
 
     if z > 0:
         norm_img = np.zeros(shape=(x*y,z), dtype=np.uint8)
-        for index in np.ndindex(image_maldi.shape[2:]):
-            current_index = (slice(None), slice(None)) + (index,)
-            norm_slice = np.uint8(cv.normalize(image_maldi[current_index], None, 0, 255, cv.NORM_MINMAX))
-            norm_img[..., index[0]] = norm_slice.flatten()
+        for index in range(image_maldi.shape[-1]):
+            norm_img[..., index] = image_maldi[..., index].flatten()
     else:
         norm_img = np.zeros(shape=(x*y, 1), dtype=np.uint8)
-        norm_img[..., 0] = np.uint8(cv.normalize(image_maldi, None, 0, 255, cv.NORM_MINMAX)).flatten()
+        norm_img[..., 0] = image_maldi.flatten()
 
     norm_img = norm_img.transpose()
     return norm_img
@@ -228,6 +226,30 @@ def find_similar_images_variance(image_maldi, factor_variance=0.1):
     return similar_images
 
 
+def spatial_coherence(image):
+    """
+    Spatial coherence of a binary image
+    That is to say the area of the largest
+    connected component
+
+    Parameters
+    ----------
+    image: np.ndarrau
+        binarized image
+
+    Returns
+    ----------
+    float
+        spatial coherence
+
+    """
+    labels = measure.label(image, background=0)
+    r = properties_largest_area_cc(labels)
+    if r == -1:
+        return -1
+    else:
+        return r.area
+
 def find_similar_images_area(image_maldi, factor, quantiles=[]):
     values = []
     for i in range(image_maldi.shape[-1]):
@@ -236,12 +258,9 @@ def find_similar_images_area(image_maldi, factor, quantiles=[]):
         min_area = sys.maxsize
         for quantile in quantiles:
             threshold = int(np.percentile(norm_img, quantile))
-            labels = measure.label(norm_img > threshold, background=0)
-            r = properties_largest_area_cc(labels)
-            if r == -1:
-                min_area = -1
-            elif r.area < min_area:
-                min_area = r.area
+            sc = spatial_coherence(image > threshold)
+            if sc < min_area:
+                min_area = sc
         values.append(min_area)
     value_array = np.array(values)
     similar_images = image_maldi[..., value_array > factor]
