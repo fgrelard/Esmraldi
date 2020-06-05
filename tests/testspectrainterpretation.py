@@ -5,7 +5,7 @@ import numpy as np
 import numpy.testing as nptest
 import matplotlib.pyplot as plt
 import esmraldi.speciesrule as sr
-from src.theoreticalspectrum import TheoreticalSpectrum
+from esmraldi.theoreticalspectrum import TheoreticalSpectrum
 import esmraldi.spectrainterpretation as si
 import random
 

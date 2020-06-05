@@ -25,7 +25,7 @@ import esmraldi.imzmlio as imzmlio
 import esmraldi.speciesrule as sr
 import esmraldi.spectraprocessing as sp
 import esmraldi.spectrainterpretation as si
-from src.theoreticalspectrum import TheoreticalSpectrum
+from esmraldi.theoreticalspectrum import TheoreticalSpectrum
 
 def get_col_widths(data):
     """

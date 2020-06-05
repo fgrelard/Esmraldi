@@ -7,7 +7,7 @@ import csv
 import re
 import esmraldi.speciesrule as sr
 import esmraldi.spectrainterpretation as si
-from src.theoreticalspectrum import TheoreticalSpectrum
+from esmraldi.theoreticalspectrum import TheoreticalSpectrum
 import pprint
 
 

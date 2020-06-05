@@ -16,7 +16,7 @@ import esmraldi.speciesrule as sr
 import esmraldi.spectrainterpretation as si
 import esmraldi.fusion as fusion
 from sklearn.decomposition import NMF
-from src.theoreticalspectrum import TheoreticalSpectrum
+from esmraldi.theoreticalspectrum import TheoreticalSpectrum
 
 
 parser = argparse.ArgumentParser()

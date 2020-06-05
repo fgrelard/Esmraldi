@@ -11,7 +11,7 @@ import argparse
 from sklearn import metrics
 import os
 import re
-from src.registration import *
+from esmraldi.registration import *
 import matplotlib.colors as mcolors
 import scipy.ndimage
 import esmraldi.segmentation as seg
