@@ -221,7 +221,6 @@ def find_similar_images_variance(image_maldi, factor_variance=0.1):
     reshaped = image_maldi.reshape(-1, image_maldi.shape[-1])
     variance = np.var(reshaped, axis=0)
     max_variance = np.amax(variance)
-    print(reshaped.shape)
     similar_images = image_maldi[..., variance < factor_variance * max_variance]
     return similar_images
 
@@ -258,7 +257,7 @@ def find_similar_images_area(image_maldi, factor, quantiles=[]):
         min_area = sys.maxsize
         for quantile in quantiles:
             threshold = int(np.percentile(norm_img, quantile))
-            sc = spatial_coherence(image > threshold)
+            sc = spatial_coherence(norm_img > threshold)
             if sc < min_area:
                 min_area = sc
         values.append(min_area)

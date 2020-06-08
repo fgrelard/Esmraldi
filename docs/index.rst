@@ -12,10 +12,10 @@ Esmraldi Documentation
 
    user/introduction.rst
    user/gettingstarted.rst
-   user/quickstart.rst
+   user/quickstart.ipynb
    user/examples.rst
    user/data.rst
-
+   
 
 Index
 =====

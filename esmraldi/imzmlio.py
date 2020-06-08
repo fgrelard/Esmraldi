@@ -175,6 +175,28 @@ def get_spectra_from_images(images):
             coordinates.append(imzml_index)
     return intensities, coordinates
 
+def get_images_from_spectra(spectra, shape):
+    """
+    Extracts image as a numpy array from
+    spectra intensities and coordinates
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        spectra as numpy array [mz*I]
+    shape: tuple
+        shape of the image
+
+    Returns
+    ----------
+    np.ndarray
+        image
+
+    """
+    intensities = spectra[:, 1, :]
+    image = np.reshape(intensities, shape + (intensities.shape[-1],))
+    return image
+
 def get_image(imzml, mz, tol=0.01):
     """
     Parameters
