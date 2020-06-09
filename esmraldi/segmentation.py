@@ -18,6 +18,7 @@ from skimage.feature import canny
 from skimage import data, color
 from skimage.draw import circle
 from skimage.morphology import binary_erosion, closing, disk
+import skimage.transform as transform
 import scipy.spatial.distance as dist
 import scipy.signal as signal
 import cv2 as cv
@@ -50,36 +51,6 @@ def max_variance_sort(image_maldi):
         plt.imshow(elem["im"], cmap='jet').set_interpolation('nearest')
         plt.show()
 
-def preprocess_pca(image_maldi):
-    """
-    Preprocess for PCA : normalizes and flattens
-    a stack image with OpenCV
-
-    Parameters
-    ----------
-    image_maldi: numpy.ndarray
-        input image
-
-    Returns
-    ----------
-    numpy.ndarray
-        normalized image
-
-    """
-    x = image_maldi.shape[0]
-    y = image_maldi.shape[1]
-    z = image_maldi.shape[2] if len(image_maldi.shape) > 2 else 0
-
-    if z > 0:
-        norm_img = np.zeros(shape=(x*y,z), dtype=np.uint8)
-        for index in range(image_maldi.shape[-1]):
-            norm_img[..., index] = image_maldi[..., index].flatten()
-    else:
-        norm_img = np.zeros(shape=(x*y, 1), dtype=np.uint8)
-        norm_img[..., 0] = image_maldi.flatten()
-
-    norm_img = norm_img.transpose()
-    return norm_img
 
 def properties_largest_area_cc(ccs):
     """
@@ -263,35 +234,6 @@ def find_similar_images_area(image_maldi, factor, quantiles=[]):
         values.append(min_area)
     value_array = np.array(values)
     similar_images = image_maldi[..., value_array > factor]
-    return similar_images
-
-
-def find_similar_images(image_maldi):
-    """
-    Performs a PCA to group similar images based on
-    their intensities
-
-    Selects the first cluster
-
-    Parameters
-    ----------
-    image_maldi: numpy.ndarray
-        image stack
-
-    Returns
-    ----------
-    numpy.ndarray
-        trimmed stack with images of high similarity
-    """
-    nb_class = 2
-    norm = preprocess_pca(image_maldi)
-    pca = PCA(n_components=5)
-    X_r = pca.fit(norm).transform(norm)
-    kmeans = KMeans(n_clusters=nb_class, random_state=0)
-    kmeans.fit(X_r)
-    y_kmeans = kmeans.predict(X_r)
-    index = select_class_max_value(image_maldi, y_kmeans, nb_class)
-    similar_images = image_maldi[..., y_kmeans==index]
     return similar_images
 
 
@@ -527,29 +469,21 @@ def resize(image, size):
 
     Parameters
     ----------
-    image: np.ndarray
+    image: sitk.Image
         input image
     size: tuple
         new size of the image
 
     Returns
     ----------
-    np.ndarray
+    sitk.Image
         new resized image
 
     """
-    dim = len(image.GetSize())
-    spacing = [old_sz*old_spc/new_sz  for old_sz, old_spc, new_sz in zip(image.GetSize(), image.GetSpacing(), size)]
-    resampled_img = sitk.Resample(image,
-                                  size,
-                                  sitk.Transform(),
-                                  sitk.sitkNearestNeighbor,
-                                  image.GetOrigin(),
-                                  spacing,
-                                  image.GetDirection(),
-                                  0.0,
-                                  image.GetPixelID())
-    return resampled_img
+    image_array = sitk.GetArrayFromImage(image)
+    resized = transform.resize(image_array, size, order=0)
+    resized_itk = sitk.GetImageFromArray(resized)
+    return resized_itk
 
 
 def distances_closest_neighbour(points):

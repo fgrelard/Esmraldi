@@ -49,6 +49,38 @@ def clustering_kmeans(X_r):
     kmeans = KMeans(n_clusters=5, random_state=0).fit(X_r)
     return kmeans
 
+def flatten(image_maldi):
+    """
+    Preprocess for reduction : flattens
+    a stack image with OpenCV
+
+    Parameters
+    ----------
+    image_maldi: numpy.ndarray
+        input image
+
+    Returns
+    ----------
+    numpy.ndarray
+        normalized image
+
+    """
+    x = image_maldi.shape[0]
+    y = image_maldi.shape[1]
+    z = image_maldi.shape[2] if len(image_maldi.shape) > 2 else 0
+
+    if z > 0:
+        norm_img = np.zeros(shape=(x*y,z), dtype=np.uint8)
+        for index in range(image_maldi.shape[-1]):
+            norm_img[..., index] = image_maldi[..., index].flatten()
+    else:
+        norm_img = np.zeros(shape=(x*y, 1), dtype=np.uint8)
+        norm_img[..., 0] = image_maldi.flatten()
+
+    norm_img = norm_img.transpose()
+    return norm_img
+
+
 def pca(image, n=5):
     """
     Performs PCA on image array
@@ -170,15 +202,15 @@ def select_images(images, point_mri, centers, weights, mzs, labels, top=1):
     indices = [i for i in range(len(distances))]
     indices.sort(key=lambda x: distances[x])
     if top is None:
-        similar_images = images[..., indices].T
+        similar_images = images[..., indices]
         similar_mzs = mzs[indices]
         distances = distances[indices]
     else:
         indices = np.array(indices)
         condition = np.any(np.array([labels == indices[i] for i in range(top)]), axis=0)
-        similar_images = images[..., condition].T
+        similar_images = images[..., condition]
         similar_mzs = mzs[condition]
-    return np.uint8(similar_images), similar_mzs, distances
+    return similar_images, similar_mzs, distances
 
 def extract_ratio_images(image, mzs):
     """

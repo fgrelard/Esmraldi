@@ -68,7 +68,7 @@ else:
     image = np.uint8(image)
 
 image_shape = (image.shape[0], image.shape[1])
-image_norm = seg.preprocess_pca(image)
+image_norm = fusion.flatten(image)
 M = image_norm.T
 print(M.shape)
 

@@ -123,10 +123,10 @@ if is_ratio:
     mzs = np.concatenate((mzs, ratio_mzs))
 
 image = imzmlio.normalize(image)
-image_norm = seg.preprocess_pca(image)
+image_norm = fusion.flatten(image)
 
 mri_norm = imzmlio.normalize(image_mri)
-mri_norm = seg.preprocess_pca(mri_norm)
+mri_norm = fusion.flatten(mri_norm)
 
 
 print("Computing Dimension reduction")
@@ -188,7 +188,7 @@ if top is not None:
 similar_images, similar_mzs, distances = fusion.select_images(image,point_mri, centers, weights,  mzs, labels, None)
 print("Selecting images end")
 
-similar_images = similar_images[:1000]
+similar_images = similar_images[..., 0:1000]
 itk_similar_images = sitk.GetImageFromArray(similar_images)
 sitk.WriteImage(itk_similar_images, outname)
 

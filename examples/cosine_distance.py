@@ -53,9 +53,9 @@ if is_ratio:
     image = np.concatenate((image, ratio_images), axis=2)
     mzs = np.concatenate((mzs, ratio_mzs))
 
-image_flatten = seg.preprocess_pca(image).T
+image_flatten = fusion.flatten_pca(image).T
 image_mri = imzmlio.normalize(image_mri)
-image_mri_flatten = seg.preprocess_pca(image_mri)
+image_mri_flatten = fusion.flatten(image_mri)
 
 
 fig, ax = plt.subplots(1, 2)

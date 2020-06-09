@@ -134,7 +134,7 @@ def mutual_information(imRef, imRegistered):
 
 
 
-def best_fit(fixed, array_moving, numberOfBins, samplingPercentage):
+def best_fit(fixed, array_moving, numbe_of_bins, sampling_percentage):
     """
     Finds the best fit between variations of the same image
     According to mutual information measure
@@ -147,9 +147,9 @@ def best_fit(fixed, array_moving, numberOfBins, samplingPercentage):
         reference (fixed) image
     array_moving: np.ndarray
         3D deformable (moving) image
-    numberOfBins: int
+    number_of_bins: int
         number of bins for sampling
-    samplingPercentage: float
+    sampling_percentage: float
         proportion of points to consider in sampling
 
     Returns
@@ -167,7 +167,7 @@ def best_fit(fixed, array_moving, numberOfBins, samplingPercentage):
         moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkFloat32)
         moving.SetSpacing(fixed.GetSpacing())
         try:
-            resampler = register(fixed, moving, numberOfBins, samplingPercentage)
+            resampler = register(fixed, moving, number_of_bins, sampling_percentage)
             out = resampler.Execute(moving)
         except Exception as e:
             print(e)
@@ -182,7 +182,7 @@ def best_fit(fixed, array_moving, numberOfBins, samplingPercentage):
     return best_resampler, index
 
 
-def register(fixed, moving, numberOfBins, samplingPercentage):
+def register(fixed, moving, number_of_bins, sampling_percentage, seed=sitk.sitkWallClock, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
     """
     Registration between reference (fixed)
     and deformable (moving) images
@@ -197,10 +197,18 @@ def register(fixed, moving, numberOfBins, samplingPercentage):
         reference (fixed) image
     moving: np.ndarray
         deformable (moving) image
-    numberOfBins: int
+    number_of_bins: int
         number of bins for sampling
-    samplingPercentage: float
+    sampling_percentage: float
         proportion of points to consider in sampling
+    seed: int
+        seed for metric sampling
+    learning_rate: float
+        learning rate for gradient descent optimizer
+    min_step: float
+        minimum step: stop criterion for the optimizer
+    relaxation_factor: float
+        relaxation factor for the parameters of the transform between each step of the optimizer
 
     Returns
     ----------
@@ -209,19 +217,13 @@ def register(fixed, moving, numberOfBins, samplingPercentage):
 
     """
     R = sitk.ImageRegistrationMethod()
-    R.SetMetricAsMattesMutualInformation(numberOfBins)
-    R.SetMetricSamplingPercentage(samplingPercentage, 15045 )
-    # R.SetOptimizerAsOnePlusOneEvolutionary(numberOfIterations=10000,
-    #                                        epsilon=1.5e-4,
-    #                                        initialRadius=1.01,
-    #                                        growthFactor=-1.0,
-    #                                        shrinkFactor=-1.0,
-    #                                        seed=121213)
+    R.SetMetricAsMattesMutualInformation(number_of_bins)
+    R.SetMetricSamplingPercentage(sampling_percentage, seed )
     R.SetOptimizerAsRegularStepGradientDescent(
-        learningRate=1.1,
-        minStep=0.001,
+        learningRate=learning_rate,
+        minStep=min_step,
         numberOfIterations=100,
-        relaxationFactor=0.8,
+        relaxationFactor=relaxation_factor,
         gradientMagnitudeTolerance = 1e-5,
         maximumStepSizeInPhysicalUnits = 0.0)
     tx = sitk.CenteredTransformInitializer(fixed, moving, sitk.Similarity2DTransform(), sitk.CenteredTransformInitializerFilter.MOMENTS)
