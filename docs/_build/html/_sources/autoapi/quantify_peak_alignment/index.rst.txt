@@ -1,0 +1,201 @@
+:mod:`quantify_peak_alignment`
+==============================
+
+.. py:module:: quantify_peak_alignment
+
+
+Module Contents
+---------------
+
+
+.. function:: intersection_spectra(theoretical, observed, tol)
+
+
+.. function:: missing(theoretical, observed, tol)
+
+
+.. function:: average_diffs_common_peaks(theoretical, observed, tol)
+
+
+.. function:: imzml_to_npy(inputname)
+
+
+.. function:: spectra_to_peaks(peak_name, spectra_name, prominence, wlen)
+
+
+.. function:: realign_peaks(realign_name, peak_name, spectra_name, step, occurrence)
+
+
+.. data:: template
+   :annotation: = 
+def inner(_it, _timer{init}):
+    {setup}
+    _t0 = _timer()
+    for _i in _it:
+        retval = {stmt}
+    _t1 = _timer()
+    return _t1 - _t0, retval
+
+
+   
+
+.. data:: parser
+   
+
+   
+
+.. data:: args
+   
+
+   
+
+.. data:: inputname
+   
+
+   
+
+.. data:: theoreticalname
+   
+
+   
+
+.. data:: reader
+   
+
+   
+
+.. data:: prominence
+   :annotation: = 50
+
+   
+
+.. data:: wlen
+   :annotation: = 60
+
+   
+
+.. data:: occurrence
+   :annotation: = 4
+
+   
+
+.. data:: step
+   :annotation: = 0.053
+
+   
+
+.. data:: tolerance
+   :annotation: = 0.2
+
+   
+
+.. data:: mean_name
+   :annotation: = data/spectra_mean_250DJ.npy
+
+   
+
+.. data:: spectra_name
+   :annotation: = data/full_spectra_250DJ.npy
+
+   
+
+.. data:: peak_name
+   
+
+   
+
+.. data:: realign_name
+   :annotation: = data/realigned_250DJ.npy
+
+   
+
+.. data:: spectra
+   
+
+   
+
+.. data:: peak_selected
+   
+
+   
+
+.. data:: full_mzs
+   
+
+   
+
+.. data:: groups
+   
+
+   
+
+.. data:: groups
+   
+
+   
+
+.. data:: realigned_spectra
+   
+
+   
+
+.. data:: diffs
+   
+
+   
+
+.. data:: medians
+   
+
+   
+
+.. data:: maxs
+   
+
+   
+
+.. data:: mins
+   
+
+   
+
+.. data:: inters_ours
+   
+
+   
+
+.. data:: missing_ours
+   
+
+   
+
+.. data:: diff_ours
+   
+
+   
+
+.. data:: mean_spectra
+   
+
+   
+
+.. data:: peak_selected_mean
+   
+
+   
+
+.. data:: mz_mean
+   
+
+   
+
+.. data:: inters_mean
+   
+
+   
+
+.. data:: diff_mean
+   
+
+   
+

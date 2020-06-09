@@ -1,0 +1,75 @@
+:mod:`quantify_stats`
+=====================
+
+.. py:module:: quantify_stats
+
+.. autoapi-nested-parse::
+
+   Quantify statistical analysis
+   and clustering
+   through silhouette profile and scores
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+Module Contents
+---------------
+
+
+.. function:: plot_silhouette(silhouette_values, labels)
+
+   Plot the silhouette coefficient
+
+
+   :Parameters:
+
+       **silhouette_values: list**
+           silhouette values
+
+       **labels: list**
+           list of labels
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. data:: labels
+   
+
+   
+
+.. data:: image_maldi
+   
+
+   
+
+.. data:: silhouette_values
+   
+
+   
+
+.. data:: silhouette_score
+   
+
+   
+
+.. data:: neg
+   
+
+   
+

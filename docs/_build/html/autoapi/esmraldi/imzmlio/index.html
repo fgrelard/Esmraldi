@@ -1,0 +1,476 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>esmraldi.imzmlio &mdash; Esmraldi 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/graphviz.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Esmraldi
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/gettingstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/quickstart.html">Quickstart tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/examples.html">Demos and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">API Reference</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Esmraldi</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+      <li><code class="xref py py-mod docutils literal notranslate"><span class="pre">esmraldi.imzmlio</span></code></li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../../_sources/autoapi/esmraldi/imzmlio/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="module-esmraldi.imzmlio">
+<span id="esmraldi-imzmlio"></span><h1><a class="reference internal" href="#module-esmraldi.imzmlio" title="esmraldi.imzmlio"><code class="xref py py-mod docutils literal notranslate"><span class="pre">esmraldi.imzmlio</span></code></a><a class="headerlink" href="#module-esmraldi.imzmlio" title="Permalink to this headline">¶</a></h1>
+<p><p>Module for the input/output
+of imzML files
+Conversion to numpy array</p>
+</p>
+<div class="section" id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="esmraldi.imzmlio.open_imzml">
+<code class="sig-prename descclassname">esmraldi.imzmlio.</code><code class="sig-name descname">open_imzml</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.imzmlio.open_imzml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Opens an imzML file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>filename: string</strong></dt><dd><p>input file</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>imzmlparser.ImzMLParser</dt><dd><p>parser of file</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.imzmlio.write_imzml">
+<code class="sig-prename descclassname">esmraldi.imzmlio.</code><code class="sig-name descname">write_imzml</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mzs</span></em>, <em class="sig-param"><span class="n">intensities</span></em>, <em class="sig-param"><span class="n">coordinates</span></em>, <em class="sig-param"><span class="n">filename</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.imzmlio.write_imzml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes a file to imzML</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>mzs: list</strong></dt><dd><p>list of list of m/z ratios</p>
+</dd>
+<dt><strong>intensities: list</strong></dt><dd><p>list of list of intensities</p>
+</dd>
+<dt><strong>coordinates: list</strong></dt><dd><p>pixel coordinates associated to each spectrum</p>
+</dd>
+<dt><strong>filename: string</strong></dt><dd><p>output file</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.imzmlio.normalize">
+<code class="sig-prename descclassname">esmraldi.imzmlio.</code><code class="sig-name descname">normalize</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.imzmlio.normalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Normalizes an image : 0 – 255 scale</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image: np.ndarray</strong></dt><dd><p>input image</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>normalized image</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.imzmlio.get_spectra">
+<code class="sig-prename descclassname">esmraldi.imzmlio.</code><code class="sig-name descname">get_spectra</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">imzml</span></em>, <em class="sig-param"><span class="n">pixel_numbers</span><span class="o">=</span><span class="default_value">[]</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.imzmlio.get_spectra" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts spectra from imzML
+into numpy format</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>imzml: imzmlparser.ImzMLParser</strong></dt><dd><p>parser</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.array</dt><dd><p>collection of spectra</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.imzmlio.get_spectra_intensities">
+<code class="sig-prename descclassname">esmraldi.imzmlio.</code><code class="sig-name descname">get_spectra_intensities</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">imzml</span></em>, <em class="sig-param"><span class="n">pixel_numbers</span><span class="o">=</span><span class="default_value">[]</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.imzmlio.get_spectra_intensities" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts spectra intensities from imzML
+into numpy format</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>imzml: imzmlparser.ImzMLParser</strong></dt><dd><p>parser</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.array</dt><dd><p>collection of spectra</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.imzmlio.get_spectra_mzs">
+<code class="sig-prename descclassname">esmraldi.imzmlio.</code><code class="sig-name descname">get_spectra_mzs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">imzml</span></em>, <em class="sig-param"><span class="n">pixel_numbers</span><span class="o">=</span><span class="default_value">[]</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.imzmlio.get_spectra_mzs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts spectra mzs from imzML
+into numpy format</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>imzml: imzmlparser.ImzMLParser</strong></dt><dd><p>parser</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.array</dt><dd><p>collection of spectra</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.imzmlio.get_spectra_from_images">
+<code class="sig-prename descclassname">esmraldi.imzmlio.</code><code class="sig-name descname">get_spectra_from_images</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">images</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.imzmlio.get_spectra_from_images" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts spectra intensities and coordinates
+from numpy array</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>images: np.ndarray</strong></dt><dd><p>images as numpy array</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>list</dt><dd><p>intensities</p>
+</dd>
+<dt>list</dt><dd><p>coordinates</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.imzmlio.get_images_from_spectra">
+<code class="sig-prename descclassname">esmraldi.imzmlio.</code><code class="sig-name descname">get_images_from_spectra</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectra</span></em>, <em class="sig-param"><span class="n">shape</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.imzmlio.get_images_from_spectra" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts image as a numpy array from
+spectra intensities and coordinates</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>spectra: np.ndarray</strong></dt><dd><p>spectra as numpy array [mz*I]</p>
+</dd>
+<dt><strong>shape: tuple</strong></dt><dd><p>shape of the image</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>image</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.imzmlio.get_image">
+<code class="sig-prename descclassname">esmraldi.imzmlio.</code><code class="sig-name descname">get_image</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">imzml</span></em>, <em class="sig-param"><span class="n">mz</span></em>, <em class="sig-param"><span class="n">tol</span><span class="o">=</span><span class="default_value">0.01</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.imzmlio.get_image" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>imzml: imzmlparser.ImzMLParser</strong></dt><dd><p>parser</p>
+</dd>
+<dt><strong>mz: float</strong></dt><dd><p>m/z ratio of desired image</p>
+</dd>
+<dt><strong>tol: float</strong></dt><dd><p>tolerance on accepted m/z</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.imzmlio.to_image_array">
+<code class="sig-prename descclassname">esmraldi.imzmlio.</code><code class="sig-name descname">to_image_array</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.imzmlio.to_image_array" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts all existing images from imzML</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image: imzmlparser.ImzMLParser</strong></dt><dd><p>parser</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>image array</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.imzmlio.to_nifti">
+<code class="sig-prename descclassname">esmraldi.imzmlio.</code><code class="sig-name descname">to_nifti</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image</span></em>, <em class="sig-param"><span class="n">filename</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.imzmlio.to_nifti" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts to nifti</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image: np.ndarray</strong></dt><dd><p>image</p>
+</dd>
+<dt><strong>filename: string</strong></dt><dd><p>output filename</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.imzmlio.to_csv">
+<code class="sig-prename descclassname">esmraldi.imzmlio.</code><code class="sig-name descname">to_csv</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">array</span></em>, <em class="sig-param"><span class="n">filename</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.imzmlio.to_csv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a file to csv
+containing all m/z ratio</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>array: np.ndarray</strong></dt><dd><p>mz array</p>
+</dd>
+<dt><strong>filename: str</strong></dt><dd><p>output filename</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Florent Grélard
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

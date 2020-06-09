@@ -1,0 +1,1026 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>esmraldi.spectraprocessing &mdash; Esmraldi 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/graphviz.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Esmraldi
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/gettingstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/quickstart.html">Quickstart tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/examples.html">Demos and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">API Reference</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Esmraldi</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+      <li><code class="xref py py-mod docutils literal notranslate"><span class="pre">esmraldi.spectraprocessing</span></code></li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../../_sources/autoapi/esmraldi/spectraprocessing/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="module-esmraldi.spectraprocessing">
+<span id="esmraldi-spectraprocessing"></span><h1><a class="reference internal" href="#module-esmraldi.spectraprocessing" title="esmraldi.spectraprocessing"><code class="xref py py-mod docutils literal notranslate"><span class="pre">esmraldi.spectraprocessing</span></code></a><a class="headerlink" href="#module-esmraldi.spectraprocessing" title="Permalink to this headline">¶</a></h1>
+<p><p>Module for the preprocessing of spectra
+specifically designed for MALDI images</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Peak picking</p></li>
+<li><p>Local realignment procedures</p></li>
+<li><p>Deisotoping</p></li>
+</ul>
+</div></blockquote>
+</p>
+<div class="section" id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.spectra_sum">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">spectra_sum</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectra</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.spectra_sum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the spectrum from the sum of all spectra</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>spectra: np.ndarray</strong></dt><dd><p>Spectra as [mz*I] array</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>Sum of spectra</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.spectra_mean">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">spectra_mean</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectra</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.spectra_mean" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the average spectrum</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>spectra: np.ndarray</strong></dt><dd><p>Spectra as [mz*I] array</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>Mean spectrum</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.spectra_max">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">spectra_max</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectra</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.spectra_max" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the maximum intensity for each abscissa</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>spectra: np.ndarray</strong></dt><dd><p>Spectra as [mz*I] array</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>Max spectrum</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.spectra_min">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">spectra_min</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectra</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.spectra_min" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the minimum intensity for each abscissa</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>spectra: np.ndarray</strong></dt><dd><p>Spectra as [mz*I] array</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>Max spectrum</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.spectra_peak_indices">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">spectra_peak_indices</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectra</span></em>, <em class="sig-param"><span class="n">prominence</span><span class="o">=</span><span class="default_value">50</span></em>, <em class="sig-param"><span class="n">wlen</span><span class="o">=</span><span class="default_value">10</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.spectra_peak_indices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimates and extracts significant peaks in the spectra
+By using the prominence (height of the peak relative to the nearest
+higher peak)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>spectra: np.ndarray</strong></dt><dd><p>Spectra as [mz*I] array</p>
+</dd>
+<dt><strong>prominence: int</strong></dt><dd><p>threshold on prominence</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>Peak indices relative to spectra</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.spectra_peak_indices_adaptative">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">spectra_peak_indices_adaptative</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectra</span></em>, <em class="sig-param"><span class="n">factor</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">wlen</span><span class="o">=</span><span class="default_value">10</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.spectra_peak_indices_adaptative" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimates and extracts significant peaks in the spectra
+By using the local prominence (height of the peak relative to the background noise)
+Background noise is estimated as the standard deviation of the
+signal over a window of size wlen</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>spectra: np.ndarray</strong></dt><dd><p>Spectra as [mz*I] array</p>
+</dd>
+<dt><strong>factor: float</strong></dt><dd><p>prominence factor</p>
+</dd>
+<dt><strong>wlen: int</strong></dt><dd><p>size of the window</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>Peak indices relative to spectra</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.spectra_peak_mzs_adaptative">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">spectra_peak_mzs_adaptative</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectra</span></em>, <em class="sig-param"><span class="n">factor</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">wlen</span><span class="o">=</span><span class="default_value">10</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.spectra_peak_mzs_adaptative" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimates and extracts significant peaks in the spectra
+By using the local prominence (height of the peak relative to the background noise)
+Background noise is estimated as the standard deviation of the
+signal over a window of size wlen</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>spectra: np.ndarray</strong></dt><dd><p>Spectra as [mz*I] array</p>
+</dd>
+<dt><strong>factor: float</strong></dt><dd><p>prominence factor</p>
+</dd>
+<dt><strong>wlen: int</strong></dt><dd><p>size of the window</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>Peaks m/z</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.peak_indices">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">peak_indices</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="n">prominence</span></em>, <em class="sig-param"><span class="n">wlen</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.peak_indices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimates and extracts significant peaks in the spectrum
+By using the prominence (height of the peak relative to the nearest
+higher peak)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>spectra: np.ndarray</strong></dt><dd><p>Spectra as [mz*I] array</p>
+</dd>
+<dt><strong>prominence: int</strong></dt><dd><p>threshold on prominence</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>Peak indices relative to spectrum</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.peak_indices_cwt">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">peak_indices_cwt</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="n">factor</span></em>, <em class="sig-param"><span class="n">widths</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.peak_indices_cwt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Peak indices using continuous wavelet
+transform</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>data: np.ndarray</strong></dt><dd><p>Spectra as [mz*I] array</p>
+</dd>
+<dt><strong>factor: float</strong></dt><dd><p>Threshold SNR</p>
+</dd>
+<dt><strong>widths: list</strong></dt><dd><p>scales</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>Peak indices relative to spectrum</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.spectra_peak_mzs_cwt">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">spectra_peak_mzs_cwt</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectra</span></em>, <em class="sig-param"><span class="n">factor</span></em>, <em class="sig-param"><span class="n">widths</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.spectra_peak_mzs_cwt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.same_mz_axis">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">same_mz_axis</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectra</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.same_mz_axis" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.peak_selection_shape">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">peak_selection_shape</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectra</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.peak_selection_shape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Peak selection based on shape
+Uses ms_peak_picker module</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>spectra: np.ndarray</strong></dt><dd><p>Spectra as [mz*I] array</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>list</dt><dd><p>list of peaks for all spectra</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.normalization_tic">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">normalization_tic</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">y</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.normalization_tic" title="Permalink to this definition">¶</a></dt>
+<dd><p>TIC (total ion count) normalization
+Divides each intensity in a spectrum by the sum of all its intensities</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>y: np.ndarray</strong></dt><dd><p>spectrum</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>normalized spectrum</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.index_groups">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">index_groups</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">indices</span></em>, <em class="sig-param"><span class="n">step</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.index_groups" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes groups of indices
+For realignment and spatial selection</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>indices: list</strong></dt><dd><p>list of peak indices</p>
+</dd>
+<dt><strong>step: int</strong></dt><dd><p>threshold in indices to create groups</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>list</dt><dd><p>groups=list of list of peak indices</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.peak_reference_indices_group">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">peak_reference_indices_group</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">group</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.peak_reference_indices_group" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts the reference peak in a group
+i.e. the most frequent in a group</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>group: list</strong></dt><dd><p>list of peak indices</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.peak_reference_indices_groups">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">peak_reference_indices_groups</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">groups</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.peak_reference_indices_groups" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts the reference peaks for several groups</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>groups: list</strong></dt><dd><p>groups=list of list of peak indices</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>list</dt><dd><p>list of reference peak indices</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.peak_reference_indices_median">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">peak_reference_indices_median</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">groups</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.peak_reference_indices_median" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts the reference peak in a group
+as the median peak</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>groups: list</strong></dt><dd><p>list of peak indices</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>list</dt><dd><p>list of reference peak indices</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.width_peak_mzs">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">width_peak_mzs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">aligned_mzs</span></em>, <em class="sig-param"><span class="n">groups</span></em>, <em class="sig-param"><span class="n">default</span><span class="o">=</span><span class="default_value">0.001</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.width_peak_mzs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the width of a peak
+by computing the difference in m/z
+between the upper and lower bounds in the group</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>aligned_mzs: list</strong></dt><dd><p>list of m/z</p>
+</dd>
+<dt><strong>groups: list</strong></dt><dd><p>list of peak indices</p>
+</dd>
+<dt><strong>default: float</strong></dt><dd><p>default width of the peak</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>dict</dt><dd><p>maps m/z to widths</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.width_peak_indices">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">width_peak_indices</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">indices</span></em>, <em class="sig-param"><span class="n">full_indices</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.width_peak_indices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the width of a peak
+by checking neighbor indices</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>indices: np.ndarray</strong></dt><dd><p>peak indices on the histogram of peaks</p>
+</dd>
+<dt><strong>full_indices: np.ndarray</strong></dt><dd><p>peak indices on the spectra</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>dict:</dt><dd><p>peak indices to corresponding width</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.closest_peak">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">closest_peak</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num</span></em>, <em class="sig-param"><span class="n">indices_to_width</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.closest_peak" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts the closest peak of index num</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>num: int</strong></dt><dd><p>index</p>
+</dd>
+<dt><strong>indices_to_width: dict</strong></dt><dd><p>dictionary mapping indices to width</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>tuple</dt><dd><p>mz and associated width</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.realign_wrt_peaks_mzs">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">realign_wrt_peaks_mzs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectra</span></em>, <em class="sig-param"><span class="n">aligned_mzs</span></em>, <em class="sig-param"><span class="n">full_mzs</span></em>, <em class="sig-param"><span class="n">indices_to_width</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.realign_wrt_peaks_mzs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Realign spectra to reference peaks</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>spectra: np.ndarray</strong></dt><dd><p>Spectra as [mz*I] array</p>
+</dd>
+<dt><strong>aligned_mzs: list</strong></dt><dd><p>reference mz peaklist</p>
+</dd>
+<dt><strong>full_mzs: np.ndarray</strong></dt><dd><p>complete mz peaklist over all spectra</p>
+</dd>
+<dt><strong>indices_to_width: dict</strong></dt><dd><p>mz to width</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>list</dt><dd><p>realigned spectra</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.realign_wrt_peaks">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">realign_wrt_peaks</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectra</span></em>, <em class="sig-param"><span class="n">aligned_peaks</span></em>, <em class="sig-param"><span class="n">full_peaks</span></em>, <em class="sig-param"><span class="n">indices_to_width</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.realign_wrt_peaks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Realign spectra to reference peaks
+from indices</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>spectra: np.ndarray</strong></dt><dd><p>Spectra as [mz*I] array</p>
+</dd>
+<dt><strong>aligned_mzs: list</strong></dt><dd><p>reference mz peaklist</p>
+</dd>
+<dt><strong>full_mzs: np.ndarray</strong></dt><dd><p>complete mz peaklist over all spectra</p>
+</dd>
+<dt><strong>indices_to_width: dict</strong></dt><dd><p>indices to width</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>list</dt><dd><p>realigned spectra indices</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.realign_indices">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">realign_indices</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectra</span></em>, <em class="sig-param"><span class="n">indices</span></em>, <em class="sig-param"><span class="n">reference</span><span class="o">=</span><span class="default_value">'frequence'</span></em>, <em class="sig-param"><span class="n">nb_occurrence</span><span class="o">=</span><span class="default_value">4</span></em>, <em class="sig-param"><span class="n">step</span><span class="o">=</span><span class="default_value">0.02</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.realign_indices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main function allowing to realign the spectra
+First extracts the peaks on all spectra,
+then extracts the reference peaks
+and maps each peak to its closest reference peak</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>spectra: np.ndarray</strong></dt><dd><p>spectra</p>
+</dd>
+<dt><strong>indices: np.ndarray</strong></dt><dd><p>indices of peaks relative to spectra</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>list</dt><dd><p>realigned spectra</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.realign_mzs">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">realign_mzs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectra</span></em>, <em class="sig-param"><span class="n">mzs</span></em>, <em class="sig-param"><span class="n">reference</span><span class="o">=</span><span class="default_value">'frequence'</span></em>, <em class="sig-param"><span class="n">nb_occurrence</span><span class="o">=</span><span class="default_value">4</span></em>, <em class="sig-param"><span class="n">step</span><span class="o">=</span><span class="default_value">0.02</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.realign_mzs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main function allowing to realign the spectra
+First extracts the peaks on all spectra based on local prominence,
+then extracts the reference peaks
+and maps each peak to its closest reference peak</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>spectra: np.ndarray</strong></dt><dd><p>spectra</p>
+</dd>
+<dt><strong>mzs: np.ndarray</strong></dt><dd><p>peaklist of mzs ratio</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>list</dt><dd><p>realigned spectra</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.neighbours">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">neighbours</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">index</span></em>, <em class="sig-param"><span class="n">n</span></em>, <em class="sig-param"><span class="n">spectra</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.neighbours" title="Permalink to this definition">¶</a></dt>
+<dd><p>Right-sided neighbours of a point in a spectrum</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>index: int</strong></dt><dd><p>index to search neighbours from</p>
+</dd>
+<dt><strong>n: int</strong></dt><dd><p>number of neighbours</p>
+</dd>
+<dt><strong>spectra: np.ndarray</strong></dt><dd><p>spectrum</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>neighbours</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.forward_derivatives">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">forward_derivatives</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">peaks</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.forward_derivatives" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward derivatives from peak value distribution</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>peaks: list</strong></dt><dd><p>peaklist</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>list</dt><dd><p>derivatives</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.find_isotopic_pattern">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">find_isotopic_pattern</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">neighbours</span></em>, <em class="sig-param"><span class="n">tolerance</span></em>, <em class="sig-param"><span class="n">nb_charges</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.find_isotopic_pattern" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts isotopic pattern based on mz similarity
+and max number of charges</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>neighbours: np.ndarray</strong></dt><dd><p>neighbouring mz in spectra</p>
+</dd>
+<dt><strong>tolerance: float</strong></dt><dd><p>acceptable mz delta for a peak to be considered isotopic</p>
+</dd>
+<dt><strong>nb_charges: int</strong></dt><dd><p>maximum number of charges</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>list</dt><dd><p>pattern peaklist</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.peaks_max_intensity_isotopic_pattern">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">peaks_max_intensity_isotopic_pattern</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pattern</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.peaks_max_intensity_isotopic_pattern" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds the peak with maximum intensity in
+the isotopic pattern</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>pattern: list</strong></dt><dd><p>pattern peaklist</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>list</dt><dd><p>peak with maximum intensity</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.peaks_derivative_isotopic_pattern">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">peaks_derivative_isotopic_pattern</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pattern</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.peaks_derivative_isotopic_pattern" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds the peak where the sign of the derivative changes
+from negative to positive
+from the pattern intensities</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>pattern: list</strong></dt><dd><p>pattern peaklist</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>list</dt><dd><p>peaks where the derivative sign changes</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.isotopes_from_pattern">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">isotopes_from_pattern</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pattern</span></em>, <em class="sig-param"><span class="n">peaks_in_pattern</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.isotopes_from_pattern" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find isotopes from a pattern</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>pattern: list</strong></dt><dd><p>pattern peaklist</p>
+</dd>
+<dt><strong>peaks_in_pattern: list</strong></dt><dd><p>peaks that correspond to other species in the pattern</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>isotopes in the pattern</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.mz_second_isotope_most_abundant">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">mz_second_isotope_most_abundant</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">average_distribution</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.mz_second_isotope_most_abundant" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines where the second isotope becomes the most abundant
+from a given distribution</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>average_distribution: dict</strong></dt><dd><p>maps atom mass to its average abundance</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>float</dt><dd><p>mass at which the second isotope is the most abundant</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.peak_to_index">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">peak_to_index</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">peak</span></em>, <em class="sig-param"><span class="n">pattern</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.peak_to_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the index of a peak in a pattern</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>peak: float</strong></dt><dd><p>mass ratio</p>
+</dd>
+<dt><strong>pattern: list</strong></dt><dd><p>pattern peaklist</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>int</dt><dd><p>index of peak</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.deisotoping_simple">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">deisotoping_simple</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectra</span></em>, <em class="sig-param"><span class="n">tolerance</span><span class="o">=</span><span class="default_value">0.1</span></em>, <em class="sig-param"><span class="n">nb_neighbours</span><span class="o">=</span><span class="default_value">8</span></em>, <em class="sig-param"><span class="n">nb_charges</span><span class="o">=</span><span class="default_value">5</span></em>, <em class="sig-param"><span class="n">average_distribution</span><span class="o">=</span><span class="default_value">{}</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.deisotoping_simple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple deisotoping depending on the mass of the
+secondmost abundant isotope:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Before this mass: uses the peak with max intensity
+as reference</p></li>
+<li><p>After this mass: use the peak where the sign of the
+derivative changes</p></li>
+</ul>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>spectra: np.ndarray</strong></dt><dd><p>peaklist</p>
+</dd>
+<dt><strong>tolerance: float</strong></dt><dd><p>acceptable mz delta</p>
+</dd>
+<dt><strong>nb_neighbours: int</strong></dt><dd><p>size of patterns</p>
+</dd>
+<dt><strong>nb_charges: int</strong></dt><dd><p>maximum number of charges in isotopic pattern</p>
+</dd>
+<dt><strong>average_distribution: dict</strong></dt><dd><p>maps atom mass to its average abundance</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>deisotoped spectra</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.deisotoping">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">deisotoping</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectra</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.deisotoping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes isotopes from a collection of spectra
+Computes deisotoping for each spectrum and
+keeps array of mzs of highest length</p>
+<p>Based on pyopenms module
+Looks at height of neighbouring peaks
+not accurate for patterns where peak with max intensity
+does not have the lowest m/z in the pattern</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>spectra: np.ndarray</strong></dt><dd><p>Spectra as [mz*I] array</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>Deisotoped spectra</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.peak_to_ms_peak">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">peak_to_ms_peak</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">peak</span></em>, <em class="sig-param"><span class="n">index</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.peak_to_ms_peak" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a peak from [mz,I] to
+ms_peak_picker.FittedPeak</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>peak: list</strong></dt><dd><p>[mz,I]</p>
+</dd>
+<dt><strong>index: int</strong></dt><dd><p>index in spectrum</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>ms_peak_picker.FittedPeak</dt><dd><p>adjusted peak</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.spectraprocessing.deisotoping_deconvolution">
+<code class="sig-prename descclassname">esmraldi.spectraprocessing.</code><code class="sig-name descname">deisotoping_deconvolution</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spectra</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.spectraprocessing.deisotoping_deconvolution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deisotoping by deconvolution
+Computes deisotoping on max spectrum</p>
+<p>Based on ms_deisotope module</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Florent Grélard
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

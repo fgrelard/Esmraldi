@@ -1,0 +1,24 @@
+:mod:`examples`
+===============
+
+.. py:module:: examples
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   annotation_spectrum/index.rst
+   apply_itk_transform/index.rst
+   average_images_same_species/index.rst
+   preprocessing_mri/index.rst
+   registration/index.rst
+   registration_cv/index.rst
+   segmentation/index.rst
+   spectra_alignment/index.rst
+   statistical_analysis/index.rst
+   tonifti/index.rst
+
+

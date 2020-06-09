@@ -1,0 +1,485 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>quantify_realignment &#8212; Esmraldi 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-quantify_realignment">
+<span id="quantify-realignment"></span><h1><a class="reference internal" href="#module-quantify_realignment" title="quantify_realignment"><code class="xref py py-mod docutils literal"><span class="pre">quantify_realignment</span></code></a><a class="headerlink" href="#module-quantify_realignment" title="Permalink to this headline">¶</a></h1>
+<p>Quantify realignement of spectra
+with various measures</p>
+<div class="section" id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="quantify_realignment.complete_sum">
+<code class="descclassname">quantify_realignment.</code><code class="descname">complete_sum</code><span class="sig-paren">(</span><em>spectra</em><span class="sig-paren">)</span><a class="headerlink" href="#quantify_realignment.complete_sum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Intensity sum
+across all spectra</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>spectra: np.ndarray</strong></dt>
+<dd><p class="first last">spectra</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>float</dt>
+<dd><p class="first last">intensity sum</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="quantify_realignment.full_ratio">
+<code class="descclassname">quantify_realignment.</code><code class="descname">full_ratio</code><span class="sig-paren">(</span><em>reduced</em>, <em>full</em><span class="sig-paren">)</span><a class="headerlink" href="#quantify_realignment.full_ratio" title="Permalink to this definition">¶</a></dt>
+<dd><p>Measure of lost information
+between reduced spectra and full
+spectra</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>reduced: float</strong></dt>
+<dd><p class="first last">measure on reduced spectra</p>
+</dd>
+<dt><strong>full: float</strong></dt>
+<dd><p class="first last">measure on full spectra</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>float</dt>
+<dd><p class="first last">ratio</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="quantify_realignment.estimate_noise_ratio">
+<code class="descclassname">quantify_realignment.</code><code class="descname">estimate_noise_ratio</code><span class="sig-paren">(</span><em>spectra</em><span class="sig-paren">)</span><a class="headerlink" href="#quantify_realignment.estimate_noise_ratio" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimates the SNR
+in MALDI spectra</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>spectra: np.ndarray</strong></dt>
+<dd><p class="first last">spectra</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>tuple</dt>
+<dd><p class="first last">noise level, signal median</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="quantify_realignment.estimate_noise_proportion">
+<code class="descclassname">quantify_realignment.</code><code class="descname">estimate_noise_proportion</code><span class="sig-paren">(</span><em>y</em>, <em>median</em>, <em>sigma</em><span class="sig-paren">)</span><a class="headerlink" href="#quantify_realignment.estimate_noise_proportion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Proportion of points in a spectrum
+that are considered noise
+that is to say their intensity
+is lower than signal median + noise</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>y: list</strong></dt>
+<dd><p class="first last">intensities</p>
+</dd>
+<dt><strong>median: float</strong></dt>
+<dd><p class="first last">signal median</p>
+</dd>
+<dt><strong>sigma: float</strong></dt>
+<dd><p class="first last">noise level</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="quantify_realignment.distance_indices">
+<code class="descclassname">quantify_realignment.</code><code class="descname">distance_indices</code><span class="sig-paren">(</span><em>indices1</em>, <em>indices2</em><span class="sig-paren">)</span><a class="headerlink" href="#quantify_realignment.distance_indices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Distances between closest indices in
+two lists</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>indices1: np.ndarray</strong></dt>
+<dd><p class="first last">first list of indices</p>
+</dd>
+<dt><strong>indices2: np.ndarray</strong></dt>
+<dd><p class="first last">second list of indices</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>list</dt>
+<dd><p class="first last">lowest distances between indices</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="quantify_realignment.realign_close_peaks">
+<code class="descclassname">quantify_realignment.</code><code class="descname">realign_close_peaks</code><span class="sig-paren">(</span><em>array1</em>, <em>array2</em><span class="sig-paren">)</span><a class="headerlink" href="#quantify_realignment.realign_close_peaks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a list of close peaks in two arrays</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>array1: np.ndarray</strong></dt>
+<dd><p class="first last">first array</p>
+</dd>
+<dt><strong>array2: np.ndarray</strong></dt>
+<dd><p class="first last">second array</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>list</dt>
+<dd><p class="first last">close peaks</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="quantify_realignment.precision">
+<code class="descclassname">quantify_realignment.</code><code class="descname">precision</code><span class="sig-paren">(</span><em>array1</em>, <em>array2</em><span class="sig-paren">)</span><a class="headerlink" href="#quantify_realignment.precision" title="Permalink to this definition">¶</a></dt>
+<dd><p>Precision : <a href="#id1"><span class="problematic" id="id2">|a1 \cap a2|</span></a>/<a href="#id3"><span class="problematic" id="id4">|a2|</span></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>array1: np.ndarray</strong></dt>
+<dd><p class="first last">first array</p>
+</dd>
+<dt><strong>array2: np.ndarray</strong></dt>
+<dd><p class="first last">second array</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>float</dt>
+<dd><p class="first last">precision</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="quantify_realignment.recall">
+<code class="descclassname">quantify_realignment.</code><code class="descname">recall</code><span class="sig-paren">(</span><em>array1</em>, <em>array2</em><span class="sig-paren">)</span><a class="headerlink" href="#quantify_realignment.recall" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recall : <a href="#id5"><span class="problematic" id="id6">|a1 \cap a2|</span></a>/<a href="#id7"><span class="problematic" id="id8">|a1|</span></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>array1: np.ndarray</strong></dt>
+<dd><p class="first last">first array</p>
+</dd>
+<dt><strong>array2: np.ndarray</strong></dt>
+<dd><p class="first last">second array</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>float</dt>
+<dd><p class="first last">recall</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="quantify_realignment.missing_indices">
+<code class="descclassname">quantify_realignment.</code><code class="descname">missing_indices</code><span class="sig-paren">(</span><em>array1</em>, <em>array2</em><span class="sig-paren">)</span><a class="headerlink" href="#quantify_realignment.missing_indices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set difference between array2 and array1</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>array1: np.ndarray</strong></dt>
+<dd><p class="first last">first array</p>
+</dd>
+<dt><strong>array2: np.ndarray</strong></dt>
+<dd><p class="first last">second array</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>list</dt>
+<dd><p class="first last">set difference</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="quantify_realignment.extract_indices_from_mz">
+<code class="descclassname">quantify_realignment.</code><code class="descname">extract_indices_from_mz</code><span class="sig-paren">(</span><em>mzs</em>, <em>x</em><span class="sig-paren">)</span><a class="headerlink" href="#quantify_realignment.extract_indices_from_mz" title="Permalink to this definition">¶</a></dt>
+<dd><p>From a list of mzs, extract
+corresponding indices in x</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>mzs: np.ndarray</strong></dt>
+<dd><p class="first last">reference mass to charge list</p>
+</dd>
+<dt><strong>x: list</strong></dt>
+<dd><p class="first last">observed mass to charge list</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>list</dt>
+<dd><p class="first last">indices of x associated to mzs</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.averagine">
+<code class="descclassname">quantify_realignment.</code><code class="descname">averagine</code><a class="headerlink" href="#quantify_realignment.averagine" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.realigned_spectra">
+<code class="descclassname">quantify_realignment.</code><code class="descname">realigned_spectra</code><a class="headerlink" href="#quantify_realignment.realigned_spectra" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt>
+<code class="descclassname">quantify_realignment.</code><code class="descname">realigned_spectra</code></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.sum_realigned">
+<code class="descclassname">quantify_realignment.</code><code class="descname">sum_realigned</code><a class="headerlink" href="#quantify_realignment.sum_realigned" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.full_spectra">
+<code class="descclassname">quantify_realignment.</code><code class="descname">full_spectra</code><a class="headerlink" href="#quantify_realignment.full_spectra" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.indices_realigned">
+<code class="descclassname">quantify_realignment.</code><code class="descname">indices_realigned</code><a class="headerlink" href="#quantify_realignment.indices_realigned" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.distance_between_mz">
+<code class="descclassname">quantify_realignment.</code><code class="descname">distance_between_mz</code><a class="headerlink" href="#quantify_realignment.distance_between_mz" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.prominence">
+<code class="descclassname">quantify_realignment.</code><code class="descname">prominence</code><em class="property"> = 50</em><a class="headerlink" href="#quantify_realignment.prominence" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.indices_full_spectra">
+<code class="descclassname">quantify_realignment.</code><code class="descname">indices_full_spectra</code><a class="headerlink" href="#quantify_realignment.indices_full_spectra" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.unique_indices">
+<code class="descclassname">quantify_realignment.</code><code class="descname">unique_indices</code><a class="headerlink" href="#quantify_realignment.unique_indices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.spectra_max_before">
+<code class="descclassname">quantify_realignment.</code><code class="descname">spectra_max_before</code><a class="headerlink" href="#quantify_realignment.spectra_max_before" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.indices_spectra_max">
+<code class="descclassname">quantify_realignment.</code><code class="descname">indices_spectra_max</code><a class="headerlink" href="#quantify_realignment.indices_spectra_max" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.ui_realigned">
+<code class="descclassname">quantify_realignment.</code><code class="descname">ui_realigned</code><a class="headerlink" href="#quantify_realignment.ui_realigned" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.ism_realigned">
+<code class="descclassname">quantify_realignment.</code><code class="descname">ism_realigned</code><a class="headerlink" href="#quantify_realignment.ism_realigned" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.p">
+<code class="descclassname">quantify_realignment.</code><code class="descname">p</code><a class="headerlink" href="#quantify_realignment.p" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.r">
+<code class="descclassname">quantify_realignment.</code><code class="descname">r</code><a class="headerlink" href="#quantify_realignment.r" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.missing">
+<code class="descclassname">quantify_realignment.</code><code class="descname">missing</code><a class="headerlink" href="#quantify_realignment.missing" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.peaks_missing">
+<code class="descclassname">quantify_realignment.</code><code class="descname">peaks_missing</code><a class="headerlink" href="#quantify_realignment.peaks_missing" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.sum_full">
+<code class="descclassname">quantify_realignment.</code><code class="descname">sum_full</code><a class="headerlink" href="#quantify_realignment.sum_full" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="quantify_realignment.noise_proportion">
+<code class="descclassname">quantify_realignment.</code><code class="descname">noise_proportion</code><a class="headerlink" href="#quantify_realignment.noise_proportion" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt>
+<code class="descclassname">quantify_realignment.</code><code class="descname">r</code></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Florent Grélard.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+      |
+      <a href="../../_sources/autoapi/quantify_realignment/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

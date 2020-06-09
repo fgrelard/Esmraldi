@@ -1,0 +1,237 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>analysis_reduction &#8212; Esmraldi 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-analysis_reduction">
+<span id="analysis-reduction"></span><h1><a class="reference internal" href="#module-analysis_reduction" title="analysis_reduction"><code class="xref py py-mod docutils literal"><span class="pre">analysis_reduction</span></code></a><a class="headerlink" href="#module-analysis_reduction" title="Permalink to this headline">¶</a></h1>
+<p>Extracts loadings and scores
+For a given dimension reduction method
+(NMF or PCA)</p>
+<div class="section" id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+<dl class="data">
+<dt id="analysis_reduction.parser">
+<code class="descclassname">analysis_reduction.</code><code class="descname">parser</code><a class="headerlink" href="#analysis_reduction.parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.args">
+<code class="descclassname">analysis_reduction.</code><code class="descname">args</code><a class="headerlink" href="#analysis_reduction.args" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.inputname">
+<code class="descclassname">analysis_reduction.</code><code class="descname">inputname</code><a class="headerlink" href="#analysis_reduction.inputname" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.mzsname">
+<code class="descclassname">analysis_reduction.</code><code class="descname">mzsname</code><a class="headerlink" href="#analysis_reduction.mzsname" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.theoretical_name">
+<code class="descclassname">analysis_reduction.</code><code class="descname">theoretical_name</code><a class="headerlink" href="#analysis_reduction.theoretical_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.outname">
+<code class="descclassname">analysis_reduction.</code><code class="descname">outname</code><a class="headerlink" href="#analysis_reduction.outname" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.n">
+<code class="descclassname">analysis_reduction.</code><code class="descname">n</code><a class="headerlink" href="#analysis_reduction.n" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.is_normalized">
+<code class="descclassname">analysis_reduction.</code><code class="descname">is_normalized</code><a class="headerlink" href="#analysis_reduction.is_normalized" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.is_nmf">
+<code class="descclassname">analysis_reduction.</code><code class="descname">is_nmf</code><a class="headerlink" href="#analysis_reduction.is_nmf" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.imzml">
+<code class="descclassname">analysis_reduction.</code><code class="descname">imzml</code><a class="headerlink" href="#analysis_reduction.imzml" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.mzs">
+<code class="descclassname">analysis_reduction.</code><code class="descname">mzs</code><a class="headerlink" href="#analysis_reduction.mzs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.species">
+<code class="descclassname">analysis_reduction.</code><code class="descname">species</code><a class="headerlink" href="#analysis_reduction.species" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.ions">
+<code class="descclassname">analysis_reduction.</code><code class="descname">ions</code><a class="headerlink" href="#analysis_reduction.ions" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.adducts">
+<code class="descclassname">analysis_reduction.</code><code class="descname">adducts</code><a class="headerlink" href="#analysis_reduction.adducts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.modifications">
+<code class="descclassname">analysis_reduction.</code><code class="descname">modifications</code><a class="headerlink" href="#analysis_reduction.modifications" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.theoretical_spectrum">
+<code class="descclassname">analysis_reduction.</code><code class="descname">theoretical_spectrum</code><a class="headerlink" href="#analysis_reduction.theoretical_spectrum" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.image">
+<code class="descclassname">analysis_reduction.</code><code class="descname">image</code><a class="headerlink" href="#analysis_reduction.image" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.image_shape">
+<code class="descclassname">analysis_reduction.</code><code class="descname">image_shape</code><a class="headerlink" href="#analysis_reduction.image_shape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.image_norm">
+<code class="descclassname">analysis_reduction.</code><code class="descname">image_norm</code><a class="headerlink" href="#analysis_reduction.image_norm" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.M">
+<code class="descclassname">analysis_reduction.</code><code class="descname">M</code><a class="headerlink" href="#analysis_reduction.M" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.nmf">
+<code class="descclassname">analysis_reduction.</code><code class="descname">nmf</code><a class="headerlink" href="#analysis_reduction.nmf" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.image_eigenvectors">
+<code class="descclassname">analysis_reduction.</code><code class="descname">image_eigenvectors</code><a class="headerlink" href="#analysis_reduction.image_eigenvectors" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.new_shape">
+<code class="descclassname">analysis_reduction.</code><code class="descname">new_shape</code><a class="headerlink" href="#analysis_reduction.new_shape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt>
+<code class="descclassname">analysis_reduction.</code><code class="descname">image_eigenvectors</code></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.tables">
+<code class="descclassname">analysis_reduction.</code><code class="descname">tables</code><em class="property"> = []</em><a class="headerlink" href="#analysis_reduction.tables" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.current_name">
+<code class="descclassname">analysis_reduction.</code><code class="descname">current_name</code><a class="headerlink" href="#analysis_reduction.current_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.tables_array">
+<code class="descclassname">analysis_reduction.</code><code class="descname">tables_array</code><a class="headerlink" href="#analysis_reduction.tables_array" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.tables_reshaped">
+<code class="descclassname">analysis_reduction.</code><code class="descname">tables_reshaped</code><a class="headerlink" href="#analysis_reduction.tables_reshaped" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="analysis_reduction.header">
+<code class="descclassname">analysis_reduction.</code><code class="descname">header</code><a class="headerlink" href="#analysis_reduction.header" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Florent Grélard.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+      |
+      <a href="../../_sources/autoapi/analysis_reduction/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

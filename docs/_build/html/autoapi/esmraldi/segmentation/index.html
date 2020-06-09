@@ -1,0 +1,607 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>esmraldi.segmentation &mdash; Esmraldi 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/graphviz.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Esmraldi
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/gettingstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/quickstart.html">Quickstart tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/examples.html">Demos and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">API Reference</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Esmraldi</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+      <li><code class="xref py py-mod docutils literal notranslate"><span class="pre">esmraldi.segmentation</span></code></li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../../_sources/autoapi/esmraldi/segmentation/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="module-esmraldi.segmentation">
+<span id="esmraldi-segmentation"></span><h1><a class="reference internal" href="#module-esmraldi.segmentation" title="esmraldi.segmentation"><code class="xref py py-mod docutils literal notranslate"><span class="pre">esmraldi.segmentation</span></code></a><a class="headerlink" href="#module-esmraldi.segmentation" title="Permalink to this headline">¶</a></h1>
+<p><p>Module for the segmentation</p>
+</p>
+<div class="section" id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="esmraldi.segmentation.max_variance_sort">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">max_variance_sort</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image_maldi</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.max_variance_sort" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sort a stack image along the z-axis
+according to the maximum intensity variation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image_maldi: numpy.ndarray</strong></dt><dd><p>input image</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>numpy.ndarray</dt><dd><p>the sorted image stack</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.properties_largest_area_cc">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">properties_largest_area_cc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ccs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.properties_largest_area_cc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts the connected component
+with the largest area</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>ccs: numpy.ndarray</strong></dt><dd><p>connected components</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>RegionProperties</dt><dd><p>connected component with largest area</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.region_property_to_cc">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">region_property_to_cc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ccs</span></em>, <em class="sig-param"><span class="n">regionprop</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.region_property_to_cc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts the connected component associated
+with the region</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>ccs: numpy.ndarray</strong></dt><dd><p>connected components</p>
+</dd>
+<dt><strong>regionprop: RegionProperties</strong></dt><dd><p>desired region</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>numpy.ndarray</dt><dd><p>the binary image (mask) of the desired region</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.sort_size_ascending">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">sort_size_ascending</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">images</span></em>, <em class="sig-param"><span class="n">threshold</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.sort_size_ascending" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.region_growing">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">region_growing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">images</span></em>, <em class="sig-param"><span class="n">seedList</span></em>, <em class="sig-param"><span class="n">lower_threshold</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.region_growing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Region growing in an image stack
+with ITK
+All the images in the stack are processed sequentially
+and the seeds at step n depends on the segmentation
+by region growing at step n-1</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>images: numpy.ndarray</strong></dt><dd><p>image stack</p>
+</dd>
+<dt><strong>seedList: list</strong></dt><dd><p>list of 2D points to initialize the region growing</p>
+</dd>
+<dt><strong>lower_threshold: int</strong></dt><dd><p>lower threshold for the region growing</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>list</dt><dd><p>seeds as 2d points</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.estimate_noise">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">estimate_noise</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">I</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.estimate_noise" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.find_similar_images_variance">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">find_similar_images_variance</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image_maldi</span></em>, <em class="sig-param"><span class="n">factor_variance</span><span class="o">=</span><span class="default_value">0.1</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.find_similar_images_variance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find images that have a high variance in their intensities
+Selects images according to a factor of max variance</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image_maldi: np.ndarray</strong></dt><dd><p>input image</p>
+</dd>
+<dt><strong>factor_variance: int</strong></dt><dd><p>factor by which max variance is multiplied to
+determine a threshold above which images are selected</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>array of high variability images</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.spatial_coherence">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">spatial_coherence</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.spatial_coherence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Spatial coherence of a binary image
+That is to say the area of the largest
+connected component</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image: np.ndarrau</strong></dt><dd><p>binarized image</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>float</dt><dd><p>spatial coherence</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.find_similar_images_area">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">find_similar_images_area</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image_maldi</span></em>, <em class="sig-param"><span class="n">factor</span></em>, <em class="sig-param"><span class="n">quantiles</span><span class="o">=</span><span class="default_value">[]</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.find_similar_images_area" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.average_area">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">average_area</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">images</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.average_area" title="Permalink to this definition">¶</a></dt>
+<dd><p>Average area of largest CCs on a collection of images</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>images: np.ndarray</strong></dt><dd><p>collection of images</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>int</dt><dd><p>average area of largest CCs</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.select_class_max_value">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">select_class_max_value</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image_maldi</span></em>, <em class="sig-param"><span class="n">y_kmeans</span></em>, <em class="sig-param"><span class="n">nb_class</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.select_class_max_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Chooses label associated with kmeans cluster with
+images with highest average intensity</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image_maldi: np.ndarray</strong></dt><dd><p>images</p>
+</dd>
+<dt><strong>y_kmeans: np.ndarray</strong></dt><dd><p>labels</p>
+</dd>
+<dt><strong>nb_class: int</strong></dt><dd><p>number of clusters used by kmeans</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>int</dt><dd><p>class label</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.select_class_area">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">select_class_area</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image_maldi</span></em>, <em class="sig-param"><span class="n">y_kmeans</span></em>, <em class="sig-param"><span class="n">nb_class</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.select_class_area" title="Permalink to this definition">¶</a></dt>
+<dd><p>Chooses labels associated with highest average
+area of largest CCs</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image_maldi: np.ndarray</strong></dt><dd><p>images</p>
+</dd>
+<dt><strong>y_kmeans: np.ndarray</strong></dt><dd><p>labels</p>
+</dd>
+<dt><strong>nb_class: int</strong></dt><dd><p>number of clsuters used by kmeans</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>int</dt><dd><p>class label</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.detect_circle">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">detect_circle</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image</span></em>, <em class="sig-param"><span class="n">threshold</span></em>, <em class="sig-param"><span class="n">min_radius</span></em>, <em class="sig-param"><span class="n">max_radius</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.detect_circle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detect a circle in an image
+Uses hough transform over several radii</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image: np.ndarray</strong></dt><dd><p>image</p>
+</dd>
+<dt><strong>threshold: int</strong></dt><dd><p>threshold for binary image</p>
+</dd>
+<dt><strong>min_radius: float</strong></dt><dd><p>lower bound for radii</p>
+</dd>
+<dt><strong>max_radius: float</strong></dt><dd><p>upper bound for radii</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>tuple</dt><dd><p>x,y,r: circle center + radii</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.detect_tube">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">detect_tube</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image</span></em>, <em class="sig-param"><span class="n">threshold</span><span class="o">=</span><span class="default_value">150</span></em>, <em class="sig-param"><span class="n">min_radius</span><span class="o">=</span><span class="default_value">10</span></em>, <em class="sig-param"><span class="n">max_radius</span><span class="o">=</span><span class="default_value">50</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.detect_tube" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detect the most frequent circle across several slices
+(3D volume)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image: np.ndarray</strong></dt><dd><p>image</p>
+</dd>
+<dt><strong>threshold: int</strong></dt><dd><p>threshold for binary image</p>
+</dd>
+<dt><strong>min_radius: float</strong></dt><dd><p>lower bound for radii</p>
+</dd>
+<dt><strong>max_radius: float</strong></dt><dd><p>upper bound for radii</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>tuple</dt><dd><p>x,y,r: circle center + radii</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.fill_circle">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">fill_circle</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">center_x</span></em>, <em class="sig-param"><span class="n">center_y</span></em>, <em class="sig-param"><span class="n">radius</span></em>, <em class="sig-param"><span class="n">image</span></em>, <em class="sig-param"><span class="n">color</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.fill_circle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fills a circle with a given value (default: 0)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>center_x: float</strong></dt><dd><p>center_x of circle</p>
+</dd>
+<dt><strong>center_y: float</strong></dt><dd><p>center_y of circle</p>
+</dd>
+<dt><strong>radius: float</strong></dt><dd><p>radius of circle</p>
+</dd>
+<dt><strong>image: np.ndarray</strong></dt><dd><p>image where the circle must be filled</p>
+</dd>
+<dt><strong>color: int</strong></dt><dd><p>value to replace</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>image with filled circle</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.binary_closing">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">binary_closing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image</span></em>, <em class="sig-param"><span class="n">radius_selem</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.binary_closing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Specific function to remove thin structures
+in the wheat grain
+Performs a morphological closing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image: np.ndarray</strong></dt><dd><p>image</p>
+</dd>
+<dt><strong>radius_selem: int</strong></dt><dd><p>radius in pixel for the structuring element</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>morphologically closed image</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.resize">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">resize</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image</span></em>, <em class="sig-param"><span class="n">size</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.resize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resize the image to a given size</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image: sitk.Image</strong></dt><dd><p>input image</p>
+</dd>
+<dt><strong>size: tuple</strong></dt><dd><p>new size of the image</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>sitk.Image</dt><dd><p>new resized image</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.distances_closest_neighbour">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">distances_closest_neighbour</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.distances_closest_neighbour" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.average_distance_graph">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">average_distance_graph</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image</span></em>, <em class="sig-param"><span class="n">threshold</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.average_distance_graph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.spatial_chaos">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">spatial_chaos</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image</span></em>, <em class="sig-param"><span class="n">quantiles</span><span class="o">=</span><span class="default_value">[]</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.spatial_chaos" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.segmentation.find_similar_images_spatial_chaos">
+<code class="sig-prename descclassname">esmraldi.segmentation.</code><code class="sig-name descname">find_similar_images_spatial_chaos</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">img</span></em>, <em class="sig-param"><span class="n">threshold</span></em>, <em class="sig-param"><span class="n">quantiles</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.segmentation.find_similar_images_spatial_chaos" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Florent Grélard
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

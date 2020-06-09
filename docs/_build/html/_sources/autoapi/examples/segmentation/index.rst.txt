@@ -1,0 +1,187 @@
+:mod:`examples.segmentation`
+============================
+
+.. py:module:: examples.segmentation
+
+.. autoapi-nested-parse::
+
+   Segmentation example of MALDI images
+
+   Finds a relevant subset of image,
+   i.e. spatially coherent images
+   and applies a region growing algorithm
+   to obtain a complete segmentation
+   on this subset
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+Module Contents
+---------------
+
+
+.. function:: display_stack(img)
+
+
+.. data:: parser
+   
+
+   
+
+.. data:: args
+   
+
+   
+
+.. data:: threshold
+   
+
+   
+
+.. data:: inputname
+   
+
+   
+
+.. data:: outname
+   
+
+   
+
+.. data:: factor
+   
+
+   
+
+.. data:: radius
+   :annotation: = 1
+
+   
+
+.. data:: selem
+   
+
+   
+
+.. data:: image
+   
+
+   
+
+.. data:: img_data
+   
+
+   
+
+.. data:: padding
+   :annotation: = 3
+
+   
+
+.. data:: img_data
+   
+
+   
+
+.. data:: similar_images
+   
+
+   
+
+.. data:: similar_images
+   
+
+   
+
+.. data:: mean_image
+   
+
+   
+
+.. data:: otsu
+   
+
+   
+
+.. data:: labels
+   
+
+   
+
+.. data:: regionprop
+   
+
+   
+
+.. data:: largest_cc
+   
+
+   
+
+.. data:: seeds
+   
+
+   
+
+.. data:: x
+   
+
+   
+
+.. data:: y
+   
+
+   
+
+.. data:: mask
+   
+
+   
+
+.. data:: mask
+   
+
+   
+
+.. data:: masked_mean_image
+   
+
+   
+
+.. data:: masked_mean_image
+   
+
+   
+
+.. data:: masked_mean_image
+   
+
+   
+
+.. data:: nibimg_similar
+   
+
+   
+
+.. data:: similar_name
+   
+
+   
+
+.. data:: nibimg
+   
+
+   
+
+.. data:: nibimg_evolution
+   
+
+   
+
+.. data:: evolution_name
+   
+
+   
+

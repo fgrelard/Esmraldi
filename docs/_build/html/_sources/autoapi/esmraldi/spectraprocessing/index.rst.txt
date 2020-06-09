@@ -1,0 +1,1212 @@
+:mod:`esmraldi.spectraprocessing`
+=================================
+
+.. py:module:: esmraldi.spectraprocessing
+
+.. autoapi-nested-parse::
+
+   Module for the preprocessing of spectra
+   specifically designed for MALDI images
+
+     - Peak picking
+     - Local realignment procedures
+     - Deisotoping
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+Module Contents
+---------------
+
+
+.. function:: spectra_sum(spectra)
+
+   Computes the spectrum from the sum of all spectra
+
+
+   :Parameters:
+
+       **spectra: np.ndarray**
+           Spectra as [mz*I] array
+
+   :Returns:
+
+       np.ndarray
+           Sum of spectra
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: spectra_mean(spectra)
+
+   Computes the average spectrum
+
+
+   :Parameters:
+
+       **spectra: np.ndarray**
+           Spectra as [mz*I] array
+
+   :Returns:
+
+       np.ndarray
+           Mean spectrum
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: spectra_max(spectra)
+
+   Computes the maximum intensity for each abscissa
+
+
+   :Parameters:
+
+       **spectra: np.ndarray**
+           Spectra as [mz*I] array
+
+   :Returns:
+
+       np.ndarray
+           Max spectrum
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: spectra_min(spectra)
+
+   Computes the minimum intensity for each abscissa
+
+
+   :Parameters:
+
+       **spectra: np.ndarray**
+           Spectra as [mz*I] array
+
+   :Returns:
+
+       np.ndarray
+           Max spectrum
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: spectra_peak_indices(spectra, prominence=50, wlen=10)
+
+   Estimates and extracts significant peaks in the spectra
+   By using the prominence (height of the peak relative to the nearest
+   higher peak)
+
+
+   :Parameters:
+
+       **spectra: np.ndarray**
+           Spectra as [mz*I] array
+
+       **prominence: int**
+           threshold on prominence
+
+   :Returns:
+
+       np.ndarray
+           Peak indices relative to spectra
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: spectra_peak_indices_adaptative(spectra, factor=1, wlen=10)
+
+   Estimates and extracts significant peaks in the spectra
+   By using the local prominence (height of the peak relative to the background noise)
+   Background noise is estimated as the standard deviation of the
+   signal over a window of size wlen
+
+
+   :Parameters:
+
+       **spectra: np.ndarray**
+           Spectra as [mz*I] array
+
+       **factor: float**
+           prominence factor
+
+       **wlen: int**
+           size of the window
+
+   :Returns:
+
+       np.ndarray
+           Peak indices relative to spectra
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: spectra_peak_mzs_adaptative(spectra, factor=1, wlen=10)
+
+   Estimates and extracts significant peaks in the spectra
+   By using the local prominence (height of the peak relative to the background noise)
+   Background noise is estimated as the standard deviation of the
+   signal over a window of size wlen
+
+
+   :Parameters:
+
+       **spectra: np.ndarray**
+           Spectra as [mz*I] array
+
+       **factor: float**
+           prominence factor
+
+       **wlen: int**
+           size of the window
+
+   :Returns:
+
+       np.ndarray
+           Peaks m/z
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: peak_indices(data, prominence, wlen)
+
+   Estimates and extracts significant peaks in the spectrum
+   By using the prominence (height of the peak relative to the nearest
+   higher peak)
+
+
+   :Parameters:
+
+       **spectra: np.ndarray**
+           Spectra as [mz*I] array
+
+       **prominence: int**
+           threshold on prominence
+
+   :Returns:
+
+       np.ndarray
+           Peak indices relative to spectrum
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: peak_indices_cwt(data, factor, widths)
+
+   Peak indices using continuous wavelet
+   transform
+
+
+   :Parameters:
+
+       **data: np.ndarray**
+           Spectra as [mz*I] array
+
+       **factor: float**
+           Threshold SNR
+
+       **widths: list**
+           scales
+
+   :Returns:
+
+       np.ndarray
+           Peak indices relative to spectrum
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: spectra_peak_mzs_cwt(spectra, factor, widths)
+
+
+.. function:: same_mz_axis(spectra)
+
+
+.. function:: peak_selection_shape(spectra)
+
+   Peak selection based on shape
+   Uses ms_peak_picker module
+
+
+   :Parameters:
+
+       **spectra: np.ndarray**
+           Spectra as [mz*I] array
+
+   :Returns:
+
+       list
+           list of peaks for all spectra
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: normalization_tic(y)
+
+   TIC (total ion count) normalization
+   Divides each intensity in a spectrum by the sum of all its intensities
+
+
+   :Parameters:
+
+       **y: np.ndarray**
+           spectrum
+
+   :Returns:
+
+       np.ndarray
+           normalized spectrum
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: index_groups(indices, step=1)
+
+   Makes groups of indices
+   For realignment and spatial selection
+
+
+   :Parameters:
+
+       **indices: list**
+           list of peak indices
+
+       **step: int**
+           threshold in indices to create groups
+
+   :Returns:
+
+       list
+           groups=list of list of peak indices
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: peak_reference_indices_group(group)
+
+   Extracts the reference peak in a group
+   i.e. the most frequent in a group
+
+
+   :Parameters:
+
+       **group: list**
+           list of peak indices
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: peak_reference_indices_groups(groups)
+
+   Extracts the reference peaks for several groups
+
+
+   :Parameters:
+
+       **groups: list**
+           groups=list of list of peak indices
+
+   :Returns:
+
+       list
+           list of reference peak indices
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: peak_reference_indices_median(groups)
+
+   Extracts the reference peak in a group
+   as the median peak
+
+
+   :Parameters:
+
+       **groups: list**
+           list of peak indices
+
+   :Returns:
+
+       list
+           list of reference peak indices
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: width_peak_mzs(aligned_mzs, groups, default=0.001)
+
+   Computes the width of a peak
+   by computing the difference in m/z
+   between the upper and lower bounds in the group
+
+
+   :Parameters:
+
+       **aligned_mzs: list**
+           list of m/z
+
+       **groups: list**
+           list of peak indices
+
+       **default: float**
+           default width of the peak
+
+   :Returns:
+
+       dict
+           maps m/z to widths
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: width_peak_indices(indices, full_indices)
+
+   Computes the width of a peak
+   by checking neighbor indices
+
+
+   :Parameters:
+
+       **indices: np.ndarray**
+           peak indices on the histogram of peaks
+
+       **full_indices: np.ndarray**
+           peak indices on the spectra
+
+   :Returns:
+
+       dict:
+           peak indices to corresponding width
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: closest_peak(num, indices_to_width)
+
+   Extracts the closest peak of index num
+
+
+   :Parameters:
+
+       **num: int**
+           index
+
+       **indices_to_width: dict**
+           dictionary mapping indices to width
+
+   :Returns:
+
+       tuple
+           mz and associated width
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: realign_wrt_peaks_mzs(spectra, aligned_mzs, full_mzs, indices_to_width)
+
+   Realign spectra to reference peaks
+
+
+   :Parameters:
+
+       **spectra: np.ndarray**
+           Spectra as [mz*I] array
+
+       **aligned_mzs: list**
+           reference mz peaklist
+
+       **full_mzs: np.ndarray**
+           complete mz peaklist over all spectra
+
+       **indices_to_width: dict**
+           mz to width
+
+   :Returns:
+
+       list
+           realigned spectra
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: realign_wrt_peaks(spectra, aligned_peaks, full_peaks, indices_to_width)
+
+   Realign spectra to reference peaks
+   from indices
+
+
+   :Parameters:
+
+       **spectra: np.ndarray**
+           Spectra as [mz*I] array
+
+       **aligned_mzs: list**
+           reference mz peaklist
+
+       **full_mzs: np.ndarray**
+           complete mz peaklist over all spectra
+
+       **indices_to_width: dict**
+           indices to width
+
+   :Returns:
+
+       list
+           realigned spectra indices
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: realign_indices(spectra, indices, reference='frequence', nb_occurrence=4, step=0.02)
+
+   Main function allowing to realign the spectra
+   First extracts the peaks on all spectra,
+   then extracts the reference peaks
+   and maps each peak to its closest reference peak
+
+
+   :Parameters:
+
+       **spectra: np.ndarray**
+           spectra
+
+       **indices: np.ndarray**
+           indices of peaks relative to spectra
+
+   :Returns:
+
+       list
+           realigned spectra
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: realign_mzs(spectra, mzs, reference='frequence', nb_occurrence=4, step=0.02)
+
+   Main function allowing to realign the spectra
+   First extracts the peaks on all spectra based on local prominence,
+   then extracts the reference peaks
+   and maps each peak to its closest reference peak
+
+
+   :Parameters:
+
+       **spectra: np.ndarray**
+           spectra
+
+       **mzs: np.ndarray**
+           peaklist of mzs ratio
+
+   :Returns:
+
+       list
+           realigned spectra
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: neighbours(index, n, spectra)
+
+   Right-sided neighbours of a point in a spectrum
+
+
+   :Parameters:
+
+       **index: int**
+           index to search neighbours from
+
+       **n: int**
+           number of neighbours
+
+       **spectra: np.ndarray**
+           spectrum
+
+   :Returns:
+
+       np.ndarray
+           neighbours
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: forward_derivatives(peaks)
+
+   Forward derivatives from peak value distribution
+
+
+   :Parameters:
+
+       **peaks: list**
+           peaklist
+
+   :Returns:
+
+       list
+           derivatives
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: find_isotopic_pattern(neighbours, tolerance, nb_charges)
+
+   Extracts isotopic pattern based on mz similarity
+   and max number of charges
+
+
+   :Parameters:
+
+       **neighbours: np.ndarray**
+           neighbouring mz in spectra
+
+       **tolerance: float**
+           acceptable mz delta for a peak to be considered isotopic
+
+       **nb_charges: int**
+           maximum number of charges
+
+   :Returns:
+
+       list
+           pattern peaklist
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: peaks_max_intensity_isotopic_pattern(pattern)
+
+   Finds the peak with maximum intensity in
+   the isotopic pattern
+
+
+   :Parameters:
+
+       **pattern: list**
+           pattern peaklist
+
+   :Returns:
+
+       list
+           peak with maximum intensity
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: peaks_derivative_isotopic_pattern(pattern)
+
+   Finds the peak where the sign of the derivative changes
+   from negative to positive
+   from the pattern intensities
+
+
+   :Parameters:
+
+       **pattern: list**
+           pattern peaklist
+
+   :Returns:
+
+       list
+           peaks where the derivative sign changes
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: isotopes_from_pattern(pattern, peaks_in_pattern)
+
+   Find isotopes from a pattern
+
+
+   :Parameters:
+
+       **pattern: list**
+           pattern peaklist
+
+       **peaks_in_pattern: list**
+           peaks that correspond to other species in the pattern
+
+   :Returns:
+
+       np.ndarray
+           isotopes in the pattern
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: mz_second_isotope_most_abundant(average_distribution)
+
+   Determines where the second isotope becomes the most abundant
+   from a given distribution
+
+
+   :Parameters:
+
+       **average_distribution: dict**
+           maps atom mass to its average abundance
+
+   :Returns:
+
+       float
+           mass at which the second isotope is the most abundant
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: peak_to_index(peak, pattern)
+
+   Gets the index of a peak in a pattern
+
+
+   :Parameters:
+
+       **peak: float**
+           mass ratio
+
+       **pattern: list**
+           pattern peaklist
+
+   :Returns:
+
+       int
+           index of peak
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: deisotoping_simple(spectra, tolerance=0.1, nb_neighbours=8, nb_charges=5, average_distribution={})
+
+   Simple deisotoping depending on the mass of the
+   secondmost abundant isotope:
+     - Before this mass: uses the peak with max intensity
+       as reference
+     - After this mass: use the peak where the sign of the
+       derivative changes
+
+
+   :Parameters:
+
+       **spectra: np.ndarray**
+           peaklist
+
+       **tolerance: float**
+           acceptable mz delta
+
+       **nb_neighbours: int**
+           size of patterns
+
+       **nb_charges: int**
+           maximum number of charges in isotopic pattern
+
+       **average_distribution: dict**
+           maps atom mass to its average abundance
+
+   :Returns:
+
+       np.ndarray
+           deisotoped spectra
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: deisotoping(spectra)
+
+   Removes isotopes from a collection of spectra
+   Computes deisotoping for each spectrum and
+   keeps array of mzs of highest length
+
+   Based on pyopenms module
+   Looks at height of neighbouring peaks
+   not accurate for patterns where peak with max intensity
+   does not have the lowest m/z in the pattern
+
+   :Parameters:
+
+       **spectra: np.ndarray**
+           Spectra as [mz*I] array
+
+   :Returns:
+
+       np.ndarray
+           Deisotoped spectra
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: peak_to_ms_peak(peak, index)
+
+   Converts a peak from [mz,I] to
+   ms_peak_picker.FittedPeak
+
+
+   :Parameters:
+
+       **peak: list**
+           [mz,I]
+
+       **index: int**
+           index in spectrum
+
+   :Returns:
+
+       ms_peak_picker.FittedPeak
+           adjusted peak
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. function:: deisotoping_deconvolution(spectra)
+
+   Deisotoping by deconvolution
+   Computes deisotoping on max spectrum
+
+   Based on ms_deisotope module
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+

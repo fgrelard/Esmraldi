@@ -1,0 +1,261 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>examples.segmentation &#8212; Esmraldi 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '1.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-examples.segmentation">
+<span id="examples-segmentation"></span><h1><a class="reference internal" href="#module-examples.segmentation" title="examples.segmentation"><code class="xref py py-mod docutils literal"><span class="pre">examples.segmentation</span></code></a><a class="headerlink" href="#module-examples.segmentation" title="Permalink to this headline">¶</a></h1>
+<p><p>Segmentation example of MALDI images</p>
+<p>Finds a relevant subset of image,
+i.e. spatially coherent images
+and applies a region growing algorithm
+to obtain a complete segmentation
+on this subset</p>
+</p>
+<div class="section" id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="examples.segmentation.display_stack">
+<code class="descclassname">examples.segmentation.</code><code class="descname">display_stack</code><span class="sig-paren">(</span><em>img</em><span class="sig-paren">)</span><a class="headerlink" href="#examples.segmentation.display_stack" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.parser">
+<code class="descclassname">examples.segmentation.</code><code class="descname">parser</code><a class="headerlink" href="#examples.segmentation.parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.args">
+<code class="descclassname">examples.segmentation.</code><code class="descname">args</code><a class="headerlink" href="#examples.segmentation.args" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.threshold">
+<code class="descclassname">examples.segmentation.</code><code class="descname">threshold</code><a class="headerlink" href="#examples.segmentation.threshold" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.inputname">
+<code class="descclassname">examples.segmentation.</code><code class="descname">inputname</code><a class="headerlink" href="#examples.segmentation.inputname" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.outname">
+<code class="descclassname">examples.segmentation.</code><code class="descname">outname</code><a class="headerlink" href="#examples.segmentation.outname" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.factor">
+<code class="descclassname">examples.segmentation.</code><code class="descname">factor</code><a class="headerlink" href="#examples.segmentation.factor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.radius">
+<code class="descclassname">examples.segmentation.</code><code class="descname">radius</code><em class="property"> = 1</em><a class="headerlink" href="#examples.segmentation.radius" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.selem">
+<code class="descclassname">examples.segmentation.</code><code class="descname">selem</code><a class="headerlink" href="#examples.segmentation.selem" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.image">
+<code class="descclassname">examples.segmentation.</code><code class="descname">image</code><a class="headerlink" href="#examples.segmentation.image" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.img_data">
+<code class="descclassname">examples.segmentation.</code><code class="descname">img_data</code><a class="headerlink" href="#examples.segmentation.img_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.padding">
+<code class="descclassname">examples.segmentation.</code><code class="descname">padding</code><em class="property"> = 3</em><a class="headerlink" href="#examples.segmentation.padding" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt>
+<code class="descclassname">examples.segmentation.</code><code class="descname">img_data</code></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.similar_images">
+<code class="descclassname">examples.segmentation.</code><code class="descname">similar_images</code><a class="headerlink" href="#examples.segmentation.similar_images" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt>
+<code class="descclassname">examples.segmentation.</code><code class="descname">similar_images</code></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.mean_image">
+<code class="descclassname">examples.segmentation.</code><code class="descname">mean_image</code><a class="headerlink" href="#examples.segmentation.mean_image" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.otsu">
+<code class="descclassname">examples.segmentation.</code><code class="descname">otsu</code><a class="headerlink" href="#examples.segmentation.otsu" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.labels">
+<code class="descclassname">examples.segmentation.</code><code class="descname">labels</code><a class="headerlink" href="#examples.segmentation.labels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.regionprop">
+<code class="descclassname">examples.segmentation.</code><code class="descname">regionprop</code><a class="headerlink" href="#examples.segmentation.regionprop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.largest_cc">
+<code class="descclassname">examples.segmentation.</code><code class="descname">largest_cc</code><a class="headerlink" href="#examples.segmentation.largest_cc" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.seeds">
+<code class="descclassname">examples.segmentation.</code><code class="descname">seeds</code><a class="headerlink" href="#examples.segmentation.seeds" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.x">
+<code class="descclassname">examples.segmentation.</code><code class="descname">x</code><a class="headerlink" href="#examples.segmentation.x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.y">
+<code class="descclassname">examples.segmentation.</code><code class="descname">y</code><a class="headerlink" href="#examples.segmentation.y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.mask">
+<code class="descclassname">examples.segmentation.</code><code class="descname">mask</code><a class="headerlink" href="#examples.segmentation.mask" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt>
+<code class="descclassname">examples.segmentation.</code><code class="descname">mask</code></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.masked_mean_image">
+<code class="descclassname">examples.segmentation.</code><code class="descname">masked_mean_image</code><a class="headerlink" href="#examples.segmentation.masked_mean_image" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt>
+<code class="descclassname">examples.segmentation.</code><code class="descname">masked_mean_image</code></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt>
+<code class="descclassname">examples.segmentation.</code><code class="descname">masked_mean_image</code></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.nibimg_similar">
+<code class="descclassname">examples.segmentation.</code><code class="descname">nibimg_similar</code><a class="headerlink" href="#examples.segmentation.nibimg_similar" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.similar_name">
+<code class="descclassname">examples.segmentation.</code><code class="descname">similar_name</code><a class="headerlink" href="#examples.segmentation.similar_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.nibimg">
+<code class="descclassname">examples.segmentation.</code><code class="descname">nibimg</code><a class="headerlink" href="#examples.segmentation.nibimg" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.nibimg_evolution">
+<code class="descclassname">examples.segmentation.</code><code class="descname">nibimg_evolution</code><a class="headerlink" href="#examples.segmentation.nibimg_evolution" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="examples.segmentation.evolution_name">
+<code class="descclassname">examples.segmentation.</code><code class="descname">evolution_name</code><a class="headerlink" href="#examples.segmentation.evolution_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Florent Grélard.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+      |
+      <a href="../../../_sources/autoapi/examples/segmentation/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

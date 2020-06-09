@@ -1,0 +1,467 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>esmraldi.fusion &mdash; Esmraldi 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/graphviz.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Esmraldi
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/gettingstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/quickstart.html">Quickstart tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/examples.html">Demos and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user/data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">API Reference</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Esmraldi</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+      <li><code class="xref py py-mod docutils literal notranslate"><span class="pre">esmraldi.fusion</span></code></li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../../_sources/autoapi/esmraldi/fusion/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="module-esmraldi.fusion">
+<span id="esmraldi-fusion"></span><h1><a class="reference internal" href="#module-esmraldi.fusion" title="esmraldi.fusion"><code class="xref py py-mod docutils literal notranslate"><span class="pre">esmraldi.fusion</span></code></a><a class="headerlink" href="#module-esmraldi.fusion" title="Permalink to this headline">¶</a></h1>
+<p><p>Module for the joint statistical
+analysis of images</p>
+</p>
+<div class="section" id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="esmraldi.fusion.clustering_affinity">
+<code class="sig-prename descclassname">esmraldi.fusion.</code><code class="sig-name descname">clustering_affinity</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">X_r</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.fusion.clustering_affinity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clustering by affinity propagation
+Based on scikit module</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>X_r: np.ndarray</strong></dt><dd><p>fitted data (e.g. by PCA)</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>clustered data</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.fusion.clustering_kmeans">
+<code class="sig-prename descclassname">esmraldi.fusion.</code><code class="sig-name descname">clustering_kmeans</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">X_r</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.fusion.clustering_kmeans" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clustering by kmeans
+Based on scikit module</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>X_r: np.ndarray</strong></dt><dd><p>fitted data (e.g. by PCA)</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>clustered data</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.fusion.flatten">
+<code class="sig-prename descclassname">esmraldi.fusion.</code><code class="sig-name descname">flatten</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image_maldi</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.fusion.flatten" title="Permalink to this definition">¶</a></dt>
+<dd><p>Preprocess for reduction : flattens
+a stack image with OpenCV</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image_maldi: numpy.ndarray</strong></dt><dd><p>input image</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>numpy.ndarray</dt><dd><p>normalized image</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.fusion.pca">
+<code class="sig-prename descclassname">esmraldi.fusion.</code><code class="sig-name descname">pca</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image</span></em>, <em class="sig-param"><span class="n">n</span><span class="o">=</span><span class="default_value">5</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.fusion.pca" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs PCA on image array
+Each image is represented as a point after fitting
+Based on scikit module</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image: np.ndarray</strong></dt><dd><p>collection of images</p>
+</dd>
+<dt><strong>n: int</strong></dt><dd><p>number of components</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>sklearn.decomposition.PCA</dt><dd><p>pca object</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.fusion.nmf">
+<code class="sig-prename descclassname">esmraldi.fusion.</code><code class="sig-name descname">nmf</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image</span></em>, <em class="sig-param"><span class="n">n</span><span class="o">=</span><span class="default_value">5</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.fusion.nmf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs PCA on image array
+Each image is represented as a point after fitting
+Based on scikit module</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image: np.ndarray</strong></dt><dd><p>collection of images</p>
+</dd>
+<dt><strong>n: int</strong></dt><dd><p>number of components</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>sklearn.decomposition.NMF</dt><dd><p>nmf object</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.fusion.post_processing">
+<code class="sig-prename descclassname">esmraldi.fusion.</code><code class="sig-name descname">post_processing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pca_maldi</span></em>, <em class="sig-param"><span class="n">pca_mri</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.fusion.post_processing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes t-SNE from dimension reduction data
+Based on scikit module</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>pca_maldi: np.ndarray</strong></dt><dd><p>PCA coordinates for the MALDI images</p>
+</dd>
+<dt><strong>pca_mri: np.ndarray</strong></dt><dd><p>PCA coordinates for the MRI image</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>tSNE coordinates for MALDI</p>
+</dd>
+<dt>np.ndarray</dt><dd><p>tSNE coordinates for MRI</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.fusion.weighted_distance">
+<code class="sig-prename descclassname">esmraldi.fusion.</code><code class="sig-name descname">weighted_distance</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">X</span></em>, <em class="sig-param"><span class="n">weights</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.fusion.weighted_distance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Weighted euclidean distance
+for similarity measure</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>X: np.ndarray</strong></dt><dd><p>coordinates</p>
+</dd>
+<dt><strong>weights: list</strong></dt><dd><p>weights for each coordinate</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.fusion.select_images">
+<code class="sig-prename descclassname">esmraldi.fusion.</code><code class="sig-name descname">select_images</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">images</span></em>, <em class="sig-param"><span class="n">point_mri</span></em>, <em class="sig-param"><span class="n">centers</span></em>, <em class="sig-param"><span class="n">weights</span></em>, <em class="sig-param"><span class="n">mzs</span></em>, <em class="sig-param"><span class="n">labels</span></em>, <em class="sig-param"><span class="n">top</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.fusion.select_images" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sort the (MALDI) images according to their proximity to
+the MRI image</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>images: np.ndarray</strong></dt><dd><p>MALDI images</p>
+</dd>
+<dt><strong>centers: np.ndarray</strong></dt><dd><p>MALDI images (reduced)</p>
+</dd>
+<dt><strong>point_mri: np.ndarray</strong></dt><dd><p>MRI image (reduced)</p>
+</dd>
+<dt><strong>weights: list</strong></dt><dd><p>weights for each coordinate</p>
+</dd>
+<dt><strong>mzs: list</strong></dt><dd><p>m/z ratios</p>
+</dd>
+<dt><strong>labels: np.ndarray</strong></dt><dd><p>clustering labels (optional)</p>
+</dd>
+<dt><strong>top: int</strong></dt><dd><p>number of images to extract</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>np.ndarray</dt><dd><p>sorted MALDI images based on proximity to MRI</p>
+</dd>
+<dt>np.ndarray</dt><dd><p>sorted mzs based on proximity to MRI</p>
+</dd>
+<dt>np.ndarray</dt><dd><p>metric values used to sort MALDI</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.fusion.extract_ratio_images">
+<code class="sig-prename descclassname">esmraldi.fusion.</code><code class="sig-name descname">extract_ratio_images</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image</span></em>, <em class="sig-param"><span class="n">mzs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.fusion.extract_ratio_images" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts ratio images : image_n / image_{n-x}, x &gt; 0
+Computing (n**2-n)/2 images</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image: np.ndarray</strong></dt><dd><p>array of input images</p>
+</dd>
+<dt><strong>mzs: list</strong></dt><dd><p>associated labels (e.g. m/z ratios)</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="esmraldi.fusion.get_score">
+<code class="sig-prename descclassname">esmraldi.fusion.</code><code class="sig-name descname">get_score</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">model</span></em>, <em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="n">scorer</span><span class="o">=</span><span class="default_value">metrics.explained_variance_score</span></em><span class="sig-paren">)</span><a class="headerlink" href="#esmraldi.fusion.get_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimate performance of the model on the data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>model: sklearn.decomposition</strong></dt><dd><p>matrix-factorization technique</p>
+</dd>
+<dt><strong>data: np.ndarray</strong></dt><dd><p>matrix used to estimate performance</p>
+</dd>
+<dt><strong>scorer: sklearn.metrics</strong></dt><dd><p>metric</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>float</dt><dd><p>performance metric</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Florent Grélard
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

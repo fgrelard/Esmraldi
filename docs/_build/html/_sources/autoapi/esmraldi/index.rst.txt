@@ -1,0 +1,22 @@
+:mod:`esmraldi`
+===============
+
+.. py:module:: esmraldi
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   fusion/index.rst
+   imzmlio/index.rst
+   registration/index.rst
+   segmentation/index.rst
+   speciesrule/index.rst
+   spectrainterpretation/index.rst
+   spectraprocessing/index.rst
+   theoreticalspectrum/index.rst
+
+

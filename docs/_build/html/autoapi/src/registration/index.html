@@ -1,0 +1,439 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>src.registration &mdash; Esmraldi 1.0.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../../../',
+              VERSION:'1.0.0',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Esmraldi
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">API Reference</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Esmraldi</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+      <li><code class="docutils literal notranslate"><span class="pre">src.registration</span></code></li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../../_sources/autoapi/src/registration/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-src.registration">
+<span id="src-registration"></span><h1><a class="reference internal" href="#module-src.registration" title="src.registration"><code class="xref py py-mod docutils literal notranslate"><span class="pre">src.registration</span></code></a><a class="headerlink" href="#module-src.registration" title="Permalink to this headline">¶</a></h1>
+<p>Module for the registration of two images</p>
+<div class="section" id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="src.registration.precision">
+<code class="descclassname">src.registration.</code><code class="descname">precision</code><span class="sig-paren">(</span><em>im1</em>, <em>im2</em><span class="sig-paren">)</span><a class="headerlink" href="#src.registration.precision" title="Permalink to this definition">¶</a></dt>
+<dd><p>Precision between two images
+defined as card(im1 cap im2)/card(im2)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>im1: np.ndarray</strong></dt>
+<dd><p class="first last">first binary image</p>
+</dd>
+<dt><strong>im2: np.ndarray</strong></dt>
+<dd><p class="first last">second binary image</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>float</dt>
+<dd><p class="first last">precision value</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="src.registration.recall">
+<code class="descclassname">src.registration.</code><code class="descname">recall</code><span class="sig-paren">(</span><em>im1</em>, <em>im2</em><span class="sig-paren">)</span><a class="headerlink" href="#src.registration.recall" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recall between two images
+defined as card(im1 cap im2)/card(im1)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>im1: np.ndarray</strong></dt>
+<dd><p class="first last">first binary image</p>
+</dd>
+<dt><strong>im2: np.ndarray</strong></dt>
+<dd><p class="first last">second binary image</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>float</dt>
+<dd><p class="first last">recall value</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="src.registration.quality_registration">
+<code class="descclassname">src.registration.</code><code class="descname">quality_registration</code><span class="sig-paren">(</span><em>imRef</em>, <em>imRegistered</em><span class="sig-paren">)</span><a class="headerlink" href="#src.registration.quality_registration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates registration quality
+Binarizes images
+Then computes recall and precision</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>imRef: np.ndarray</strong></dt>
+<dd><p class="first last">reference (fixed) image</p>
+</dd>
+<dt><strong>imRegistered: np.ndarray</strong></dt>
+<dd><p class="first last">deformable (moving) image - after registration</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>tuple</dt>
+<dd><p class="first last">precision and recall values</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="src.registration.fmeasure">
+<code class="descclassname">src.registration.</code><code class="descname">fmeasure</code><span class="sig-paren">(</span><em>precision</em>, <em>recall</em><span class="sig-paren">)</span><a class="headerlink" href="#src.registration.fmeasure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the F-Measure, or F1-score,
+That is the harmonic mean
+of the precision and recall</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>precision: float</strong></dt>
+<dd><p class="first last">precision value</p>
+</dd>
+<dt><strong>recall: float</strong></dt>
+<dd><p class="first last">recall value</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>float</dt>
+<dd><p class="first last">fmeasure</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="src.registration.mutual_information">
+<code class="descclassname">src.registration.</code><code class="descname">mutual_information</code><span class="sig-paren">(</span><em>imRef</em>, <em>imRegistered</em><span class="sig-paren">)</span><a class="headerlink" href="#src.registration.mutual_information" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mutual information for joint histogram
+based on entropy computation</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>imRef: np.ndarray</strong></dt>
+<dd><p class="first last">reference (fixed) image</p>
+</dd>
+<dt><strong>imRegistered: np.ndarray</strong></dt>
+<dd><p class="first last">deformable (moving)image</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>float</dt>
+<dd><p class="first last">mutual information</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="src.registration.best_fit">
+<code class="descclassname">src.registration.</code><code class="descname">best_fit</code><span class="sig-paren">(</span><em>fixed</em>, <em>array_moving</em>, <em>numberOfBins</em>, <em>samplingPercentage</em><span class="sig-paren">)</span><a class="headerlink" href="#src.registration.best_fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds the best fit between variations of the same image
+According to mutual information measure
+Different variations (eg symmetry) are stored in the
+first dimension of the array</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>fixed: np.ndarray</strong></dt>
+<dd><p class="first last">reference (fixed) image</p>
+</dd>
+<dt><strong>array_moving: np.ndarray</strong></dt>
+<dd><p class="first last">3D deformable (moving) image</p>
+</dd>
+<dt><strong>numberOfBins: int</strong></dt>
+<dd><p class="first last">number of bins for sampling</p>
+</dd>
+<dt><strong>samplingPercentage: float</strong></dt>
+<dd><p class="first last">proportion of points to consider in sampling</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>sitk.ImageRegistrationMethod</dt>
+<dd><p class="first last">registration object</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="src.registration.register">
+<code class="descclassname">src.registration.</code><code class="descname">register</code><span class="sig-paren">(</span><em>fixed</em>, <em>moving</em>, <em>numberOfBins</em>, <em>samplingPercentage</em><span class="sig-paren">)</span><a class="headerlink" href="#src.registration.register" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registration between reference (fixed)
+and deformable (moving) images
+transform initialized with moments
+metric=mutual information
+optimization=gradient descent
+interpolation=nearest neighbor</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>fixed: np.ndarray</strong></dt>
+<dd><p class="first last">reference (fixed) image</p>
+</dd>
+<dt><strong>moving: np.ndarray</strong></dt>
+<dd><p class="first last">deformable (moving) image</p>
+</dd>
+<dt><strong>numberOfBins: int</strong></dt>
+<dd><p class="first last">number of bins for sampling</p>
+</dd>
+<dt><strong>samplingPercentage: float</strong></dt>
+<dd><p class="first last">proportion of points to consider in sampling</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt>sitk.ImageRegistrationMethod</dt>
+<dd><p class="first last">registration object</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Florent Grélard
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,818 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Quickstart tutorial &mdash; Esmraldi 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Demos and examples" href="examples.html" />
+    <link rel="prev" title="Getting started" href="gettingstarted.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Esmraldi
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gettingstarted.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quickstart tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Input,-Visualization">Input, Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Spectra-processing">Spectra processing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Peak-detection">Peak detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Spectra-alignment">Spectra alignment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#Segmentation">Segmentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Registration">Registration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Joint-statistical-analysis">Joint statistical analysis</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Demos and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../autoapi/index.html">API Reference</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Esmraldi</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Quickstart tutorial</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/user/quickstart.ipynb.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container,
+div.nbinput.container div.prompt,
+div.nbinput.container div.input_area,
+div.nbinput.container div[class*=highlight],
+div.nbinput.container div[class*=highlight] pre,
+div.nboutput.container,
+div.nboutput.container div.prompt,
+div.nboutput.container div.output_area,
+div.nboutput.container div[class*=highlight],
+div.nboutput.container div[class*=highlight] pre {
+    background: none;
+    border: none;
+    padding: 0 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    background: #f5f5f5;
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt a.copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+div.rendered_html th {
+  font-weight: bold;
+}
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="Quickstart-tutorial">
+<h1>Quickstart tutorial<a class="headerlink" href="#Quickstart-tutorial" title="Permalink to this headline">¶</a></h1>
+<p>Welcome to the quickstart tutorial to Esmraldi! If you have comments or suggestions, please don’t hesitate to reach out. This tutorial contains the key steps of the imaging processing workflow leading to the joint analysis of a MALDI image with another image. It uses a basic MALDI dataset along with a synthetic image mimicking an optical image obtained from another modality.</p>
+<p>Let’s set-up our notebook to start:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="o">%</span><span class="k">load_ext</span> autoreload
+<span class="o">%</span><span class="k">autoreload</span> 2
+
+<span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">import</span> <span class="nn">SimpleITK</span> <span class="k">as</span> <span class="nn">sitk</span>
+
+<span class="n">rootpath</span> <span class="o">=</span> <span class="s2">&quot;../../&quot;</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s2">&quot;__file__&quot;</span><span class="p">)),</span> <span class="n">rootpath</span><span class="p">))</span>
+
+<span class="k">def</span> <span class="nf">display_image</span><span class="p">(</span><span class="n">image</span><span class="p">):</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="k">def</span> <span class="nf">display_images</span><span class="p">(</span><span class="o">*</span><span class="n">images</span><span class="p">):</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">)):</span>
+        <span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">images</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.4</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.2</span><span class="p">,</span> <span class="s2">&quot;(&quot;</span> <span class="o">+</span> <span class="n">string</span><span class="o">.</span><span class="n">ascii_lowercase</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">18</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="Input,-Visualization">
+<h2>Input, Visualization<a class="headerlink" href="#Input,-Visualization" title="Permalink to this headline">¶</a></h2>
+<p>The data is available in the <code class="docutils literal notranslate"><span class="pre">data</span></code> directory. First, read the data and display the spectrum of the first pixel:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">esmraldi.imzmlio</span> <span class="k">as</span> <span class="nn">io</span>
+
+<span class="n">imzml</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">open_imzml</span><span class="p">(</span><span class="n">rootpath</span> <span class="o">+</span> <span class="s2">&quot;data/Example_Continuous.imzML&quot;</span><span class="p">)</span>
+<span class="n">spectra</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">get_spectra</span><span class="p">(</span><span class="n">imzml</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">spectra</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="n">mz_first</span><span class="p">,</span> <span class="n">intensities_first</span> <span class="o">=</span> <span class="n">spectra</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">spectra</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">mz_first</span><span class="p">,</span> <span class="n">intensities_first</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(9, 2, 8399)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/user_quickstart_3_1.png" src="../_images/user_quickstart_3_1.png" />
+</div>
+</div>
+<p>The variable <code class="docutils literal notranslate"><span class="pre">spectra</span></code> is a 3D numpy array, where the first dimension corresponds to pixels, the second dimension to <em>m/z</em> or intensities, and the last dimension to their associated values. Here, this array contains 9 pixels, and each spectrum has 8399 points.</p>
+<p>Then, we display the image of the ion of <em>m/z</em> 328.9 +/- 0.25:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">image</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">get_image</span><span class="p">(</span><span class="n">imzml</span><span class="p">,</span> <span class="mf">328.9</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">)</span>
+<span class="n">display_image</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/user_quickstart_5_0.png" src="../_images/user_quickstart_5_0.png" />
+</div>
+</div>
+<p>Now, we read the optical image:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">optical_image</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">rootpath</span> <span class="o">+</span> <span class="s2">&quot;data/Example_Optical.png&quot;</span><span class="p">)</span>
+<span class="n">display_image</span><span class="p">(</span><span class="n">optical_image</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/user_quickstart_7_0.png" src="../_images/user_quickstart_7_0.png" />
+</div>
+</div>
+<p>The image is a 3x3 array of various intensities.</p>
+</div>
+<div class="section" id="Spectra-processing">
+<h2>Spectra processing<a class="headerlink" href="#Spectra-processing" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="Peak-detection">
+<h3>Peak detection<a class="headerlink" href="#Peak-detection" title="Permalink to this headline">¶</a></h3>
+<p>The next step is to detect peaks across all spectra. Our approach is based on <a class="reference external" href="https://en.wikipedia.org/wiki/Topographic_prominence">topographical prominence</a> values. More specifically, we define the <strong>local</strong> prominence as the ratio between the prominence and the estimated local noise in the signal. The local noise <span class="math notranslate nohighlight">\(\sigma\)</span> is estimated as the median absolute deviations in a window of length <span class="math notranslate nohighlight">\(w\)</span>. Let <span class="math notranslate nohighlight">\(f\)</span> be the local prominence factor, the local maxima whose intensity is
+above <span class="math notranslate nohighlight">\(f * \sigma\)</span> are considered as peaks.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">esmraldi.spectraprocessing</span> <span class="k">as</span> <span class="nn">sp</span>
+
+<span class="n">prominence_local_factor</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">window_length</span> <span class="o">=</span> <span class="mi">1000</span>
+
+<span class="n">detected_mzs</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">spectra_peak_mzs_adaptative</span><span class="p">(</span><span class="n">spectra</span><span class="p">,</span> <span class="n">factor</span><span class="o">=</span><span class="n">prominence_local_factor</span><span class="p">,</span> <span class="n">wlen</span><span class="o">=</span><span class="n">window_length</span><span class="p">)</span>
+<span class="n">detected_mz_first</span> <span class="o">=</span> <span class="n">detected_mzs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">in1d</span><span class="p">(</span><span class="n">mz_first</span><span class="p">,</span> <span class="n">detected_mz_first</span><span class="p">)</span>
+<span class="n">detected_intensities_first</span> <span class="o">=</span> <span class="n">intensities_first</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">mz_first</span><span class="p">,</span> <span class="n">intensities_first</span><span class="p">,</span> <span class="n">detected_mz_first</span><span class="p">,</span> <span class="n">detected_intensities_first</span><span class="p">,</span> <span class="s2">&quot;o&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+No module named &#39;ms_peak_picker._c.peak_picker&#39;
+No module named &#39;ms_deisotope._c.averagine&#39; averagine
+No module named &#39;ms_deisotope._c.scoring&#39;
+No module named &#39;ms_deisotope._c.deconvoluter_base&#39;
+No module named &#39;ms_deisotope._c.deconvoluter_base&#39;
+No module named &#39;ms_deisotope._c.deconvoluter_base&#39;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/user_quickstart_9_1.png" src="../_images/user_quickstart_9_1.png" />
+</div>
+</div>
+<p>The original spectrum is displayed in blue, and the detected peaks are highlighted by orange dots.</p>
+</div>
+<div class="section" id="Spectra-alignment">
+<h3>Spectra alignment<a class="headerlink" href="#Spectra-alignment" title="Permalink to this headline">¶</a></h3>
+<p>Next, the spectra need to be realigned to compensate for <em>m/z</em> differences between pixels, due to instrumentation differences, or sample inhomogeneity.</p>
+<p>Groups of close <em>m/z</em> values are made with a tolerance given by the <em>step</em> parameter. The median <em>m/z</em> value in each group is taken as reference for the alignment procedure.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">realigned_spectra</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">realign_mzs</span><span class="p">(</span><span class="n">spectra</span><span class="p">,</span> <span class="n">detected_mzs</span><span class="p">,</span> <span class="n">reference</span><span class="o">=</span><span class="s2">&quot;median&quot;</span><span class="p">,</span> <span class="n">nb_occurrence</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+<span class="n">mzs</span> <span class="o">=</span> <span class="n">realigned_spectra</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">realigned_spectra</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(9, 2, 121)
+</pre></div></div>
+</div>
+<p>After the realignment, 121 peaks are detected (vs. the initial 8399 peaks).</p>
+</div>
+</div>
+<div class="section" id="Segmentation">
+<h2>Segmentation<a class="headerlink" href="#Segmentation" title="Permalink to this headline">¶</a></h2>
+<p>Next, a representative image is extracted from the set of MALDI ion images. This is achieved by <strong>region growing on a subset of relevant images</strong>, i.e. non-noisy images. &lt; Relevant images are found by a measure called <em>spatial coherence</em> which considers the minimum area of the largest connected component in ion binary images over a set of quantile thresholds.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">esmraldi.segmentation</span> <span class="k">as</span> <span class="nn">seg</span>
+
+<span class="n">maldi_image</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">get_images_from_spectra</span><span class="p">(</span><span class="n">realigned_spectra</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">maldi_image</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">maldi_image</span><span class="p">)</span>
+<span class="c1"># Relevant images</span>
+<span class="n">spatially_coherent</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">find_similar_images_area</span><span class="p">(</span><span class="n">maldi_image</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">quantiles</span><span class="o">=</span><span class="p">[</span><span class="mi">60</span><span class="p">,</span> <span class="mi">70</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mi">90</span><span class="p">])</span>
+
+<span class="c1"># Mean image</span>
+<span class="n">mean_image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">spatially_coherent</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># Region growing</span>
+<span class="n">seeds</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)))</span>
+<span class="n">list_end</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">region_growing</span><span class="p">(</span><span class="n">spatially_coherent</span><span class="p">,</span> <span class="n">seedList</span><span class="o">=</span><span class="n">seeds</span><span class="p">,</span> <span class="n">lower_threshold</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="n">elem</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">list_end</span><span class="p">]</span>
+<span class="n">y</span> <span class="o">=</span> <span class="p">[</span><span class="n">elem</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">list_end</span><span class="p">]</span>
+<span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">mean_image</span><span class="p">)</span>
+<span class="n">mask</span><span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">segmented_image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mean_image</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+<span class="n">segmented_image</span> <span class="o">=</span> <span class="n">segmented_image</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="n">display_image</span><span class="p">(</span><span class="n">segmented_image</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/user_quickstart_13_0.png" src="../_images/user_quickstart_13_0.png" />
+</div>
+</div>
+</div>
+<div class="section" id="Registration">
+<h2>Registration<a class="headerlink" href="#Registration" title="Permalink to this headline">¶</a></h2>
+<p>At this stage, both shapes in the optical and MALDI images can be matched. Registration methods aim at finding the transform which best aligns two objects. The transform parameters are estimated by optimizing a metric which quantifies the similarity between both images. In our case, we register <strong>the MALDI segmented image onto the optical image</strong>.</p>
+<p>The registration is based on the <a class="reference external" href="https://simpleitk.org/">SimpleITK</a> library. We choose the following registration components:</p>
+<ul class="simple">
+<li><p><strong>transform</strong>: rigid transform (translation, scaling, rotation)</p></li>
+<li><p><strong>metric</strong>: Mattes mutual information</p></li>
+<li><p><strong>optimizer</strong>: regular step gradient descent</p></li>
+<li><p><strong>interpolator</strong>: nearest neighbor</p></li>
+</ul>
+<p>The input images must be instances of the <a class="reference external" href="https://simpleitk.org/doxygen/latest/html/classitk_1_1simple_1_1Image.html">SimpleITK.Image</a> class.</p>
+<p>Each component takes various parameters. For the metric, the <em>number of bins</em> defines the marginal and joint histograms, the <em>sampling percentage</em> describes the proportion of pixels in the image used to compute the metric and <em>seed</em> is used to initialize the random number generator to create the sample points. Regarding the optimizer, the <em>learning rate</em> defines the initial step length, the <em>relaxation factor</em> the factor reducing the step length each time the derivative sign changes, and <em>min
+step</em> the stop criterion for the optimizer.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">esmraldi.registration</span> <span class="k">as</span> <span class="nn">reg</span>
+
+<span class="n">segmented_itk</span> <span class="o">=</span> <span class="n">sitk</span><span class="o">.</span><span class="n">Cast</span><span class="p">(</span><span class="n">sitk</span><span class="o">.</span><span class="n">GetImageFromArray</span><span class="p">(</span><span class="n">segmented_image</span><span class="p">),</span> <span class="n">sitk</span><span class="o">.</span><span class="n">sitkFloat32</span><span class="p">)</span>
+<span class="n">optical_itk</span> <span class="o">=</span> <span class="n">sitk</span><span class="o">.</span><span class="n">Cast</span><span class="p">(</span><span class="n">sitk</span><span class="o">.</span><span class="n">GetImageFromArray</span><span class="p">(</span><span class="n">optical_image</span><span class="p">),</span> <span class="n">sitk</span><span class="o">.</span><span class="n">sitkFloat32</span><span class="p">)</span>
+<span class="n">segmented_itk</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">segmented_itk</span><span class="p">,</span> <span class="n">optical_itk</span><span class="o">.</span><span class="n">GetSize</span><span class="p">())</span>
+
+<span class="n">number_bins</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="n">sampling_percentage</span> <span class="o">=</span> <span class="mf">0.2</span>
+
+<span class="n">registration</span> <span class="o">=</span> <span class="n">reg</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">optical_itk</span><span class="p">,</span> <span class="n">segmented_itk</span><span class="p">,</span> <span class="n">number_bins</span><span class="p">,</span> <span class="n">sampling_percentage</span><span class="p">,</span> <span class="n">learning_rate</span><span class="o">=</span><span class="mf">1.1</span><span class="p">,</span> <span class="n">relaxation_factor</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">min_step</span><span class="o">=</span><span class="mf">0.001</span><span class="p">)</span>
+<span class="n">registered_seg_itk</span> <span class="o">=</span> <span class="n">registration</span><span class="o">.</span><span class="n">Execute</span><span class="p">(</span><span class="n">segmented_itk</span><span class="p">)</span>
+<span class="n">registered_seg_image</span> <span class="o">=</span> <span class="n">sitk</span><span class="o">.</span><span class="n">GetArrayFromImage</span><span class="p">(</span><span class="n">registered_seg_itk</span><span class="p">)</span>
+
+<span class="n">display_images</span><span class="p">(</span><span class="n">optical_image</span><span class="p">,</span> <span class="n">segmented_image</span><span class="p">,</span> <span class="n">registered_seg_image</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/user_quickstart_15_0.png" src="../_images/user_quickstart_15_0.png" />
+</div>
+</div>
+<p>(a⁣) Optical fixed image, (b) original MALDI segmented image and (c) registered MALDI image.</p>
+<p>Finally, we apply the registration to the original MALDI image:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">registered_itk</span> <span class="o">=</span> <span class="n">sitk</span><span class="o">.</span><span class="n">GetImageFromArray</span><span class="p">(</span><span class="n">maldi_image</span><span class="p">)</span>
+<span class="n">registered_itk</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">registered_itk</span><span class="p">,</span> <span class="n">optical_itk</span><span class="o">.</span><span class="n">GetSize</span><span class="p">())</span>
+<span class="n">size</span> <span class="o">=</span> <span class="n">registered_itk</span><span class="o">.</span><span class="n">GetSize</span><span class="p">()</span>
+<span class="n">size</span> <span class="o">=</span> <span class="p">[</span><span class="n">size</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">size</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">size</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+<span class="n">out_register</span> <span class="o">=</span> <span class="n">sitk</span><span class="o">.</span><span class="n">Image</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">registered_itk</span><span class="o">.</span><span class="n">GetPixelID</span><span class="p">()</span> <span class="p">)</span>
+
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">registered_itk</span><span class="o">.</span><span class="n">GetSize</span><span class="p">()[</span><span class="mi">0</span><span class="p">]):</span>
+    <span class="nb">slice</span> <span class="o">=</span> <span class="n">registered_itk</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="nb">slice</span><span class="o">.</span><span class="n">SetSpacing</span><span class="p">(</span><span class="n">optical_itk</span><span class="o">.</span><span class="n">GetSpacing</span><span class="p">())</span>
+    <span class="n">slice_registered</span> <span class="o">=</span> <span class="n">registration</span><span class="o">.</span><span class="n">Execute</span><span class="p">(</span><span class="nb">slice</span><span class="p">)</span>
+    <span class="n">slice_registered</span> <span class="o">=</span> <span class="n">sitk</span><span class="o">.</span><span class="n">JoinSeries</span><span class="p">(</span><span class="n">slice_registered</span><span class="p">)</span>
+    <span class="n">out_register</span> <span class="o">=</span> <span class="n">sitk</span><span class="o">.</span><span class="n">Paste</span><span class="p">(</span><span class="n">out_register</span><span class="p">,</span> <span class="n">slice_registered</span><span class="p">,</span> <span class="n">slice_registered</span><span class="o">.</span><span class="n">GetSize</span><span class="p">(),</span> <span class="n">destinationIndex</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">])</span>
+
+<span class="n">registered_image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">sitk</span><span class="o">.</span><span class="n">GetArrayFromImage</span><span class="p">(</span><span class="n">out_register</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="Joint-statistical-analysis">
+<h2>Joint statistical analysis<a class="headerlink" href="#Joint-statistical-analysis" title="Permalink to this headline">¶</a></h2>
+<p>The final step of the workflow is to find the MALDI ion images whose distribution correlate with the optical image.</p>
+<p>We choose non-negative matrix factorization (NMF) to find spatial correlations. First, the registered MALDI image is factorized, then, the MRI image is projected into the reduced space, and correlations are established based on the distance in this space.</p>
+<p>We search for the 3 ion images which are closest to the optical image:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">esmraldi.fusion</span> <span class="k">as</span> <span class="nn">fusion</span>
+
+<span class="n">optical_flatten</span> <span class="o">=</span> <span class="n">fusion</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">optical_image</span><span class="p">)</span>
+<span class="n">maldi_flatten</span> <span class="o">=</span> <span class="n">fusion</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">registered_image</span><span class="p">)</span>
+
+<span class="c1"># Reduction by NMF</span>
+<span class="n">fit_red</span> <span class="o">=</span> <span class="n">fusion</span><span class="o">.</span><span class="n">nmf</span><span class="p">(</span><span class="n">maldi_flatten</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+<span class="n">reduction</span> <span class="o">=</span> <span class="n">fit_red</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">maldi_flatten</span><span class="p">)</span>
+<span class="n">point_optical</span> <span class="o">=</span> <span class="n">fit_red</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">optical_flatten</span><span class="p">)</span>
+<span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">reduction</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+
+<span class="n">similar_images</span><span class="p">,</span> <span class="n">similar_mzs</span><span class="p">,</span> <span class="n">distances</span> <span class="o">=</span> <span class="n">fusion</span><span class="o">.</span><span class="n">select_images</span><span class="p">(</span><span class="n">registered_image</span><span class="p">,</span> <span class="n">point_optical</span><span class="p">,</span> <span class="n">reduction</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">mzs</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">top</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Closest m/z ratio &quot;</span><span class="p">,</span> <span class="n">similar_mzs</span><span class="p">[:</span><span class="mi">3</span><span class="p">])</span>
+<span class="n">display_images</span><span class="p">(</span><span class="n">optical_image</span><span class="p">,</span> <span class="n">similar_images</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">similar_images</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">similar_images</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Closest m/z ratio  [152.08333 220.08334 241.08334]
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/user_quickstart_19_1.png" src="../_images/user_quickstart_19_1.png" />
+</div>
+</div>
+<p>(a⁣) Optical image, (b-d) MALDI ion images which are closest to the optical image: <em>m/z</em>= (b) 152.08 , (c) 220.08, (d) 241.08.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="examples.html" class="btn btn-neutral float-right" title="Demos and examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="gettingstarted.html" class="btn btn-neutral float-left" title="Getting started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Florent Grélard
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
