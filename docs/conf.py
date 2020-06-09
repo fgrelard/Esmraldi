@@ -87,7 +87,7 @@ todo_include_todos = False
 # a list of builtin themes.
 #
 import sphinx_rtd_theme
-import msmb_theme
+#import msmb_theme
 import os
 
 html_theme_path = ["."]
