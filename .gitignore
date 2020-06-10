@@ -10,3 +10,4 @@ jupyter/
 /.tern-port
 /tests/.tern-port
 /data/old/
+/docs/_build/

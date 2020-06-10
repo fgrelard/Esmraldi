@@ -13,7 +13,8 @@ Esmraldi Documentation
    user/introduction.rst
    user/gettingstarted.rst
    user/quickstart.ipynb
-   user/examples.rst
+   user/advanced_example.ipynb
+   user/usage.rst
    user/data.rst
    
 

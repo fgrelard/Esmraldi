@@ -1,5 +1,0 @@
-=====================
- Quickstart tutorial
-=====================
-
-.. include:: ../../examples/demos/quickstart.ipynb
