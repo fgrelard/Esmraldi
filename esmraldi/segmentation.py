@@ -481,7 +481,8 @@ def resize(image, size):
 
     """
     image_array = sitk.GetArrayFromImage(image)
-    resized = transform.resize(image_array, size, order=0)
+    reversed_size = np.array(size)[::-1]
+    resized = transform.resize(image_array, reversed_size, order=0)
     resized_itk = sitk.GetImageFromArray(resized)
     return resized_itk
 
