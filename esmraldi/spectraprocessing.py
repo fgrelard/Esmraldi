@@ -243,6 +243,24 @@ def peak_indices_cwt(data, factor, widths):
     return peak_indices
 
 def spectra_peak_mzs_cwt(spectra, factor, widths):
+    """
+    Peak detection using the Continuous Wavelet Transform
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        Spectra as [mz*I] array
+    factor: float
+        CWT threshold
+    widths: list
+        Wavelet widths
+
+    Returns
+    ----------
+    np.ndarray
+        Detected peak m/z ratios
+
+    """
     mzs = []
     for spectrum in spectra:
         x, y = spectrum
@@ -254,8 +272,25 @@ def spectra_peak_mzs_cwt(spectra, factor, widths):
     return np.array(mzs)
 
 def same_mz_axis(spectra):
+    """
+    Generates spectra with common m/z values
+
+    Missing intensity values are added as np.nan
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        Spectra as [mz*I] array
+
+    Returns
+    ----------
+    np.ndarray
+        Spectra as [mz*I] array
+    """
     masses = spectra[..., 0]
+    print(min(masses[0]))
     masses_union = reduce(np.union1d, masses)
+    print(len(masses_union))
     new_matrix = np.zeros(shape=(spectra.shape[0], spectra.shape[1], masses_union.shape[0]))
     new_matrix.fill(np.nan)
     index = 0
