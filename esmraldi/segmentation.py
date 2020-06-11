@@ -484,6 +484,7 @@ def resize(image, size):
     reversed_size = np.array(size)[::-1]
     resized = transform.resize(image_array, reversed_size, order=0)
     resized_itk = sitk.GetImageFromArray(resized)
+    resized_itk = sitk.Cast(resized_itk, image.GetPixelID())
     return resized_itk
 
 
