@@ -2,3 +2,4 @@ sphinx-rtd-theme
 nbsphinx
 numpydoc
 sphinx-autoapi
+jupyter_client
