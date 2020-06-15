@@ -36,6 +36,8 @@ extensions = ['sphinx.ext.autodoc', 'numpydoc', 'autoapi.extension',
 
 autoapi_dirs = ['../esmraldi']
 
+nbsphinx_kernel_name = 'python-upstream-dev'
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 html_theme_path = ['.']
