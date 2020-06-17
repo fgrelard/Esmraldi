@@ -271,7 +271,7 @@ def spectra_peak_mzs_cwt(spectra, factor, widths):
             mzs.append([])
     return np.array(mzs)
 
-def same_mz_axis(spectra):
+def same_mz_axis(spectra, tol=0):
     """
     Generates spectra with common m/z values
 
@@ -281,6 +281,8 @@ def same_mz_axis(spectra):
     ----------
     spectra: np.ndarray
         Spectra as [mz*I] array
+    tol: float
+        Tolerance to consider when two species are the same
 
     Returns
     ----------
@@ -288,7 +290,15 @@ def same_mz_axis(spectra):
         Spectra as [mz*I] array
     """
     masses = spectra[..., 0]
-    masses_union = np.array(list(set().union(*masses)))
+    o = np.array(masses[0])
+    i = 0
+    for mass_list in masses:
+        m = np.array(mass_list)
+        c = m[(np.abs(o[:,None] - m) >= tol).all(0)]
+        o = np.concatenate((o, c), axis=None)
+    # masses_union = np.array(list(set().union(*masses)))
+    masses_union = np.array(o)
+    print(masses_union.shape)
     new_matrix = np.zeros(shape=(spectra.shape[0], spectra.shape[1], masses_union.shape[0]))
     new_matrix.fill(np.nan)
     index = 0
