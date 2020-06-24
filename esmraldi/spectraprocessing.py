@@ -185,11 +185,48 @@ def spectra_peak_mzs_adaptative(spectra, factor=1, wlen=10):
     index = 0
     for spectrum in spectra:
         x, y = spectrum
-        indices_current = peak_indices(y, stddev[index] * factor, wlen)
+        indices_current = peak_indices(y, stddev * factor, wlen)
         mzs_current = x[indices_current]
         mzs.append(mzs_current)
         index += 1
     return np.array(mzs)
+
+def spectra_peak_mzs_adaptative(spectra, factor=1, noise_level=1, wlen=10):
+    """
+    Estimates and extracts significant peaks in the spectra
+    with specified noise level(s)
+    By using the local prominence (height of the peak relative to the background noise)
+    Background noise is estimated as the standard deviation of the
+    signal over a window of size wlen
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        Spectra as [mz*I] array
+    factor: float
+        prominence factor
+    noise_level: float or list
+        noise level
+    wlen: int
+        size of the window
+
+    Returns
+    ----------
+    np.ndarray
+        Peaks m/z
+    """
+    mzs = []
+    index = 0
+    for spectrum in spectra:
+        x, y = spectrum
+        indices_current = peak_indices(y, noise_level * factor, wlen)
+        # plt.plot(x,y,x[indices_current], y[indices_current], "o")
+        # plt.show()
+        mzs_current = x[indices_current]
+        mzs.append(mzs_current)
+        index += 1
+    return np.array(mzs)
+
 
 def peak_indices(data, prominence, wlen):
     """
@@ -291,14 +328,15 @@ def same_mz_axis(spectra, tol=0):
     """
     masses = spectra[..., 0]
     o = np.array(masses[0])
-    i = 0
-    for mass_list in masses:
-        m = np.array(mass_list)
-        c = m[(np.abs(o[:,None] - m) >= tol).all(0)]
-        o = np.concatenate((o, c), axis=None)
-    # masses_union = np.array(list(set().union(*masses)))
-    masses_union = np.array(o)
-    print(masses_union.shape)
+    if tol == 0:
+        masses_union = np.array(list(set().union(*masses)))
+    else:
+        i = 0
+        for mass_list in masses:
+            m = np.array(mass_list)
+            c = m[(np.abs(o[:,None] - m) >= tol).all(0)]
+            o = np.concatenate((o, c), axis=None)
+        masses_union = np.array(o)
     new_matrix = np.zeros(shape=(spectra.shape[0], spectra.shape[1], masses_union.shape[0]))
     new_matrix.fill(np.nan)
     index = 0
@@ -670,6 +708,7 @@ def realign_mzs(spectra, mzs, reference="frequence", nb_occurrence=4, step=0.02)
     flat_full_mzs = np.hstack(mzs)
     groups = index_groups(flat_full_mzs, step)
     groups = [group for group in groups if len(group) > nb_occurrence]
+    print(len(groups))
     if reference == "frequence":
         aligned_mzs = peak_reference_indices_groups(groups)
     else:
