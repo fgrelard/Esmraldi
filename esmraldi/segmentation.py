@@ -97,6 +97,24 @@ def region_property_to_cc(ccs, regionprop):
     return cc
 
 def sort_size_ascending(images, threshold):
+    """
+    Sort images in ascending order
+    of the number of pixels inside
+    greather than a given threshold
+
+    Parameters
+    ----------
+    images: np.ndarray
+        array of images
+    threshold: int
+        threshold to count pixels
+
+    Returns
+    ----------
+    np.ndarray
+        sorted array of images
+
+    """
     sizes = []
     for index in np.ndindex(images.shape[2:]):
         current_index = (slice(None), slice(None)) + (index)
@@ -159,82 +177,31 @@ def region_growing(images, seedList, lower_threshold):
     return list(seeds), evolution_segmentation
 
 def estimate_noise(I):
-  H, W = I.shape
-
-  M = [[1, -2, 1],
-       [-2, 4, -2],
-       [1, -2, 1]]
-
-  sigma = np.sum(np.sum(np.absolute(signal.convolve2d(I, M))))
-  sigma = sigma * math.sqrt(0.5 * math.pi) / (6 * (W-2) * (H-2))
-
-  return sigma
-
-def find_similar_images_variance(image_maldi, factor_variance=0.1):
     """
-    Find images that have a high variance in their intensities
-    Selects images according to a factor of max variance
+    Estimates the noise in an image
+    By convolution with a kernel
+
+    See: Fast Noise Variance Estimation,
+    Immerkaear et al.
 
     Parameters
     ----------
-    image_maldi: np.ndarray
-        input image
-    factor_variance: int
-        factor by which max variance is multiplied to
-        determine a threshold above which images are selected
-
-    Returns
-    ----------
-    np.ndarray
-        array of high variability images
-
-    """
-    reshaped = image_maldi.reshape(-1, image_maldi.shape[-1])
-    variance = np.var(reshaped, axis=0)
-    max_variance = np.amax(variance)
-    similar_images = image_maldi[..., variance < factor_variance * max_variance]
-    return similar_images
-
-
-def spatial_coherence(image):
-    """
-    Spatial coherence of a binary image
-    That is to say the area of the largest
-    connected component
-
-    Parameters
-    ----------
-    image: np.ndarrau
-        binarized image
+    I: np.ndarray
+        image
 
     Returns
     ----------
     float
-        spatial coherence
-
+        the noise standard deviation
     """
-    labels = measure.label(image, background=0)
-    r = properties_largest_area_cc(labels)
-    if r == -1:
-        return -1
-    else:
-        return r.area
+    H, W = I.shape
 
-def find_similar_images_area(image_maldi, factor, quantiles=[]):
-    values = []
-    for i in range(image_maldi.shape[-1]):
-        image2D = image_maldi[..., i]
-        norm_img = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
-        min_area = sys.maxsize
-        for quantile in quantiles:
-            threshold = int(np.percentile(norm_img, quantile))
-            sc = spatial_coherence(norm_img > threshold)
-            if sc < min_area:
-                min_area = sc
-        values.append(min_area)
-    value_array = np.array(values)
-    similar_images = image_maldi[..., value_array > factor]
-    return similar_images
+    M = [[1, -2, 1],
+         [-2, 4, -2],
+         [1, -2, 1]]
+    sigma = np.sum(np.sum(np.absolute(signal.convolve2d(I, M))))
+    sigma = sigma * math.sqrt(0.5 * math.pi) / (6 * (W-2) * (H-2))
+    return sigma
 
 
 def average_area(images):
@@ -488,6 +455,22 @@ def resize(image, size):
 
 
 def distances_closest_neighbour(points):
+    """
+    Distances between each point and its closest neighbour
+    in a set of points
+
+    Parameters
+    ----------
+    points: np.ndarray
+        points as (x-y) coordinates
+
+    Returns
+    ----------
+    np.ndarray
+        distances between each point and its closest neighbour
+
+
+    """
     nbrs = NearestNeighbors(n_neighbors=2, algorithm='auto').fit(points)
     distances, indices = nbrs.kneighbors(points)
     # distances = dist.squareform(dist.pdist(points))
@@ -497,6 +480,24 @@ def distances_closest_neighbour(points):
 
 
 def average_distance_graph(image, threshold):
+    """
+    Average edge length in a graph
+    constructed by a binarization of an image with a given threshold
+    A node in the graph corresponds to a pixel above this threshold
+
+    Parameters
+    ----------
+    image: np.ndarray
+        the image
+    threshold: int
+        threshold for binary image
+
+    Returns
+    ----------
+    float
+        average edge length in the graph
+
+    """
     binary = np.where(image > threshold, 255, 0)
     indices = np.where(binary > 0)
     indices_array = np.asarray(indices).T
@@ -507,6 +508,25 @@ def average_distance_graph(image, threshold):
     return 0
 
 def spatial_chaos(image, quantiles=[]):
+    """
+    Spatial chaos measure
+
+    See: Testing for Presence of Known and Unknown Molecules in Imaging Mass Spectrometry
+    Alexandrov et al. (2013)
+
+    Parameters
+    ----------
+    image: np.ndarray
+        image
+    quantiles: list
+        list of quantile threshold values
+
+    Returns
+    ----------
+    list
+        list of spatial chaos values for each image
+
+    """
     chaos_measures = []
     for i in range(image.shape[-1]):
         image_2D = image[..., i]
@@ -536,8 +556,113 @@ def spatial_chaos(image, quantiles=[]):
 
 
 def find_similar_images_spatial_chaos(img, threshold, quantiles):
+    """
+    Find images with spatial
+    chaos values greater than a given threshold.
+
+    Parameters
+    ----------
+    img: np.ndarray
+        image
+    threshold: int
+        threshold for spatial chaos values
+    quantiles: list
+        list of quantile threshold values
+
+    Returns
+    ----------
+    nd.ndarray
+        images whose spatial chaos values are above threshold
+    """
     chaos_measures = spatial_chaos(img, quantiles)
     chaos_array = np.array(chaos_measures)
     chaos_indices = np.where( (chaos_array > 1) & (chaos_array < threshold))
     spatially_coherent = np.take(img, chaos_indices[0], axis=-1)
     return spatially_coherent
+
+def spatial_coherence(image):
+    """
+    Spatial coherence of a binary image
+    That is to say the area of the largest
+    connected component
+
+    Parameters
+    ----------
+    image: np.ndarrau
+        binarized image
+
+    Returns
+    ----------
+    float
+        spatial coherence
+
+    """
+    labels = measure.label(image, background=0)
+    r = properties_largest_area_cc(labels)
+    if r == -1:
+        return -1
+    else:
+        return r.area
+
+def find_similar_images_spatial_coherence(image_maldi, factor, quantiles=[]):
+    """
+    Find images with spatial
+    coherence values greater than a given threshold.
+
+    Spatial coherence values are computed
+    for several quantile thresholds. The minimum area
+    over the thresholded images is kept
+
+    Parameters
+    ----------
+    image_maldi: np.ndarray
+        MALDI image
+    factor: int
+        threshold for spatial coherence values
+    quantiles: list
+        quantile threshold values (list of integers)
+
+    Returns
+    ----------
+    np.ndarray
+        images whose spatial coherence values are above factor
+    """
+    values = []
+    for i in range(image_maldi.shape[-1]):
+        image2D = image_maldi[..., i]
+        norm_img = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
+        min_area = sys.maxsize
+        for quantile in quantiles:
+            threshold = int(np.percentile(norm_img, quantile))
+            sc = spatial_coherence(norm_img > threshold)
+            if sc < min_area:
+                min_area = sc
+        values.append(min_area)
+    value_array = np.array(values)
+    similar_images = image_maldi[..., value_array > factor]
+    return similar_images
+
+def find_similar_images_variance(image_maldi, factor_variance=0.1):
+    """
+    Find images that have a high variance in their intensities
+    Selects images according to a factor of max variance
+
+    Parameters
+    ----------
+    image_maldi: np.ndarray
+        input image
+    factor_variance: int
+        factor by which max variance is multiplied to
+        determine a threshold above which images are selected
+
+    Returns
+    ----------
+    np.ndarray
+        array of high variability images
+
+    """
+    reshaped = image_maldi.reshape(-1, image_maldi.shape[-1])
+    variance = np.var(reshaped, axis=0)
+    max_variance = np.amax(variance)
+    similar_images = image_maldi[..., variance < factor_variance * max_variance]
+    return similar_images

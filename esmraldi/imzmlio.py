@@ -199,6 +199,11 @@ def get_images_from_spectra(spectra, shape):
 
 def get_image(imzml, mz, tol=0.01):
     """
+    Extracts an ion image at a given m/z value
+    and with a tolerance
+
+    Wrapper function for imzmlparser.getionimage
+
     Parameters
     ----------
     imzml: imzmlparser.ImzMLParser
