@@ -6,7 +6,8 @@ import numpy as np
 
 def closest_peak(reference_mz, theoretical_spectrum, tolerance):
     """
-    Closest peak for a given m/z ratio, from a theoretical spectrum
+    Closest peak for a given m/z ratio,
+    from a theoretical spectrum.
 
     Parameters
     ----------
@@ -43,8 +44,8 @@ def closest_peak(reference_mz, theoretical_spectrum, tolerance):
 
 def annotation(observed, theoretical, tolerance=0.1):
     """
-    Annotate an observed spectrum
-    Compared to a theoretical spectrum
+    Annotate an observed spectrum by comparison
+    to a theoretical spectrum.
 
     Parameters
     ----------

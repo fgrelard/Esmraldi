@@ -20,7 +20,7 @@ from functools import reduce
 
 def spectra_sum(spectra):
     """
-    Computes the spectrum from the sum of all spectra
+    Computes the spectrum from the sum of all spectra.
 
     Parameters
     ----------
@@ -40,7 +40,7 @@ def spectra_sum(spectra):
 
 def spectra_mean(spectra):
     """
-    Computes the average spectrum
+    Computes the average spectrum.
 
     Parameters
     ----------
@@ -61,7 +61,7 @@ def spectra_mean(spectra):
 
 def spectra_max(spectra):
     """
-    Computes the maximum intensity for each abscissa
+    Computes the maximum intensity for each abscissa.
 
     Parameters
     ----------
@@ -81,7 +81,7 @@ def spectra_max(spectra):
 
 def spectra_min(spectra):
     """
-    Computes the minimum intensity for each abscissa
+    Computes the minimum intensity for each abscissa.
 
     Parameters
     ----------
@@ -102,8 +102,8 @@ def spectra_min(spectra):
 def spectra_peak_indices(spectra, prominence=50, wlen=10):
     """
     Estimates and extracts significant peaks in the spectra
-    By using the prominence (height of the peak relative to the nearest
-    higher peak)
+    by using the prominence (height of the peak
+    relative to the nearest higher peak).
 
     Parameters
     ----------
@@ -129,9 +129,12 @@ def spectra_peak_indices(spectra, prominence=50, wlen=10):
 def spectra_peak_indices_adaptative(spectra, factor=1, wlen=10):
     """
     Estimates and extracts significant peaks in the spectra
-    By using the local prominence (height of the peak relative to the background noise)
-    Background noise is estimated as the standard deviation of the
-    signal over a window of size wlen
+    by using the local prominence
+    (height of the peak relative to the background noise).
+
+    Background noise is estimated as the
+    standard deviation of the
+    signal over a window of size wlen.
 
     Parameters
     ----------
@@ -160,9 +163,12 @@ def spectra_peak_indices_adaptative(spectra, factor=1, wlen=10):
 def spectra_peak_mzs_adaptative(spectra, factor=1, wlen=10):
     """
     Estimates and extracts significant peaks in the spectra
-    By using the local prominence (height of the peak relative to the background noise)
-    Background noise is estimated as the standard deviation of the
-    signal over a window of size wlen
+    by using the local prominence
+    (height of the peak relative to the background noise).
+
+    Background noise is estimated as the
+    standard deviation of the
+    signal over a window of size wlen.
 
     Parameters
     ----------
@@ -194,10 +200,14 @@ def spectra_peak_mzs_adaptative(spectra, factor=1, wlen=10):
 def spectra_peak_mzs_adaptative(spectra, factor=1, noise_level=1, wlen=10):
     """
     Estimates and extracts significant peaks in the spectra
-    with specified noise level(s)
-    By using the local prominence (height of the peak relative to the background noise)
-    Background noise is estimated as the standard deviation of the
-    signal over a window of size wlen
+    with specified noise level(s),
+    by using the local prominence
+    (height of the peak relative to
+    the background noise)
+
+    Background noise is estimated as the
+    standard deviation of the
+    signal over a window of size wlen.
 
     Parameters
     ----------
@@ -230,9 +240,11 @@ def spectra_peak_mzs_adaptative(spectra, factor=1, noise_level=1, wlen=10):
 
 def peak_indices(data, prominence, wlen):
     """
-    Estimates and extracts significant peaks in the spectrum
-    By using the prominence (height of the peak relative to the nearest
-    higher peak)
+    Estimates and extracts significant peaks
+    in the spectrum,
+    by using the prominence (height of the peak
+    relative to the nearest
+    higher peak).
 
     Parameters
     ----------
@@ -257,7 +269,7 @@ def peak_indices(data, prominence, wlen):
 def peak_indices_cwt(data, factor, widths):
     """
     Peak indices using continuous wavelet
-    transform
+    transform.
 
     Parameters
     ----------
@@ -281,7 +293,7 @@ def peak_indices_cwt(data, factor, widths):
 
 def spectra_peak_mzs_cwt(spectra, factor, widths):
     """
-    Peak detection using the Continuous Wavelet Transform
+    Peak detection using the Continuous Wavelet Transform.
 
     Parameters
     ----------
@@ -310,9 +322,9 @@ def spectra_peak_mzs_cwt(spectra, factor, widths):
 
 def same_mz_axis(spectra, tol=0):
     """
-    Generates spectra with common m/z values
+    Generates spectra with common m/z values.
 
-    Missing intensity values are added as np.nan
+    Missing intensity values are added as np.nan.
 
     Parameters
     ----------
@@ -351,8 +363,9 @@ def same_mz_axis(spectra, tol=0):
 
 def peak_selection_shape(spectra):
     """
-    Peak selection based on shape
-    Uses ms_peak_picker module
+    Peak selection based on shape.
+
+    Uses ms_peak_picker module.
 
     Parameters
     ----------
@@ -375,8 +388,9 @@ def peak_selection_shape(spectra):
 
 def normalization_tic(y):
     """
-    TIC (total ion count) normalization
-    Divides each intensity in a spectrum by the sum of all its intensities
+    TIC (total ion count) normalization.
+
+    Divides each intensity in a spectrum by the sum of all its intensities.
 
     Parameters
     ----------
@@ -396,8 +410,9 @@ def normalization_tic(y):
 
 def index_groups(indices, step=1):
     """
-    Makes groups of indices
-    For realignment and spatial selection
+    Makes groups of indices.
+
+    For realignment and spatial selection.
 
     Parameters
     ----------
@@ -434,8 +449,8 @@ def index_groups(indices, step=1):
 
 def peak_reference_indices_group(group):
     """
-    Extracts the reference peak in a group
-    i.e. the most frequent in a group
+    Extracts the reference peak in a group,
+    i.e. the most frequent in a group.
 
     Parameters
     ----------
@@ -448,7 +463,7 @@ def peak_reference_indices_group(group):
 
 def peak_reference_indices_groups(groups):
     """
-    Extracts the reference peaks for several groups
+    Extracts the reference peaks for several groups.
 
     Parameters
     ----------
@@ -469,7 +484,7 @@ def peak_reference_indices_groups(groups):
 def peak_reference_indices_median(groups):
     """
     Extracts the reference peak in a group
-    as the median peak
+    as the median peak.
 
     Parameters
     ----------
@@ -493,7 +508,7 @@ def width_peak_mzs(aligned_mzs, groups, default=0.001):
     """
     Computes the width of a peak
     by computing the difference in m/z
-    between the upper and lower bounds in the group
+    between the upper and lower bounds in the group.
 
     Parameters
     ----------
@@ -523,7 +538,7 @@ def width_peak_mzs(aligned_mzs, groups, default=0.001):
 def width_peak_indices(indices, full_indices):
     """
     Computes the width of a peak
-    by checking neighbor indices
+    by checking neighboring indices.
 
     Parameters
     ----------
@@ -556,7 +571,7 @@ def width_peak_indices(indices, full_indices):
 
 def closest_peak(num, indices_to_width):
     """
-    Extracts the closest peak of index num
+    Extracts the closest peak of index num.
 
     Parameters
     ----------
@@ -578,7 +593,7 @@ def closest_peak(num, indices_to_width):
 
 def realign_wrt_peaks_mzs(spectra, aligned_mzs, full_mzs, indices_to_width):
     """
-    Realign spectra to reference peaks
+    Realign spectra to reference peaks.
 
     Parameters
     ----------
@@ -614,7 +629,7 @@ def realign_wrt_peaks_mzs(spectra, aligned_mzs, full_mzs, indices_to_width):
 def realign_wrt_peaks(spectra, aligned_peaks, full_peaks, indices_to_width):
     """
     Realign spectra to reference peaks
-    from indices
+    from indices.
 
     Parameters
     ----------
@@ -650,10 +665,11 @@ def realign_wrt_peaks(spectra, aligned_peaks, full_peaks, indices_to_width):
 
 def realign_indices(spectra, indices, reference="frequence", nb_occurrence=4, step=0.02):
     """
-    Main function allowing to realign the spectra
+    Alignment function.
+
     First extracts the peaks on all spectra,
     then extracts the reference peaks
-    and maps each peak to its closest reference peak
+    and maps each peak to its closest reference peak.
 
     Parameters
     ----------
@@ -686,10 +702,11 @@ def realign_indices(spectra, indices, reference="frequence", nb_occurrence=4, st
 
 def realign_mzs(spectra, mzs, reference="frequence", nb_occurrence=4, step=0.02):
     """
-    Main function allowing to realign the spectra
+    Alignment function.
+
     First extracts the peaks on all spectra based on local prominence,
     then extracts the reference peaks
-    and maps each peak to its closest reference peak
+    and maps each peak to its closest reference peak.
 
     Parameters
     ----------
@@ -721,7 +738,7 @@ def realign_mzs(spectra, mzs, reference="frequence", nb_occurrence=4, step=0.02)
 
 def neighbours(index, n, spectra):
     """
-    Right-sided neighbours of a point in a spectrum
+    Right-sided neighbours of a point in a spectrum.
 
     Parameters
     ----------
@@ -744,7 +761,7 @@ def neighbours(index, n, spectra):
 
 def forward_derivatives(peaks):
     """
-    Forward derivatives from peak value distribution
+    Forward derivatives from peak value distribution.
 
     Parameters
     ----------
@@ -767,7 +784,7 @@ def forward_derivatives(peaks):
 def find_isotopic_pattern(neighbours, tolerance, nb_charges):
     """
     Extracts isotopic pattern based on mz similarity
-    and max number of charges
+    and max number of charges.
 
     Parameters
     ----------
@@ -801,7 +818,7 @@ def find_isotopic_pattern(neighbours, tolerance, nb_charges):
 def peaks_max_intensity_isotopic_pattern(pattern):
     """
     Finds the peak with maximum intensity in
-    the isotopic pattern
+    the isotopic pattern.
 
     Parameters
     ----------
@@ -821,7 +838,7 @@ def peaks_derivative_isotopic_pattern(pattern):
     """
     Finds the peak where the sign of the derivative changes
     from negative to positive
-    from the pattern intensities
+    from the pattern intensities.
 
     Parameters
     ----------
@@ -851,7 +868,7 @@ def peaks_derivative_isotopic_pattern(pattern):
 
 def isotopes_from_pattern(pattern, peaks_in_pattern):
     """
-    Find isotopes from a pattern
+    Find isotopes from a pattern.
 
     Parameters
     ----------
@@ -878,7 +895,7 @@ def isotopes_from_pattern(pattern, peaks_in_pattern):
 def mz_second_isotope_most_abundant(average_distribution):
     """
     Determines where the second isotope becomes the most abundant
-    from a given distribution
+    from a given distribution.
 
     Parameters
     ----------
@@ -935,8 +952,10 @@ def deisotoping_simple(spectra, tolerance=0.1, nb_neighbours=8, nb_charges=5, av
     """
     Simple deisotoping depending on the mass of the
     secondmost abundant isotope:
+
       - Before this mass: uses the peak with max intensity
         as reference
+
       - After this mass: use the peak where the sign of the
         derivative changes
 
@@ -992,14 +1011,17 @@ def deisotoping_simple(spectra, tolerance=0.1, nb_neighbours=8, nb_charges=5, av
 
 def deisotoping(spectra):
     """
-    Removes isotopes from a collection of spectra
+    Removes isotopes from a collection of spectra.
+
     Computes deisotoping for each spectrum and
-    keeps array of mzs of highest length
+    keeps array of mzs of highest length.
 
     Based on pyopenms module
-    Looks at height of neighbouring peaks
+
+    Note:
+    looks at height of neighbouring peaks
     not accurate for patterns where peak with max intensity
-    does not have the lowest m/z in the pattern
+    does not have the lowest m/z in the pattern.
 
     Parameters
     ----------
@@ -1029,7 +1051,7 @@ def deisotoping(spectra):
 def peak_to_ms_peak(peak, index):
     """
     Converts a peak from [mz,I] to
-    ms_peak_picker.FittedPeak
+    ms_peak_picker.FittedPeak.
 
     Parameters
     ----------
@@ -1060,10 +1082,11 @@ def peak_to_ms_peak(peak, index):
 
 def deisotoping_deconvolution(spectra):
     """
-    Deisotoping by deconvolution
-    Computes deisotoping on max spectrum
+    Deisotoping by deconvolution.
 
-    Based on ms_deisotope module
+    Computes deisotoping on max spectrum.
+
+    Based on ms_deisotope module.
     """
     max_length = 0
     x, y = spectra[0]

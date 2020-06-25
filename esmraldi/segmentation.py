@@ -55,7 +55,7 @@ def max_variance_sort(image_maldi):
 def properties_largest_area_cc(ccs):
     """
     Extracts the connected component
-    with the largest area
+    with the largest area.
 
     Parameters
     ----------
@@ -78,7 +78,7 @@ def properties_largest_area_cc(ccs):
 def region_property_to_cc(ccs, regionprop):
     """
     Extracts the connected component associated
-    with the region
+    with the region.
 
     Parameters
     ----------
@@ -100,7 +100,7 @@ def sort_size_ascending(images, threshold):
     """
     Sort images in ascending order
     of the number of pixels inside
-    greather than a given threshold
+    greather than a given threshold.
 
     Parameters
     ----------
@@ -132,10 +132,11 @@ def sort_size_ascending(images, threshold):
 def region_growing(images, seedList, lower_threshold):
     """
     Region growing in an image stack
-    with ITK
+    with ITK.
+
     All the images in the stack are processed sequentially
     and the seeds at step n depends on the segmentation
-    by region growing at step n-1
+    by region growing at step n-1.
 
     Parameters
     ----------
@@ -179,7 +180,7 @@ def region_growing(images, seedList, lower_threshold):
 def estimate_noise(I):
     """
     Estimates the noise in an image
-    By convolution with a kernel
+    by convolution with a kernel.
 
     See: Fast Noise Variance Estimation,
     Immerkaear et al.
@@ -206,7 +207,7 @@ def estimate_noise(I):
 
 def average_area(images):
     """
-    Average area of largest CCs on a collection of images
+    Average area of largest CCs on a collection of images.
 
     Parameters
     ----------
@@ -237,8 +238,8 @@ def average_area(images):
 
 def select_class_max_value(image_maldi, y_kmeans, nb_class):
     """
-    Chooses label associated with kmeans cluster with
-    images with highest average intensity
+    Chooses label associated with kmeans cluster where
+    images have highest average intensity.
 
     Parameters
     ----------
@@ -269,7 +270,7 @@ def select_class_max_value(image_maldi, y_kmeans, nb_class):
 def select_class_area(image_maldi, y_kmeans, nb_class):
     """
     Chooses labels associated with highest average
-    area of largest CCs
+    area of largest CCs.
 
     Parameters
     ----------
@@ -298,8 +299,9 @@ def select_class_area(image_maldi, y_kmeans, nb_class):
 
 def detect_circle(image, threshold, min_radius, max_radius):
     """
-    Detect a circle in an image
-    Uses hough transform over several radii
+    Detects a circle in an image.
+
+    Uses hough transform over several radii.
 
     Parameters
     ----------
@@ -338,8 +340,8 @@ def detect_circle(image, threshold, min_radius, max_radius):
 
 def detect_tube(image, threshold=150, min_radius=10, max_radius=50):
     """
-    Detect the most frequent circle across several slices
-    (3D volume)
+    Detects the most frequent circle across several slices
+    (3D volume).
 
     Parameters
     ----------
@@ -371,7 +373,7 @@ def detect_tube(image, threshold=150, min_radius=10, max_radius=50):
 
 def fill_circle(center_x, center_y, radius, image, color=0):
     """
-    Fills a circle with a given value (default: 0)
+    Fills a circle with a given value (default: 0).
 
     Parameters
     ----------
@@ -404,8 +406,9 @@ def fill_circle(center_x, center_y, radius, image, color=0):
 def binary_closing(image, radius_selem=1):
     """
     Specific function to remove thin structures
-    in the wheat grain
-    Performs a morphological closing
+    in the image.
+
+    Performs a morphological closing.
 
 
     Parameters
@@ -432,7 +435,7 @@ def binary_closing(image, radius_selem=1):
 
 def resize(image, size):
     """
-    Resize the image to a given size
+    Resize the image to a given size.
 
     Parameters
     ----------
@@ -457,7 +460,7 @@ def resize(image, size):
 def distances_closest_neighbour(points):
     """
     Distances between each point and its closest neighbour
-    in a set of points
+    in a set of points.
 
     Parameters
     ----------
@@ -481,9 +484,13 @@ def distances_closest_neighbour(points):
 
 def average_distance_graph(image, threshold):
     """
-    Average edge length in a graph
-    constructed by a binarization of an image with a given threshold
-    A node in the graph corresponds to a pixel above this threshold
+    Average edge length in a graph.
+
+    The graph is constructed by a binarization
+    of an image with a given threshold.
+
+    A node in the graph corresponds to a pixel
+    above this threshold.
 
     Parameters
     ----------
@@ -557,7 +564,7 @@ def spatial_chaos(image, quantiles=[]):
 
 def find_similar_images_spatial_chaos(img, threshold, quantiles):
     """
-    Find images with spatial
+    Finds images with spatial
     chaos values greater than a given threshold.
 
     Parameters
@@ -582,9 +589,9 @@ def find_similar_images_spatial_chaos(img, threshold, quantiles):
 
 def spatial_coherence(image):
     """
-    Spatial coherence of a binary image
-    That is to say the area of the largest
-    connected component
+    Spatial coherence of a binary image,
+    that is to say the area of the largest
+    connected component.
 
     Parameters
     ----------
@@ -606,12 +613,12 @@ def spatial_coherence(image):
 
 def find_similar_images_spatial_coherence(image_maldi, factor, quantiles=[]):
     """
-    Find images with spatial
+    Finds images with spatial
     coherence values greater than a given threshold.
 
     Spatial coherence values are computed
     for several quantile thresholds. The minimum area
-    over the thresholded images is kept
+    over the thresholded images is kept.
 
     Parameters
     ----------
@@ -644,8 +651,9 @@ def find_similar_images_spatial_coherence(image_maldi, factor, quantiles=[]):
 
 def find_similar_images_variance(image_maldi, factor_variance=0.1):
     """
-    Find images that have a high variance in their intensities
-    Selects images according to a factor of max variance
+    Finds images that have a high variance in their intensities.
+
+    Selects images according to a factor of max variance.
 
     Parameters
     ----------

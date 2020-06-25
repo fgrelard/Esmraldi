@@ -51,9 +51,10 @@ def recall(im1, im2):
 
 def quality_registration(imRef, imRegistered):
     """
-    Evaluates registration quality
-    Binarizes images
-    Then computes recall and precision
+    Evaluates registration quality.
+
+    Binarizes images,
+    then computes recall and precision.
 
     Parameters
     ----------
@@ -80,8 +81,8 @@ def quality_registration(imRef, imRegistered):
 def fmeasure(precision, recall):
     """
     Computes the F-Measure, or F1-score,
-    That is the harmonic mean
-    of the precision and recall
+    that is the harmonic mean
+    of the precision and recall.
 
     Parameters
     ----------
@@ -137,9 +138,11 @@ def mutual_information(imRef, imRegistered):
 def best_fit(fixed, array_moving, numbe_of_bins, sampling_percentage):
     """
     Finds the best fit between variations of the same image
-    According to mutual information measure
-    Different variations (eg symmetry) are stored in the
-    first dimension of the array
+    according to mutual information measure.
+
+    Different variations of the image (e.g. symmetry)
+    are stored in the
+    first dimension of the array.
 
     Parameters
     ----------
@@ -185,11 +188,15 @@ def best_fit(fixed, array_moving, numbe_of_bins, sampling_percentage):
 def register(fixed, moving, number_of_bins, sampling_percentage, seed=sitk.sitkWallClock, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
     """
     Registration between reference (fixed)
-    and deformable (moving) images
-    transform initialized with moments
-    metric=mutual information
-    optimization=gradient descent
-    interpolation=nearest neighbor
+    and deformable (moving) images.
+
+    The transform is initialized with moments
+
+    Metric: mutual information
+
+    Optimization: gradient descent
+
+    Interpolation: nearest neighbor
 
     Parameters
     ----------

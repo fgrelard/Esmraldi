@@ -38,8 +38,9 @@ class TheoreticalSpectrum:
 
     def mix_species(self, species, optional=False):
         """
-        Mix species of different families
-        All possible combinations are extracted
+        Mix species of different families.
+
+        All possible combinations are extracted.
 
         Parameters
         ----------
@@ -75,7 +76,7 @@ class TheoreticalSpectrum:
         """
         Merges two dictionaries, where keys=values
         and values=mz
-        by summing their keys and values
+        by summing their keys and values.
 
         Parameters
         ----------
@@ -99,8 +100,9 @@ class TheoreticalSpectrum:
     def expand_mix(self, mix):
         """
         Generates the full list of species from
-        all species rules contained in the mix
-        Maps the masses to all possible names
+        all species rules contained in the mix.
+
+        Maps the masses to all possible names.
 
         Parameters
         ----------
@@ -121,7 +123,7 @@ class TheoreticalSpectrum:
     def molecules_regexp(self, adduct, molecules):
         """
         Extracts all molecules with fit the
-        regexp in adduct
+        regexp in adduct.
 
         Parameters
         ----------
@@ -143,7 +145,7 @@ class TheoreticalSpectrum:
 
     def mix_molecules_regexp(self, mix, molecules):
         """
-        All molecules matching regexp from species in a mix
+        All molecules matching regexp from species in a mix.
 
         Parameters
         ----------
@@ -172,7 +174,7 @@ class TheoreticalSpectrum:
     def add_all_adducts_to_molecules(self, molecules, adducts):
         """
         Add adducts and modifications, and every permutation
-        of them to molecules
+        of them to molecules.
 
         Parameters
         ----------
@@ -205,7 +207,7 @@ class TheoreticalSpectrum:
 
     def add_adduct_to_molecules(self, molecules, adduct, rules_max={}):
         """
-        Add one adduct to all molecules
+        Add one adduct to all molecules.
 
         Parameters
         ----------
@@ -241,7 +243,7 @@ class TheoreticalSpectrum:
 
     def add_adducts_to_molecules_regexp(self, adduct):
         """
-        Add adducts based on regexp
+        Add adducts based on regexp.
 
         Parameters
         ----------

@@ -4,7 +4,7 @@ from functools import partial
 
 def parts_eval(i, parts):
     """
-    Naming function for species
+    Naming function for species.
 
     Parameters
     ----------
@@ -32,7 +32,7 @@ def parts_eval(i, parts):
 
 def json_to_species(filename):
     """
-    Constructs a new SpeciesRule from a json file
+    Constructs a new SpeciesRule from a json file.
 
     Parameters
     ----------
@@ -77,20 +77,26 @@ def json_to_species(filename):
 
 class SpeciesRule:
     """
-    Class to model the rule of a species
+    Class to model the rule of a species.
+
     Used to generate several species repeated a given
-    number of times
+    number of times.
     """
     def __init__(self, name, category, mz, count=1, count_per_mol=1, begin=None, end_mz=None, family_number=None, naming_fn=None, adduct_fn=None):
         """
         Constructs a new species rule
-        From which species are derived
+        from which species are derived.
 
         Example:
+
         SpeciesRule("Protein", mz="1000", count=3, naming_fn=lambda i: "Protein " + i)
-        generates 3 species of base m/z = 1000.
+
+        => Generates 3 species of base m/z = 1000.
+
         - Protein1: mz=1000
+
         - Protein2: mz=2000
+
         - Protein3: mz=3000
 
         Parameters
@@ -153,9 +159,10 @@ class SpeciesRule:
 
     def species(self):
         """
-        Extracts all  species from this rule
+        Extracts all  species from this rule.
+
         Creates a dictionary:
-        key=name, value=m/z ratio
+        key=name, value=m/z ratio.
 
         Returns
         ----------

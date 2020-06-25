@@ -14,6 +14,7 @@ from sklearn.manifold import TSNE
 def clustering_affinity(X_r):
     """
     Clustering by affinity propagation
+
     Based on scikit module
 
     Parameters
@@ -33,6 +34,7 @@ def clustering_affinity(X_r):
 def clustering_kmeans(X_r):
     """
     Clustering by kmeans
+
     Based on scikit module
 
     Parameters
@@ -83,8 +85,10 @@ def flatten(image_maldi):
 
 def pca(image, n=5):
     """
-    Performs PCA on image array
-    Each image is represented as a point after fitting
+    Performs PCA on image array.
+
+    Each image is represented as a point after fitting.
+
     Based on scikit module
 
     Parameters
@@ -105,8 +109,10 @@ def pca(image, n=5):
 
 def nmf(image, n=5):
     """
-    Performs PCA on image array
-    Each image is represented as a point after fitting
+    Performs NMF on image array.
+
+    Each image is represented as a point after fitting.
+
     Based on scikit module
 
     Parameters
@@ -128,7 +134,8 @@ def nmf(image, n=5):
 
 def post_processing(pca_maldi, pca_mri):
     """
-    Computes t-SNE from dimension reduction data
+    Computes t-SNE from dimension reduction data.
+
     Based on scikit module
 
     Parameters
@@ -215,6 +222,7 @@ def select_images(images, point_mri, centers, weights, mzs, labels, top=1):
 def extract_ratio_images(image, mzs):
     """
     Extracts ratio images : image_n / image_{n-x}, x > 0
+
     Computing (n**2-n)/2 images
 
     Parameters
