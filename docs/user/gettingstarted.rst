@@ -6,7 +6,7 @@
 Welcome to Esmraldi!
 ====================
 
-Esmraldi is an open source Python 3 library used to analyze Imaging Mass Spectrometry images (**IMS**) jointly with Magnetic Resonance Imaging (**MRI**) images. It focuses on precise and efficient methods for the **fusion** of these images. The code in this library is particularly aimed at :
+Esmraldi is an open source Python 3 library used to analyze Mass Spectrometry Imaging (**MSI**) jointly with Magnetic Resonance Imaging (**MRI**) images. It focuses on precise and efficient methods for the **fusion** of these images. The code in this library is particularly aimed at :
 
 1. Efficient spectra processing of IMS images
 2. Precise registration between several modalities

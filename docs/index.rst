@@ -12,9 +12,9 @@ Esmraldi Documentation
 
    user/introduction.rst
    user/gettingstarted.rst
+   user/usage.rst             
    user/quickstart.ipynb
    user/advanced_example.ipynb
-   user/usage.rst
    user/data.rst
    
 
