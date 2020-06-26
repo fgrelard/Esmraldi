@@ -197,7 +197,7 @@ def spectra_peak_mzs_adaptative(spectra, factor=1, wlen=10):
         index += 1
     return np.array(mzs)
 
-def spectra_peak_mzs_adaptative(spectra, factor=1, noise_level=1, wlen=10):
+def spectra_peak_mzs_adaptative_noiselevel(spectra, factor=1, noise_level=1, wlen=10):
     """
     Estimates and extracts significant peaks in the spectra
     with specified noise level(s),

@@ -24,7 +24,7 @@ step_mz = float(args.step)
 imzml = io.open_imzml(input_name)
 spectra = io.get_spectra(imzml)
 
-peaks = sp.spectra_peak_mzs_adaptative(spectra, factor=factor, noise_level=noise_level, wlen=100)
+peaks = sp.spectra_peak_mzs_adaptative_noiselevel(spectra, factor=factor, noise_level=noise_level, wlen=100)
 
 
 realigned_spectra = sp.realign_mzs(spectra, peaks, reference="median", nb_occurrence=nb_peaks, step=step_mz)
