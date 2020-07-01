@@ -52,7 +52,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Esmraldi'
-copyright = '2020, Florent Grélard'
+copyright = '2020, INRAE, BIA, BIBS facility, F-44316 Nantes, France'
 author = 'Florent Grélard'
 
 # The version info for the project you're documenting, acts as replacement for
