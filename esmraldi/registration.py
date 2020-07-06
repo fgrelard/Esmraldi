@@ -49,7 +49,7 @@ def recall(im1, im2):
     allr = np.count_nonzero(im1 == 1)
     return tp * 1.0 / allr
 
-def quality_registration(imRef, imRegistered):
+def quality_registration(imRef, imRegistered, threshold=-1):
     """
     Evaluates registration quality.
 
@@ -62,17 +62,27 @@ def quality_registration(imRef, imRegistered):
         reference (fixed) image
     imRegistered: np.ndarray
         deformable (moving) image - after registration
+    threshold: int
+        threshold to get binary images. A value
+        of -1 means using Otsu thresholding scheme.
 
     Returns
     ----------
     tuple
         precision and recall values
     """
-    otsu_filter = sitk.OtsuThresholdImageFilter()
-    otsu_filter.SetInsideValue(0)
-    otsu_filter.SetOutsideValue(1)
-    imRef_bin = otsu_filter.Execute(imRef)
-    imRegistered_bin = otsu_filter.Execute(imRegistered)
+    if threshold == -1:
+        threshold_filter = sitk.OtsuThresholdImageFilter()
+    else:
+        threshold_filter = sitk.BinaryThresholdImageFilter()
+        threshold_filter.SetLowerThreshold(0)
+        threshold_filter.SetUpperThreshold(threshold)
+
+    threshold_filter.SetInsideValue(0)
+    threshold_filter.SetOutsideValue(1)
+    imRef_bin = threshold_filter.Execute(imRef)
+    imRegistered_bin = threshold_filter.Execute(imRegistered)
+
     p = precision(imRef_bin, imRegistered_bin)
     r = recall(imRef_bin, imRegistered_bin)
     return p, r
@@ -100,7 +110,7 @@ def fmeasure(precision, recall):
     return 2 * precision * recall / (precision + recall)
 
 
-def mutual_information(imRef, imRegistered):
+def mutual_information(imRef, imRegistered, bins=20):
     """
     Mutual information for joint histogram
     based on entropy computation
@@ -111,6 +121,8 @@ def mutual_information(imRef, imRegistered):
         reference (fixed) image
     imRegistered: np.ndarray
         deformable (moving)image
+    bins: int
+        number of bins for joint histogram
 
     Returns
     ----------
@@ -123,7 +135,7 @@ def mutual_information(imRef, imRegistered):
     registered_array = sitk.GetArrayFromImage(imRegistered)
     hgram, x_edges, y_edges = np.histogram2d(fixed_array.ravel(),
                                              registered_array.ravel(),
-                                             bins=20)
+                                             bins=bins)
     # Convert bins counts to probability values
     pxy = hgram / float(np.sum(hgram))
     px = np.sum(pxy, axis=1) # marginal for x over y
@@ -134,8 +146,7 @@ def mutual_information(imRef, imRegistered):
     return np.sum(pxy[nzs] * np.log(pxy[nzs] / px_py[nzs]))
 
 
-
-def best_fit(fixed, array_moving, numbe_of_bins, sampling_percentage):
+def best_fit(fixed, array_moving, number_of_bins, sampling_percentage):
     """
     Finds the best fit between variations of the same image
     according to mutual information measure.

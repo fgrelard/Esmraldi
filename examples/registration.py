@@ -210,8 +210,6 @@ if registername:
     spacing = tuple([sx[0] for i in range(dim)])
     register.SetSpacing(spacing)
 
-    plt.imshow(sitk.GetArrayFromImage(register[:,:,0]))
-    plt.show()
     if len(size) == 2:
         outRegister = best_resampler.Execute(register)
         # if not is_imzml:
@@ -235,4 +233,5 @@ if registername:
         mzs = [mz] * len(coordinates)
         imzmlio.write_imzml(mzs, intensities, coordinates, outputname)
     else:
+        outRegister = sitk.Cast(outRegister, sitk.sitkUInt8)
         sitk.WriteImage(outRegister, outputname)

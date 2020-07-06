@@ -131,14 +131,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--fixed", help="Fixed image")
 parser.add_argument("-r", "--registered", help="Moving image")
 parser.add_argument("-o", "--original", help="Original before registration image")
-parser.add_argument("-b", "--bins", help="number of bins", default=5)
+parser.add_argument("-b", "--bins", help="number of bins", default=20)
+parser.add_argument("-t", "--threshold", help="Threshold for binary image to compute precision and recall (-1 uses Otsu)", default=-1)
 
 args = parser.parse_args()
 fixedname = args.fixed
 registeredname = args.registered
 originalname = args.original
+threshold = int(args.threshold)
+bins = int(args.bins)
 
-args = parser.parse_args()
 fixed = sitk.ReadImage(fixedname, sitk.sitkFloat32)
 original = sitk.ReadImage(originalname, sitk.sitkFloat32)
 
@@ -157,7 +159,7 @@ cimg = sitk.Compose(simg1, simg2, simg1//3.+simg2//1.5)
 plt.imshow(sitk.GetArrayFromImage(cimg))
 plt.axis('off')
 plt.show()
-p, r = quality_registration(fixed, registered)
+p, r = quality_registration(fixed, registered, threshold)
 f = (2*p*r)/(p+r)
 print("Precision=", p, " recall=", r, " fmeasure=", f)
 
@@ -167,6 +169,7 @@ original_array = sitk.GetArrayFromImage(original)
 size = original.GetSize()
 scaled_registered = seg.resize(registered, (size[1], size[0]))
 scaled_registered_array = sitk.GetArrayFromImage(scaled_registered)
+
 print(scaled_registered_array.shape, original_array.shape)
 # fig, ax = plt.subplots(1,2)
 # ax[0].imshow(original_array)
@@ -179,7 +182,7 @@ print(scaled_registered_array.shape, original_array.shape)
 hist_2d, x_edges, y_edges = np.histogram2d(
     original_array.ravel(),
     scaled_registered_array.ravel(),
-    bins=20)
+    bins=bins)
 
-
-print("Mutual information = ", mutual_information(original, scaled_registered))
+print("Mutual information = ", mutual_information(original, scaled_registered, bins))
+print("Correlation coefficient = ", np.corrcoef(original_array.ravel(), scaled_registered_array.ravel())[0, 1])

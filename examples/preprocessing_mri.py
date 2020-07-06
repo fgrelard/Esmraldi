@@ -28,8 +28,9 @@ maxr = int(args.maxr)
 threshold = int(args.threshold)
 
 image = sitk.ReadImage(filename_in, sitk.sitkUInt8)
-start_size = image.GetSize()[0]
-image = seg.resize(image, start_size*2)
+start_size = image.GetSize()
+# end_size = [f*2 for f in start_size]
+# image = seg.resize(image, end_size)
 image = sitk.Cast(sitk.RescaleIntensity(image), sitk.sitkUInt8)
 
 array_image = sitk.GetArrayFromImage(image)
@@ -51,5 +52,6 @@ ax[1].imshow(array_image)
 plt.show()
 
 image = sitk.GetImageFromArray(array_image)
-image = seg.resize(image, start_size)
+# image = seg.resize(image, start_size)
+image = sitk.Cast(image, sitk.sitkUInt8)
 sitk.WriteImage(image, filename_out)

@@ -97,9 +97,9 @@ for i in range(eigenvectors.shape[0]):
     current_name = outroot + "_" + str(i)
     current_image = image_eigenvectors[..., i].T
     im = plt.imshow(current_image, cmap="gray")
-    clim = im.properties()['clim']
-    plt.colorbar()
-    plt.clim(clim)
+    # clim = im.properties()['clim']
+    # plt.colorbar()
+    # plt.clim(clim)
     plt.axis("off")
     plt.savefig(current_name + ".png", bbox_inches="tight")
     plt.close()

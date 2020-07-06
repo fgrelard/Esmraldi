@@ -220,7 +220,7 @@ fhs, lengths = [], []
 for image_name in image_names:
     image_curvature = np.loadtxt(image_name)
     image_sdp_name = image_name.split("_curvature.txt")[0] + "_ensured.sdp"
-    fh = fhmeasure_aligned(image_curvature, mri_curvature, image_sdp_name)
+    fh = fhmeasure_aligned(image_curvature, mri_curvature, image_sdp_name, threshold=0.13, sigma=1)
     length = len(image_curvature)
     fhs.append(fh)
     lengths.append(length)

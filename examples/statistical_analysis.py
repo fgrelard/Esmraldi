@@ -65,11 +65,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input MALDI image (imzML or nii)")
 parser.add_argument("-m", "--mri", help="Input MRI image (ITK format)")
 parser.add_argument("-o", "--output", help="Output image (ITK format)")
-parser.add_argument("-r", "--ratio", help="Compute ratio images", action="store_true")
-parser.add_argument("-t", "--top", help="#Top", default=0)
-parser.add_argument("-g", "--threshold", help="Mass to charge ratio threshold", default=0)
-parser.add_argument("-n", "--norm", help="Normalization image filename")
-parser.add_argument("-p", "--post_process", help="Post process with tSNE", action="store_true")
+parser.add_argument("-n", "--number", help="Number of components for dimension reduction", default=5)
+parser.add_argument("-r", "--ratio", help="Compute ratio images (optional)", action="store_true")
+parser.add_argument("-t", "--top", help="#Top (optional)", default=0)
+parser.add_argument("-g", "--threshold", help="Mass to charge ratio threshold (optional)", default=0)
+parser.add_argument("--norm", help="Normalization image filename (optional)")
+parser.add_argument("--post_process", help="Post process with tSNE (optional)", action="store_true")
 
 args = parser.parse_args()
 
@@ -77,6 +78,7 @@ inputname = args.input
 mriname = args.mri
 outname = args.output
 is_ratio = args.ratio
+n = int(args.number)
 top = int(args.top)
 threshold = int(args.threshold)
 normname = args.norm
@@ -130,10 +132,8 @@ mri_norm = fusion.flatten(mri_norm)
 
 
 print("Computing Dimension reduction")
-n=6
 
 fit_red = fusion.nmf(image_norm, n)
-
 point = fit_red.transform(mri_norm)
 
 print("Explained variance ratio=", fusion.get_score(fit_red, image_norm))
@@ -187,9 +187,9 @@ if top is not None:
 
 similar_images, similar_mzs, distances = fusion.select_images(image,point_mri, centers, weights,  mzs, labels, None)
 print("Selecting images end")
-
 similar_images = similar_images[..., 0:1000]
-itk_similar_images = sitk.GetImageFromArray(similar_images)
+
+itk_similar_images = sitk.GetImageFromArray(similar_images.T)
 sitk.WriteImage(itk_similar_images, outname)
 
 outname_csv = os.path.splitext(outname)[0] + ".csv"
