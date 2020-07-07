@@ -80,6 +80,7 @@ print(indices_array)
 similar_images = np.take(image, indices, axis=-1)
 similar_mzs = np.take(mzs, indices)
 
+np.savetxt(outname, similar_mzs, delimiter=";", fmt="%s")
 print(similar_mzs)
 
 plt.imshow(similar_images[..., 0])
