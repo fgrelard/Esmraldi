@@ -15,6 +15,7 @@ import sys
 import scipy.signal as signal
 import numpy as np
 import matplotlib.pyplot as plt
+import bisect
 from pyopenms import *
 from functools import reduce
 
@@ -615,7 +616,8 @@ def realign_wrt_peaks_mzs(spectra, aligned_mzs, full_mzs, indices_to_width):
     for i in range(spectra.shape[0]):
         spectrum = spectra[i]
         x, y = spectrum
-        y_realigned = y[abs(np.array(aligned_mzs)[None, :] - x[:, None]).argmin(axis=0)]
+        matching_indices = [bisect.bisect_left(x, ii) for ii in aligned_mzs]
+        y_realigned = y[matching_indices]
         indices = full_mzs[i]
         for i in indices:
             mz, width = closest_peak(i, indices_to_width)
@@ -625,6 +627,7 @@ def realign_wrt_peaks_mzs(spectra, aligned_mzs, full_mzs, indices_to_width):
                 y_realigned[mz_index] = max(y[i_index], y_realigned[mz_index])
         realigned_spectra.append((aligned_mzs, y_realigned))
     return realigned_spectra
+
 
 def realign_wrt_peaks(spectra, aligned_peaks, full_peaks, indices_to_width):
     """

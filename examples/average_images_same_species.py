@@ -23,7 +23,7 @@ import esmraldi.segmentation as seg
 import esmraldi.speciesrule as sr
 import esmraldi.spectrainterpretation as si
 import esmraldi.fusion as fusion
-from src.theoreticalspectrum import TheoreticalSpectrum
+from esmraldi.theoreticalspectrum import TheoreticalSpectrum
 
 
 parser = argparse.ArgumentParser()
