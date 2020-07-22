@@ -96,6 +96,31 @@ def region_property_to_cc(ccs, regionprop):
     cc = np.where(ccs == label, 0, 255)
     return cc
 
+def max_area_slices(image):
+    max_area = 0
+    for i in range(image.shape[-1]):
+        im = image[..., i]
+        area = properties_largest_area_cc(im).area
+        if area > max_area:
+            max_area  = area
+    return max_area
+
+def relative_area(image):
+    max_area = max_area_slices(image)
+    relative_area_image = []
+    for i in range(image.shape[-1]):
+        im = image[..., i]
+        area = properties_largest_area_cc(im).area
+        relative_area = area / max_area
+        relative_area_image.append(relative_area)
+    return relative_area_image
+
+def slice_correspondences(reference, target):
+    relative_area_reference = relative_area(reference)
+    relative_area_target = relative_area(target)
+    return relative_area_reference, relative_area_target
+
+
 def sort_size_ascending(images, threshold):
     """
     Sort images in ascending order
