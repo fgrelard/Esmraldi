@@ -64,7 +64,7 @@ annotation = si.annotation(mzs, theoretical_spectrum.spectrum, 0.5)
 
 list_names = [v[0] for v in annotation.values() if len(v) > 0]
 list_names_str = '\n'.join(list_names)
-pattern_species = re.compile(r"(.*?)[0-9]+_.*")
+pattern_species = re.compile(r"(.*?)[0-9]*_.*")
 pattern_adducts = re.compile(r".*_(.*)")
 unique_matches = set(pattern_species.findall(list_names_str))
 unique_matches = unique_matches.union(set(pattern_adducts.findall(list_names_str)))
@@ -73,7 +73,6 @@ for add in unique_matches:
     pattern = re.compile(s)
     matches = pattern.findall(list_names_str)
     mz_matches = [k for k, v in annotation.items() for m in matches if len(v) > 0 and v[0] == m]
-    print(add, mz_matches)
     condition = np.in1d(mzs, np.array(mz_matches))
     image_reduced = np.mean(image[..., condition], axis=2)
     name = outdir + os.path.sep + add + ".png"

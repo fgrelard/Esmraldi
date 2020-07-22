@@ -60,7 +60,7 @@ img_data = image.get_data()
 padding = 3
 img_data = np.pad(img_data, (padding,padding), 'constant')
 
-similar_images = seg.find_similar_images_spatial_coherence(img_data, factor, quantiles=[60, 70, 80, 90])
+similar_images = seg.find_similar_images_spatial_coherence_percentage(img_data, factor, quantiles=[60, 70, 80, 90])
 # similar_images = seg.find_similar_images_spatial_chaos(img_data, factor, quantiles=[60, 70, 80, 90])
 # similar_images = seg.find_similar_images_variance(img_data, factor)
 print(similar_images.shape)
@@ -84,9 +84,10 @@ mask = opening(mask, selem)
 masked_mean_image = np.ma.array(mean_image, mask=mask)
 masked_mean_image = masked_mean_image.filled(0)
 masked_mean_image = masked_mean_image[padding:-padding, padding:-padding]
-fig, ax = plt.subplots(1,2)
+fig, ax = plt.subplots(1,3)
 ax[0].imshow(mean_image.T)
-ax[1].imshow(masked_mean_image.T)
+ax[1].imshow(mask.T)
+ax[2].imshow(masked_mean_image.T)
 plt.show()
 
 nibimg_similar = nib.Nifti1Image(similar_images, np.eye(4))

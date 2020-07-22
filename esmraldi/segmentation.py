@@ -649,6 +649,48 @@ def find_similar_images_spatial_coherence(image_maldi, factor, quantiles=[]):
     similar_images = image_maldi[..., value_array > factor]
     return similar_images
 
+def find_similar_images_spatial_coherence_percentage(image_maldi, percentage, quantiles=[]):
+    """
+    Finds images with spatial
+    coherence values greater than a threshold defined as a
+    factor (percentage) multiplied by the maximum spatial
+    coherence value.
+
+    Spatial coherence values are computed
+    for several quantile thresholds. The minimum area
+    over the thresholded images is kept.
+
+    Parameters
+    ----------
+    image_maldi: np.ndarray
+        MALDI image
+    percentage: float
+        multiplicative factor for spatial coherence values
+    quantiles: list
+        quantile threshold values (list of integers)
+
+    Returns
+    ----------
+    np.ndarray
+        images whose spatial coherence values are above factor
+    """
+    values = []
+    for i in range(image_maldi.shape[-1]):
+        image2D = image_maldi[..., i]
+        norm_img = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
+        min_area = sys.maxsize
+        for quantile in quantiles:
+            threshold = int(np.percentile(norm_img, quantile))
+            sc = spatial_coherence(norm_img > threshold)
+            if sc < min_area:
+                min_area = sc
+        values.append(min_area)
+    value_array = np.array(values)
+    max_sc_value = np.amax(value_array)
+    t = percentage * max_sc_value
+    similar_images = image_maldi[..., value_array > t]
+    return similar_images
+
 def find_similar_images_variance(image_maldi, factor_variance=0.1):
     """
     Finds images that have a high variance in their intensities.
