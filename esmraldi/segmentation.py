@@ -5,7 +5,12 @@ import sys
 import math
 import numpy as np
 import pyimzml.ImzMLParser as imzmlparser
-import matplotlib.pyplot as plt
+import skimage.transform as transform
+import scipy.spatial.distance as dist
+import scipy.signal as signal
+import cv2 as cv
+import SimpleITK as sitk
+
 from sklearn.decomposition import PCA
 from sklearn.feature_extraction import grid_to_graph
 from sklearn.cluster import KMeans
@@ -18,11 +23,8 @@ from skimage.feature import canny
 from skimage import data, color
 from skimage.draw import circle
 from skimage.morphology import binary_erosion, closing, disk
-import skimage.transform as transform
-import scipy.spatial.distance as dist
-import scipy.signal as signal
-import cv2 as cv
-import SimpleITK as sitk
+from scipy.ndimage import gaussian_filter1d
+from dtw import *
 
 def max_variance_sort(image_maldi):
     """
@@ -46,10 +48,7 @@ def max_variance_sort(image_maldi):
         im = imzmlparser.getionimage(image_maldi, mz, tol=0.1)
         image_list.append({"mz": mz, "im": im})
     image_list.sort(key=lambda elem: np.var(elem["im"]), reverse=True)
-    for elem in image_list:
-        print(elem["mz"])
-        plt.imshow(elem["im"], cmap='jet').set_interpolation('nearest')
-        plt.show()
+    return image_list
 
 
 def properties_largest_area_cc(ccs):
@@ -113,12 +112,37 @@ def relative_area(image):
         area = properties_largest_area_cc(im).area
         relative_area = area / max_area
         relative_area_image.append(relative_area)
-    return relative_area_image
+    return np.array(relative_area_image)
 
-def slice_correspondences(reference, target):
+def enforce_continuity_values(sequence):
+    continued_sequence = np.copy(sequence)
+    for i in range(1,len(sequence)-1):
+        previous = sequence[i-1]
+        current = sequence[i]
+        next = sequence[i+1]
+        continuity = current + 1
+        if previous == current and continuity < next:
+            continued_sequence[i] = continuity
+    return continued_sequence
+
+def slice_correspondences(reference, target, sigma, is_reversed=False, is_continuity=True):
     relative_area_reference = relative_area(reference)
     relative_area_target = relative_area(target)
-    return relative_area_reference, relative_area_target
+
+    if is_reversed:
+        relative_area_target = relative_area_target[::-1]
+
+    relative_area_target = gaussian_filter1d(np.copy(relative_area_target), sigma)
+    alignment = dtw(relative_area_target, relative_area_reference, step_pattern=asymmetric, keep_internals=True, open_begin=True, open_end=True)
+    correspondences = alignment.index2
+
+    if is_continuity:
+        correspondences = enforce_continuity_values(correspondences)
+
+    if is_reversed:
+        correspondences = correspondences[::-1]
+
+    return correspondences
 
 
 def sort_size_ascending(images, threshold):
