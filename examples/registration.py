@@ -16,6 +16,31 @@ import os
 import esmraldi.registration as reg
 import esmraldi.segmentation as segmentation
 
+class IndexTracker(object):
+    def __init__(self, ax, X):
+        self.ax = ax
+        ax.set_title('use scroll wheel to navigate images')
+
+        self.X = X
+        self.slices, rows, cols, colors = X.shape
+        self.ind = 0
+
+        self.im = ax.imshow(self.X[self.ind, :, :, :])
+        self.update()
+
+    def onscroll(self, event):
+        if event.button == 'up':
+            self.ind = (self.ind + 1) % self.slices
+        else:
+            self.ind = (self.ind - 1) % self.slices
+        self.update()
+
+    def update(self):
+        self.im.set_data(self.X[self.ind, :, :, :])
+        ax.set_ylabel('slice %s' % self.ind)
+        self.im.axes.figure.canvas.draw()
+
+
 def command_iteration(method) :
     """
     Callback called after each registration iteration
@@ -86,6 +111,37 @@ def registration_number_bins(outputname, min_bins, max_bins):
         except Exception as e:
             pass
 
+def extract_slice_itk(image, index):
+    extract = sitk.ExtractImageFilter()
+    size = list(image.GetSize())
+    size[2] = 0
+    extract.SetSize(size)
+    extract.SetIndex([0, 0, index])
+    return extract.Execute(image)
+
+
+def register2D(fixed, moving, array_moving=None, flipped=False, sampling_percentage=0.1, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
+    to_flip = False
+    if flipped:
+        #determines if symmetry of image is a better match
+        best_resampler, index = reg.best_fit(fixed, array_moving, numberOfBins, sampling_percentage, learning_rate=learning_rate, min_step=min_step, relaxation_factor=relaxation_factor)
+        if index == 1:
+            to_flip = True
+    else:
+        #normal registration
+        best_resampler = reg.register(fixed, moving, numberOfBins, sampling_percentage, learning_rate=learning_rate, min_step=min_step, relaxation_factor=relaxation_factor)
+    try:
+        if to_flip:
+            print("Flipped!")
+            moving = sitk.Flip(moving, (True, False))
+            moving = sitk.GetImageFromArray(sitk.GetArrayFromImage(moving))
+        out = best_resampler.Execute(moving)
+    except Exception as e:
+        print("Problem with best_resampler")
+        print(e)
+        return None
+    return out, to_flip
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--fixed", help="Fixed image")
@@ -94,6 +150,10 @@ parser.add_argument("-r", "--register", help="Registration image")
 parser.add_argument("-o", "--output", help="Output")
 parser.add_argument("-b", "--bins", help="number per bins", default=10)
 parser.add_argument("-s", "--symmetry", help="best fit with flipped image", action="store_true", default=False)
+parser.add_argument("--learning_rate", help="Learning rate", default=1.1)
+parser.add_argument("--relaxation_factor", help="Relaxation factor", default=0.9)
+parser.add_argument("--sampling_percentage", help="Sampling percentage", default=0.1)
+parser.add_argument("--min_step", help="Minimum step for gradient descent", default=0.001)
 args = parser.parse_args()
 
 fixedname = args.fixed
@@ -103,6 +163,11 @@ registername = args.register
 bins = int(args.bins)
 flipped = args.symmetry
 
+learning_rate = float(args.learning_rate)
+relaxation_factor = float(args.relaxation_factor)
+sampling_percentage = float(args.sampling_percentage)
+min_step = float(args.min_step)
+
 fixed = sitk.ReadImage(fixedname, sitk.sitkFloat32)
 moving = sitk.ReadImage(movingname, sitk.sitkFloat32)
 
@@ -110,6 +175,8 @@ moving = sitk.ReadImage(movingname, sitk.sitkFloat32)
 dim_moving = moving.GetDimension()
 fixed_size = fixed.GetSize()
 moving_size = (fixed_size[0], int(moving.GetSize()[1]*fixed_size[0]/moving.GetSize()[0]))
+if dim_moving == 3:
+    moving_size += (fixed_size[2], )
 print(moving_size)
 moving = segmentation.resize(moving, moving_size)
 sx = fixed.GetSpacing()
@@ -121,11 +188,11 @@ moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkUInt8)
 moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkFloat32)
 array_moving = sitk.GetArrayFromImage(moving)
 
+
 # Flip axis and choose best fit during registration
 if dim_moving == 2 and flipped:
     # Construct a 3D image
     # 2 slices = original + flipped
-    dim_moving = 3
     flipped_moving = sitk.Flip(moving, (True, False))
     moving_and_flipped = np.zeros((2, array_moving.shape[-2], array_moving.shape[-1]), dtype=np.float32)
     moving_and_flipped[0, ...] = sitk.GetArrayFromImage(moving)
@@ -136,38 +203,39 @@ if dim_moving == 2 and flipped:
 width = fixed.GetWidth()
 height = fixed.GetHeight()
 numberOfBins = int(math.sqrt(height * width / bins))
-samplingPercentage = 0.1
 
-to_flip = False
 
 if dim_moving == 2:
-    best_resampler = reg.register(fixed, moving, numberOfBins, samplingPercentage)
+    out, to_flip = register2D(fixed, moving, array_moving, flipped, sampling_percentage, learning_rate, min_step, relaxation_factor)
+
 
 if dim_moving == 3:
-    print(array_moving.shape)
-    best_resampler, index = reg.best_fit(fixed, array_moving, numberOfBins, samplingPercentage)
-    if flipped and index == 1:
-        to_flip = True
+    size = fixed.GetSize()
+    pixel_type = fixed.GetPixelID()
+    out = sitk.Image(size[0], size[1], size[2], pixel_type)
+    for i in range(array_moving.shape[0]):
+        out2D, to_flip = register2D(fixed[:,:,i], moving[:,:,i], array_moving, flipped, sampling_percentage, learning_rate, min_step, relaxation_factor)
+        out2D = sitk.JoinSeries(out2D)
+        out = sitk.Paste(out, out2D, out2D.GetSize(), destinationIndex=[0,0,i])
 
-simg1 = sitk.Cast(sitk.RescaleIntensity(fixed), sitk.sitkUInt8)
-try:
-    if to_flip:
-        print("Flipped!")
-        moving = sitk.Flip(moving, (True, False))
-        moving = sitk.GetImageFromArray(sitk.GetArrayFromImage(moving))
-    out = best_resampler.Execute(moving)
-except Exception as e:
-    print("Problem with best_resampler")
-    print(e)
-else:
+if out != None:
+    simg1 = sitk.Cast(sitk.RescaleIntensity(fixed), sitk.sitkUInt8)
+
     simg2 = sitk.Cast(sitk.RescaleIntensity(out), sitk.sitkUInt8)
     cimg = sitk.Compose(simg1, simg2, simg1//3.+simg2//1.5)
 
-    fig, ax = plt.subplots(1, 2)
-
-    ax[0].imshow(sitk.GetArrayFromImage(moving))
-    ax[1].imshow(sitk.GetArrayFromImage(cimg))
+    if dim_moving == 2:
+        fig, ax = plt.subplots(1, 2)
+        ax[0].imshow(sitk.GetArrayFromImage(moving))
+        ax[1].imshow(sitk.GetArrayFromImage(cimg))
+    elif dim_moving == 3:
+        fig, ax = plt.subplots(1, 1)
+        print(sitk.GetArrayFromImage(cimg).shape)
+        tracker = IndexTracker(ax, sitk.GetArrayFromImage(cimg))
+        fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
+        plt.show()
     plt.show()
+
 
 # print("-------")
 # print("Optimizer stop condition: {0}".format(R.GetOptimizerStopConditionDescription()))

@@ -146,7 +146,7 @@ def mutual_information(imRef, imRegistered, bins=20):
     return np.sum(pxy[nzs] * np.log(pxy[nzs] / px_py[nzs]))
 
 
-def best_fit(fixed, array_moving, number_of_bins, sampling_percentage):
+def best_fit(fixed, array_moving, number_of_bins, sampling_percentage, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
     """
     Finds the best fit between variations of the same image
     according to mutual information measure.
@@ -181,7 +181,7 @@ def best_fit(fixed, array_moving, number_of_bins, sampling_percentage):
         moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkFloat32)
         moving.SetSpacing(fixed.GetSpacing())
         try:
-            resampler = register(fixed, moving, number_of_bins, sampling_percentage)
+            resampler = register(fixed, moving, number_of_bins, sampling_percentage,  learning_rate=learning_rate, min_step=min_step, relaxation_factor=relaxation_factor)
             out = resampler.Execute(moving)
         except Exception as e:
             print(e)
@@ -244,7 +244,13 @@ def register(fixed, moving, number_of_bins, sampling_percentage, seed=sitk.sitkW
         relaxationFactor=relaxation_factor,
         gradientMagnitudeTolerance = 1e-5,
         maximumStepSizeInPhysicalUnits = 0.0)
-    tx = sitk.CenteredTransformInitializer(fixed, moving, sitk.Similarity2DTransform(), sitk.CenteredTransformInitializerFilter.MOMENTS)
+
+    transform = sitk.Similarity2DTransform()
+    if fixed.GetDimension()==3:
+        transform = sitk.Similarity3DTransform()
+
+    tx = sitk.CenteredTransformInitializer(fixed, moving, transform, sitk.CenteredTransformInitializerFilter.MOMENTS)
+
     R.SetInitialTransform(tx)
 
     try:
