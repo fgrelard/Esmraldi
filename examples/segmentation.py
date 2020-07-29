@@ -66,6 +66,8 @@ similar_images = seg.find_similar_images_spatial_coherence_percentage(img_data, 
 print(similar_images.shape)
 similar_images = seg.sort_size_ascending(similar_images, threshold)
 mean_image = np.uint8(cv.normalize(np.average(similar_images, axis=2), None, 0, 255, cv.NORM_MINMAX))
+max_image = np.uint8(cv.normalize(np.amax(similar_images, axis=2), None, 0, 255, cv.NORM_MINMAX))
+
 otsu = threshold_otsu(mean_image)
 labels = measure.label(mean_image > otsu, background=0)
 regionprop = seg.properties_largest_area_cc(labels)
@@ -81,7 +83,7 @@ y = [elem[1] for elem in list_end]
 mask = np.ones_like(mean_image)
 mask[x, y] = 0
 mask = opening(mask, selem)
-masked_mean_image = np.ma.array(mean_image, mask=mask)
+masked_mean_image = np.ma.array(max_image, mask=mask)
 masked_mean_image = masked_mean_image.filled(0)
 masked_mean_image = masked_mean_image[padding:-padding, padding:-padding]
 fig, ax = plt.subplots(1,3)

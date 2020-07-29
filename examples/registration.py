@@ -120,16 +120,24 @@ def extract_slice_itk(image, index):
     return extract.Execute(image)
 
 
-def register2D(fixed, moving, array_moving=None, flipped=False, sampling_percentage=0.1, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
+def register2D(fixed, moving, numberOfBins, is_best_rotation=False, array_moving=None, flipped=False, sampling_percentage=0.1, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
     to_flip = False
+    # Flip axis and choose best fit during registration
     if flipped:
+        # Construct a 3D image
+        # 2 slices = original + flipped
+        flipped_moving = sitk.Flip(moving, (True, False))
+        moving_and_flipped = np.zeros((2, moving.GetSize()[1], moving.GetSize()[0]), dtype=np.float32)
+        moving_and_flipped[0, ...] = sitk.GetArrayFromImage(moving)
+        moving_and_flipped[1, ...] = sitk.GetArrayFromImage(flipped_moving)
+        array_flipped = moving_and_flipped
         #determines if symmetry of image is a better match
-        best_resampler, index = reg.best_fit(fixed, array_moving, numberOfBins, sampling_percentage, learning_rate=learning_rate, min_step=min_step, relaxation_factor=relaxation_factor)
+        best_resampler, index = reg.best_fit(fixed, array_flipped, numberOfBins, sampling_percentage, find_best_rotation=is_best_rotation, learning_rate=learning_rate, min_step=min_step, relaxation_factor=relaxation_factor)
         if index == 1:
             to_flip = True
     else:
         #normal registration
-        best_resampler = reg.register(fixed, moving, numberOfBins, sampling_percentage, learning_rate=learning_rate, min_step=min_step, relaxation_factor=relaxation_factor)
+        best_resampler = reg.register(fixed, moving, numberOfBins, sampling_percentage, find_best_rotation=is_best_rotation, learning_rate=learning_rate, min_step=min_step, relaxation_factor=relaxation_factor)
     try:
         if to_flip:
             print("Flipped!")
@@ -150,6 +158,8 @@ parser.add_argument("-r", "--register", help="Registration image")
 parser.add_argument("-o", "--output", help="Output")
 parser.add_argument("-b", "--bins", help="number per bins", default=10)
 parser.add_argument("-s", "--symmetry", help="best fit with flipped image", action="store_true", default=False)
+parser.add_argument("--resize", help="Resize the moving image to match the fixed image size", action="store_true")
+parser.add_argument("--best_rotation", help="Initialize registration by finding the best rotation angle between the two images", action="store_true")
 parser.add_argument("--learning_rate", help="Learning rate", default=1.1)
 parser.add_argument("--relaxation_factor", help="Relaxation factor", default=0.9)
 parser.add_argument("--sampling_percentage", help="Sampling percentage", default=0.1)
@@ -162,6 +172,8 @@ outputname = args.output
 registername = args.register
 bins = int(args.bins)
 flipped = args.symmetry
+is_resize = bool(args.resize)
+is_best_rotation = bool(args.best_rotation)
 
 learning_rate = float(args.learning_rate)
 relaxation_factor = float(args.relaxation_factor)
@@ -173,32 +185,20 @@ moving = sitk.ReadImage(movingname, sitk.sitkFloat32)
 
 #Resizing
 dim_moving = moving.GetDimension()
-fixed_size = fixed.GetSize()
-moving_size = (fixed_size[0], int(moving.GetSize()[1]*fixed_size[0]/moving.GetSize()[0]))
-if dim_moving == 3:
-    moving_size += (fixed_size[2], )
-print(moving_size)
-moving = segmentation.resize(moving, moving_size)
-sx = fixed.GetSpacing()
-spacing = tuple([sx[i] for i in range(dim_moving)])
-moving.SetSpacing(spacing)
+if is_resize:
+    fixed_size = fixed.GetSize()
+    moving_size = (fixed_size[0], int(moving.GetSize()[1]*fixed_size[0]/moving.GetSize()[0]))
+    if dim_moving == 3:
+        moving_size += (fixed_size[2], )
+    print(moving_size)
+    moving = segmentation.resize(moving, moving_size)
+    moving = sitk.Cast(moving, sitk.sitkFloat32)
 
 
-moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkUInt8)
-moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkFloat32)
+fixed.SetSpacing([1 for i in range(dim_moving)])
+moving.SetSpacing([1 for i in range(dim_moving)])
+
 array_moving = sitk.GetArrayFromImage(moving)
-
-
-# Flip axis and choose best fit during registration
-if dim_moving == 2 and flipped:
-    # Construct a 3D image
-    # 2 slices = original + flipped
-    flipped_moving = sitk.Flip(moving, (True, False))
-    moving_and_flipped = np.zeros((2, array_moving.shape[-2], array_moving.shape[-1]), dtype=np.float32)
-    moving_and_flipped[0, ...] = sitk.GetArrayFromImage(moving)
-    moving_and_flipped[1, ...] = sitk.GetArrayFromImage(flipped_moving)
-    array_moving = moving_and_flipped
-
 
 width = fixed.GetWidth()
 height = fixed.GetHeight()
@@ -206,7 +206,7 @@ numberOfBins = int(math.sqrt(height * width / bins))
 
 
 if dim_moving == 2:
-    out, to_flip = register2D(fixed, moving, array_moving, flipped, sampling_percentage, learning_rate, min_step, relaxation_factor)
+    out, to_flip = register2D(fixed, moving, numberOfBins, is_best_rotation, array_moving, flipped, sampling_percentage, learning_rate, min_step, relaxation_factor)
 
 
 if dim_moving == 3:
@@ -214,7 +214,8 @@ if dim_moving == 3:
     pixel_type = fixed.GetPixelID()
     out = sitk.Image(size[0], size[1], size[2], pixel_type)
     for i in range(array_moving.shape[0]):
-        out2D, to_flip = register2D(fixed[:,:,i], moving[:,:,i], array_moving, flipped, sampling_percentage, learning_rate, min_step, relaxation_factor)
+        print("Slice ", i)
+        out2D, to_flip = register2D(fixed[:,:,i], moving[:,:,i], numberOfBins, is_best_rotation, array_moving, flipped, sampling_percentage, learning_rate, min_step, relaxation_factor)
         out2D = sitk.JoinSeries(out2D)
         out = sitk.Paste(out, out2D, out2D.GetSize(), destinationIndex=[0,0,i])
 
@@ -230,7 +231,6 @@ if out != None:
         ax[1].imshow(sitk.GetArrayFromImage(cimg))
     elif dim_moving == 3:
         fig, ax = plt.subplots(1, 1)
-        print(sitk.GetArrayFromImage(cimg).shape)
         tracker = IndexTracker(ax, sitk.GetArrayFromImage(cimg))
         fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
         plt.show()

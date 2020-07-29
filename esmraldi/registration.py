@@ -1,10 +1,13 @@
 """
 Module for the registration of two images
 """
+
+import math
 import numpy as np
 import SimpleITK as sitk
 import matplotlib.pyplot as plt
-import math
+import esmraldi.segmentation as seg
+from scipy.ndimage.morphology import distance_transform_edt
 
 def precision(im1, im2):
     """
@@ -146,7 +149,7 @@ def mutual_information(imRef, imRegistered, bins=20):
     return np.sum(pxy[nzs] * np.log(pxy[nzs] / px_py[nzs]))
 
 
-def best_fit(fixed, array_moving, number_of_bins, sampling_percentage, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
+def best_fit(fixed, array_moving, number_of_bins, sampling_percentage, find_best_rotation=False, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
     """
     Finds the best fit between variations of the same image
     according to mutual information measure.
@@ -181,7 +184,7 @@ def best_fit(fixed, array_moving, number_of_bins, sampling_percentage, learning_
         moving = sitk.Cast(sitk.RescaleIntensity(moving), sitk.sitkFloat32)
         moving.SetSpacing(fixed.GetSpacing())
         try:
-            resampler = register(fixed, moving, number_of_bins, sampling_percentage,  learning_rate=learning_rate, min_step=min_step, relaxation_factor=relaxation_factor)
+            resampler = register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotation=find_best_rotation, learning_rate=learning_rate, min_step=min_step, relaxation_factor=relaxation_factor)
             out = resampler.Execute(moving)
         except Exception as e:
             print(e)
@@ -196,7 +199,7 @@ def best_fit(fixed, array_moving, number_of_bins, sampling_percentage, learning_
     return best_resampler, index
 
 
-def register(fixed, moving, number_of_bins, sampling_percentage, seed=sitk.sitkWallClock, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
+def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotation=False, seed=sitk.sitkWallClock, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
     """
     Registration between reference (fixed)
     and deformable (moving) images.
@@ -235,8 +238,31 @@ def register(fixed, moving, number_of_bins, sampling_percentage, seed=sitk.sitkW
 
     """
     R = sitk.ImageRegistrationMethod()
+
+    transform = sitk.Similarity2DTransform()
+
+    if fixed.GetDimension()==3:
+        transform = sitk.Similarity3DTransform()
+
+    if find_best_rotation:
+        fixed_DT = seg.compute_DT(fixed)
+        moving_DT = seg.compute_DT(moving)
+
+        R.SetMetricAsMeanSquares()
+
+        R.SetOptimizerAsExhaustive(numberOfSteps=[10,18,0,0,0,0], stepLength = 1)
+        R.SetOptimizerScales([0.1,0.1,1,1,1,1])
+
+        tx = sitk.CenteredTransformInitializer(fixed, moving, transform, sitk.CenteredTransformInitializerFilter.MOMENTS)
+        R.SetInitialTransform(tx, inPlace=True)
+
+        outTx = R.Execute(fixed_DT, moving_DT)
+
+        transform = sitk.Similarity2DTransform(outTx)
+
     R.SetMetricAsMattesMutualInformation(number_of_bins)
-    R.SetMetricSamplingPercentage(sampling_percentage, seed )
+    R.SetMetricSamplingPercentage(sampling_percentage, seed)
+
     R.SetOptimizerAsRegularStepGradientDescent(
         learningRate=learning_rate,
         minStep=min_step,
@@ -245,13 +271,13 @@ def register(fixed, moving, number_of_bins, sampling_percentage, seed=sitk.sitkW
         gradientMagnitudeTolerance = 1e-5,
         maximumStepSizeInPhysicalUnits = 0.0)
 
-    transform = sitk.Similarity2DTransform()
-    if fixed.GetDimension()==3:
-        transform = sitk.Similarity3DTransform()
+    transform = sitk.CenteredTransformInitializer(
+        fixed,
+        moving,
+        transform,
+        sitk.CenteredTransformInitializerFilter.MOMENTS)
 
-    tx = sitk.CenteredTransformInitializer(fixed, moving, transform, sitk.CenteredTransformInitializerFilter.MOMENTS)
-
-    R.SetInitialTransform(tx)
+    R.SetInitialTransform(transform)
 
     try:
         outTx = R.Execute(fixed, moving)
@@ -260,7 +286,7 @@ def register(fixed, moving, number_of_bins, sampling_percentage, seed=sitk.sitkW
     else:
         resampler = sitk.ResampleImageFilter()
         resampler.SetReferenceImage(fixed)
-        resampler.SetInterpolator(sitk.sitkLinear)
+        resampler.SetInterpolator(sitk.sitkNearestNeighbor)
         resampler.SetDefaultPixelValue(0)
         resampler.SetTransform(outTx)
         return resampler

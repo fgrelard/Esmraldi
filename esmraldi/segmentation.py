@@ -24,6 +24,8 @@ from skimage import data, color
 from skimage.draw import circle
 from skimage.morphology import binary_erosion, closing, disk
 from scipy.ndimage import gaussian_filter1d
+from scipy.ndimage.morphology import distance_transform_edt
+
 from dtw import *
 
 def max_variance_sort(image_maldi):
@@ -143,6 +145,14 @@ def slice_correspondences(reference, target, sigma, is_reversed=False, is_contin
         correspondences = correspondences[::-1]
 
     return correspondences
+
+
+def compute_DT(image_itk):
+    image_array = sitk.GetArrayFromImage(image_itk)
+    image_bin = np.where(image_array > 0, 255, 0)
+    image_dt = distance_transform_edt(image_bin)
+    image_dt_itk = sitk.GetImageFromArray(image_dt.astype("float32"))
+    return image_dt_itk
 
 
 def sort_size_ascending(images, threshold):
