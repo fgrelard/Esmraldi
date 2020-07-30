@@ -138,17 +138,65 @@ def register2D(fixed, moving, numberOfBins, is_best_rotation=False, array_moving
     else:
         #normal registration
         best_resampler = reg.register(fixed, moving, numberOfBins, sampling_percentage, find_best_rotation=is_best_rotation, learning_rate=learning_rate, min_step=min_step, relaxation_factor=relaxation_factor)
+    return best_resampler, to_flip
+
+
+def apply_registration(image, best_resampler, to_flip):
     try:
         if to_flip:
             print("Flipped!")
-            moving = sitk.Flip(moving, (True, False))
-            moving = sitk.GetImageFromArray(sitk.GetArrayFromImage(moving))
-        out = best_resampler.Execute(moving)
+            image = sitk.Flip(image, (True, False))
+            image = sitk.GetImageFromArray(sitk.GetArrayFromImage(image))
+        out = best_resampler.Execute(image)
     except Exception as e:
         print("Problem with best_resampler")
         print(e)
         return None
-    return out, to_flip
+    return out
+
+def apply_registration_imzml(image, best_resampler, to_flip):
+    size = register.GetSize()
+    pixel_type = register.GetPixelID()
+    fixed_size = fixed.GetSize()
+
+    outRegister = sitk.Image(fixed_size[0], fixed_size[1], size[2], pixel_type )
+    for i in range(size[2]):
+        slice = register[:,:,i]
+        slice.SetSpacing([1, 1])
+
+        outSlice = best_resampler.Execute(slice)
+        outSlice = sitk.JoinSeries(outSlice)
+        outRegister = sitk.Paste(outRegister, outSlice, outSlice.GetSize(), destinationIndex=[0,0,i])
+    return outRegister
+
+def read_image_to_register(registername, is_imzml):
+    mzs = None
+    if is_imzml:
+        imzml = imzmlio.open_imzml(registername)
+        array = imzmlio.to_image_array(imzml).T
+        register = sitk.GetImageFromArray(array)
+        mz, _ = imzml.getspectrum(0)
+    else:
+        register = sitk.ReadImage(registername, sitk.sitkFloat32)
+    if to_flip:
+        dim = register.GetDimension()
+        flip = (True, False) + ((False,) if dim > 2 else ())
+        register = sitk.Flip(register, flip)
+        register = sitk.GetImageFromArray(sitk.GetArrayFromImage(register))
+
+    dim = register.GetDimension()
+    register.SetSpacing([1 for i in range(dim)])
+
+    if is_resize:
+        new_size = moving.GetSize() + ((register.GetSize()[2],) if dim > 2 else ())
+        register = segmentation.resize(register, new_size)
+
+    identity = np.identity(dim).tolist()
+    flat_list = [item for sublist in identity for item in sublist]
+    direction = tuple(flat_list)
+    register.SetDirection(flat_list)
+
+    return register, mz
 
 
 parser = argparse.ArgumentParser()
@@ -206,7 +254,8 @@ numberOfBins = int(math.sqrt(height * width / bins))
 
 
 if dim_moving == 2:
-    out, to_flip = register2D(fixed, moving, numberOfBins, is_best_rotation, array_moving, flipped, sampling_percentage, learning_rate, min_step, relaxation_factor)
+    best_resampler, to_flip = register2D(fixed, moving, numberOfBins, is_best_rotation, array_moving, flipped, sampling_percentage, learning_rate, min_step, relaxation_factor)
+    out = apply_registration(moving, best_resampler, to_flip)
 
 
 if dim_moving == 3:
@@ -215,7 +264,8 @@ if dim_moving == 3:
     out = sitk.Image(size[0], size[1], size[2], pixel_type)
     for i in range(array_moving.shape[0]):
         print("Slice ", i)
-        out2D, to_flip = register2D(fixed[:,:,i], moving[:,:,i], numberOfBins, is_best_rotation, array_moving, flipped, sampling_percentage, learning_rate, min_step, relaxation_factor)
+        best_resampler, to_flip = register2D(fixed[:,:,i], moving[:,:,i], numberOfBins, is_best_rotation, array_moving, flipped, sampling_percentage, learning_rate, min_step, relaxation_factor)
+        out2D = apply_registration(moving[:,:,i], best_resampler, to_flip)
         out2D = sitk.JoinSeries(out2D)
         out = sitk.Paste(out, out2D, out2D.GetSize(), destinationIndex=[0,0,i])
 
@@ -244,62 +294,14 @@ if out != None:
 
 if registername:
     is_imzml = registername.lower().endswith(".imzml")
-    if is_imzml:
-        imzml = imzmlio.open_imzml(registername)
-        array = imzmlio.to_image_array(imzml).T
-        register = sitk.GetImageFromArray(array)
-    else:
-        register = sitk.ReadImage(registername, sitk.sitkFloat32)
-    if to_flip:
-        dim = register.GetDimension()
-        flip = (True, False) + ((False,) if dim > 2 else ())
-        register = sitk.Flip(register, (True, False, False))
-        register = sitk.GetImageFromArray(sitk.GetArrayFromImage(register))
-
-    dim = register.GetDimension()
-    new_size = moving_size + ((register.GetSize()[2],) if dim > 2 else ())
-    register = segmentation.resize(register, new_size)
-
-    identity = np.identity(dim).tolist()
-    flat_list = [item for sublist in identity for item in sublist]
-    direction = tuple(flat_list)
-    register.SetDirection(flat_list)
-
-    size = register.GetSize()
-    pixel_type = register.GetPixelID()
-
-    if len(size) == 2:
-        outRegister = sitk.Image(fixed_size[0], fixed_size[1], pixel_type )
-
-    if len(size) == 3:
-        outRegister = sitk.Image(fixed_size[0], fixed_size[1], size[2], pixel_type )
-
-    sx = fixed.GetSpacing()
-    spacing = tuple([sx[0] for i in range(dim)])
-    register.SetSpacing(spacing)
-
-    if len(size) == 2:
-        outRegister = best_resampler.Execute(register)
-        # if not is_imzml:
-        #     outRegister = sitk.Cast(sitk.RescaleIntensity(outRegister), pixel_type)
-
-    if len(size) == 3:
-        for i in range(size[2]):
-            slice = register[:,:,i]
-            slice.SetSpacing(fixed.GetSpacing())
-
-            outSlice = best_resampler.Execute(slice)
-            # if not is_imzml:
-            #     outSlice = sitk.Cast(sitk.RescaleIntensity(outSlice), pixel_type)
-
-            outSlice = sitk.JoinSeries(outSlice)
-            outRegister = sitk.Paste(outRegister, outSlice, outSlice.GetSize(), destinationIndex=[0,0,i])
+    register, mz = read_image_to_register(registername, is_imzml)
 
     if is_imzml:
-        mz, y = imzml.getspectrum(0)
+        outRegister = apply_registration_imzml(register, best_resampler, to_flip)
         intensities, coordinates = imzmlio.get_spectra_from_images(sitk.GetArrayFromImage(outRegister).T)
         mzs = [mz] * len(coordinates)
         imzmlio.write_imzml(mzs, intensities, coordinates, outputname)
     else:
+        outRegister = apply_registration(register, best_resampler, to_flip)
         outRegister = sitk.Cast(outRegister, sitk.sitkUInt8)
         sitk.WriteImage(outRegister, outputname)
