@@ -7,8 +7,9 @@ import esmraldi.segmentation as seg
 
 import matplotlib.pyplot as plt
 
-from vedo import *
 import vedo.applications as applications
+
+from vedo import *
 
 showing_mesh = False
 
@@ -46,7 +47,7 @@ sp = vol.spacing()
 vol.spacing([sp[0]*1, sp[1]*1, sp[2]*10])
 vol.mode(0).color("jet").jittering(True)
 vol.interpolation(1)
-vp = applications.Slicer(vol, cmaps=('jet', 'gray'),showIcon=False, useSlider3D=True)
+vp = applications.Slicer(vol, cmaps=('jet', 'gray'),showIcon=False, showHisto=False, useSlider3D=True)
 
 vp.keyPressFunction = keyfunc
 
@@ -56,6 +57,11 @@ vp2.sliders[1][0].SetEnabled(True)
 vp2.sliders[2][0].SetEnabled(True)
 vp.remove(vol)
 
+hist = pyplot.cornerHistogram(image_array, s=0.2,
+                       bins=25, logscale=1, pos=3,
+                       c=(0.3,0.3,0.3), bg=(0.3,0.3,0.3), alpha=0.7)
+
+# vp.add(hist)
 vp.show()
 
 # vp.show(vol,viewup="z", interactive=True)

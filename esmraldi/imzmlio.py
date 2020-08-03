@@ -178,7 +178,8 @@ def get_spectra_from_images(images):
 def get_images_from_spectra(spectra, shape):
     """
     Extracts image as a numpy array from
-    spectra intensities and coordinates
+    spectra intensities and the shape of the image,
+    i.e the tuple (width, height)
 
     Parameters
     ----------
