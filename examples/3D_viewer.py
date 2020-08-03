@@ -1,6 +1,6 @@
 import argparse
+import functools
 import numpy as np
-import vtk
 import SimpleITK as sitk
 import esmraldi.segmentation as seg
 
@@ -10,6 +10,17 @@ import matplotlib.pyplot as plt
 from vedo import *
 import vedo.applications as applications
 
+showing_mesh = False
+
+def keyfunc(key):
+    global showing_mesh, vol, vp
+    printc('keyfunc called, pressed key:', key)
+    if key=='x':
+        showing_mesh = not showing_mesh
+        if showing_mesh:
+            vp.add(vol)
+        else:
+            vp.remove(vol)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input 3D ITK image")
@@ -31,17 +42,26 @@ image_resize_array = sitk.GetArrayFromImage(image_resize)
 
 printHistogram(vol, logscale=True)
 
-
 sp = vol.spacing()
 vol.spacing([sp[0]*1, sp[1]*1, sp[2]*10])
 vol.mode(0).color("jet").jittering(True)
-vp = applications.RayCaster(vol)
-vp.show(viewup="z", interactive=True)
-vp.sliders[0][0].SetEnabled(False)
-vp.sliders[1][0].SetEnabled(False)
-vp.sliders[2][0].SetEnabled(False)
+vol.interpolation(1)
+vp = applications.Slicer(vol, cmaps=('jet', 'gray'),showIcon=False, useSlider3D=True)
+
+vp.keyPressFunction = keyfunc
+
+vp2 = applications.RayCaster(vol)
+vp2.sliders[0][0].SetEnabled(True)
+vp2.sliders[1][0].SetEnabled(True)
+vp2.sliders[2][0].SetEnabled(True)
+vp.remove(vol)
+
+vp.show()
+
+# vp.show(vol,viewup="z", interactive=True)
 
 
+# vp2.show(vol, viewup="z", interactive=True)
 
 # # show lego blocks whose value is between vmin and vmax
 # lego = vol.legosurface(vmin=60, cmap='viridis')

@@ -18,3 +18,4 @@ scikit_learn>=0.23.1
 SimpleITK>=1.2.4
 scikit-image>=0.16.2
 dtw-python>=1.1.5
+vedo>=2020.3.4
