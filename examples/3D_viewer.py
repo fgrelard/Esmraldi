@@ -3,7 +3,8 @@ import functools
 import numpy as np
 import SimpleITK as sitk
 import esmraldi.segmentation as seg
-
+import esmraldi.imzmlio as imzmlio
+import esmraldi.spectraprocessing as sp
 
 import matplotlib.pyplot as plt
 
@@ -14,7 +15,7 @@ from vedo import *
 showing_mesh = False
 
 def keyfunc(key):
-    global showing_mesh, vol, vp
+    global showing_mesh, volclone, vp
     printc('keyfunc called, pressed key:', key)
     if key=='x':
         showing_mesh = not showing_mesh
@@ -24,55 +25,55 @@ def keyfunc(key):
             vp.remove(vol)
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--input", help="Input 3D ITK image")
+parser.add_argument("-i", "--input", help="Input 3D ITK image or imzML file")
 args = parser.parse_args()
 
 inputname = args.input
 
-vol = load(inputname) # load Volume
 
-image = sitk.ReadImage(inputname, sitk.sitkFloat32)
-image.SetSpacing([1, 1, 10])
-image_array = sitk.GetArrayFromImage(image)
-shape = image.GetSize()
-new_shape = (shape[0], shape[1], shape[2]*80)
-image_resize = seg.resize(image, new_shape)
-image_resize_array = sitk.GetArrayFromImage(image_resize)
 
-# vol = Volume(image_array)
+if inputname.endswith(".imzML"):
+    imzml = imzmlio.open_imzml(inputname)
+    mz, I = imzml.getspectrum(0)
+    spectra = imzmlio.get_spectra(imzml)
+    image = imzmlio.to_image_array_3D(imzml)
+    image = np.transpose(image, (2,1,0,3))
+    vol = Volume(image[..., 0])
+    mean_spectra = sp.spectra_mean(spectra)
+else:
+    vol = load(inputname) # load Volume
+
 
 printHistogram(vol, logscale=True)
-
+print(image.shape)
+print(vol.dimensions())
 sp = vol.spacing()
 vol.spacing([sp[0]*1, sp[1]*1, sp[2]*10])
 vol.mode(0).color("jet").jittering(True)
 vol.interpolation(1)
+
+
+# vp2 = applications.RayCaster(vol)
+# vp2.sliders[1][0].Off()
+# vp2.sliders[2][0].Off()
+# vp2.sliders[3][0].Off()
+
 vp = applications.Slicer(vol, cmaps=('jet', 'gray'),showIcon=False, showHisto=False, useSlider3D=True)
 
 vp.keyPressFunction = keyfunc
 
-vp2 = applications.RayCaster(vol)
-vp2.sliders[0][0].SetEnabled(True)
-vp2.sliders[1][0].SetEnabled(True)
-vp2.sliders[2][0].SetEnabled(True)
+
+
+
 vp.remove(vol)
 
-hist = pyplot.cornerHistogram(image_array, s=0.2,
-                       bins=25, logscale=1, pos=3,
-                       c=(0.3,0.3,0.3), bg=(0.3,0.3,0.3), alpha=0.7)
 
-# vp.add(hist)
+mean_spectrum_plot = pyplot.cornerPlot([mz,mean_spectra],
+                                       c=(0.0,0.1,0.3),
+                                       bg=(0.3,0.3,0.3),
+                                       pos=(0.01, 0.05))
+
+mean_spectrum_plot.GetPosition2Coordinate().SetValue(0.9, 0.2, 0)
+vp.add(mean_spectrum_plot)
+
 vp.show()
-
-# vp.show(vol,viewup="z", interactive=True)
-
-
-# vp2.show(vol, viewup="z", interactive=True)
-
-# # show lego blocks whose value is between vmin and vmax
-# lego = vol.legosurface(vmin=60, cmap='viridis')
-
-# # make colormap start at 40
-# lego.addScalarBar(horizontal=True, c='k')
-
-# show(vol, __doc__, axes=1, viewup='z')

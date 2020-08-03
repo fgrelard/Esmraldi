@@ -219,7 +219,7 @@ def get_image(imzml, mz, tol=0.01):
 
 def to_image_array(image):
     """
-    Extracts all existing images from imzML
+    Extracts all existing images from imzML.
 
     Parameters
     ----------
@@ -236,6 +236,33 @@ def to_image_array(image):
     for mz in x:
         im = get_image(image, mz)
         image_list.append(im)
+    img_array = np.transpose(np.asarray(image_list))
+    return img_array
+
+def to_image_array_3D(image):
+    """
+    Extracts all existing images from 3D imzML
+
+    Parameters
+    ----------
+    image: imzmlparser.ImzMLParser
+        parser
+
+    Returns
+    ----------
+    np.ndarray
+        image array
+    """
+    x, y = image.getspectrum(0)
+    image_list = []
+    min_z = min(image.coordinates, key=lambda item:item[2])[2]
+    max_z = max(image.coordinates, key=lambda item:item[2])[2]
+    for mz in x:
+        images_along_z = []
+        for i in range(min_z, max_z + 1):
+            im = imzmlparser.getionimage(image, mz, tol=0.01, z=i)
+            images_along_z.append(im)
+        image_list.append(images_along_z)
     img_array = np.transpose(np.asarray(image_list))
     return img_array
 
