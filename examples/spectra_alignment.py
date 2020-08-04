@@ -34,11 +34,6 @@ def extract_mz_above(spectra):
     return smaller_spectra
 
 
-# spectra = np.load("data/old/peaksel_2.npy")
-# deisotoped_spectra = sp.deisotoping(spectra)
-# np.save("data/peaksel_2_deisotoped.npy", deisotoped_spectra)
-# print(spectra.shape)
-# exit(0)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input MALDI imzML")
