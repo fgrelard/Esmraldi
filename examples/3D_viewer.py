@@ -6,27 +6,12 @@ import SimpleITK as sitk
 import esmraldi.segmentation as seg
 import esmraldi.imzmlio as imzmlio
 import esmraldi.spectraprocessing as sp
-
+import esmraldi.viewer3D as viewer3D
 import matplotlib.pyplot as plt
 
 import vedo.applications as applications
 
-from vedo import *
-
-showing_mesh = False
-
-def keyfunc(key):
-    global showing_mesh, volclone, vp
-    printc('keyfunc called, pressed key:', key)
-    if key=='x':
-        showing_mesh = not showing_mesh
-        if showing_mesh:
-            vp.add(vol)
-        else:
-            vp.remove(vol)
-
-def clickfunc(key):
-    print(key)
+import vedo
 
 
 parser = argparse.ArgumentParser()
@@ -63,39 +48,32 @@ if inputname.endswith(".imzML"):
             np.save(memmap_image_filename, image)
             np.save(memmap_spectra_filename, spectra)
 
-    vol = Volume(image[..., 0])
+    vol = vedo.Volume(image[..., 1000])
     mean_spectra = sp.spectra_mean(spectra)
 else:
-    vol = load(inputname) # load Volume
+    vol = vedo.load(inputname) # load Volume
 
-printHistogram(vol, logscale=True)
+vedo.printHistogram(vol, logscale=True)
+
 print(image.shape)
 print(vol.dimensions())
+
 sp = vol.spacing()
-vol.spacing([sp[0]*1, sp[1]*1, sp[2]*10])
+vol.spacing([sp[0]*1, sp[1]*1, sp[2]*1])
 vol.mode(0).color("jet").jittering(True)
 vol.interpolation(1)
 
 
-# vp2 = applications.RayCaster(vol)
-# vp2.sliders[1][0].Off()
-# vp2.sliders[2][0].Off()
-# vp2.sliders[3][0].Off()
-
-vp = applications.Slicer(vol, cmaps=('jet', 'gray'),showIcon=False, showHisto=False, useSlider3D=True)
-
-vp.keyPressFunction = keyfunc
-
-vp.remove(vol)
+vp = viewer3D.Slicer(vol, spectra[0,0], mean_spectra, cmaps=('jet', 'gray'),showIcon=False, showHisto=False, useSlider3D=True)
 
 
-mean_spectrum_plot = pyplot.cornerPlot([spectra[0,0],mean_spectra],
-                                       c=(0.0,0.1,0.3),
-                                       bg=(0.3,0.3,0.3),
-                                       pos=(0.01, 0.05))
 
-mean_spectrum_plot.GetPosition2Coordinate().SetValue(0.9, 0.2, 0)
+vedo.interactive()
+# mean_spectrum_plot.GetPosition2Coordinate().SetValue(0.9, 0.2, 0)
+# mean_spectrum_plot.AddObserver("LeftButtonPressEvent", clickfunc)
+# mean_spectrum_plot.PickableOn()
+# mean_spectrum_plot.PlotPointsOff()
 
-vp.add(mean_spectrum_plot)
 
-vp.show()
+# vedo.closePlotter()
+# vedo.show(vol, mean_spectrum_plot,shape="1/1")
