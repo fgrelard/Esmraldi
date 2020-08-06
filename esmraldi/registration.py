@@ -253,7 +253,7 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
         R.SetOptimizerAsExhaustive(numberOfSteps=[10,18,0,0,0,0], stepLength = 1)
         R.SetOptimizerScales([0.1,0.1,1,1,1,1])
 
-        tx = sitk.CenteredTransformInitializer(fixed, moving, transform, sitk.CenteredTransformInitializerFilter.MOMENTS)
+        tx = sitk.CenteredTransformInitializer(fixed_DT, moving_DT, transform, sitk.CenteredTransformInitializerFilter.MOMENTS)
         R.SetInitialTransform(tx, inPlace=True)
 
         outTx = R.Execute(fixed_DT, moving_DT)

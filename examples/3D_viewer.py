@@ -13,6 +13,17 @@ import vedo.applications as applications
 
 import vedo
 
+def tracefunc(frame, event, arg, indent=[0]):
+      if event == "call":
+          indent[0] += 2
+          print("-" * indent[0] + "> call function", frame.f_code.co_name)
+      elif event == "return":
+          print("<" + "-" * indent[0], "exit function", frame.f_code.co_name)
+          indent[0] -= 2
+      return tracefunc
+
+import sys
+# sys.setprofile(tracefunc)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input 3D ITK image or imzML file")
@@ -66,9 +77,6 @@ vol.interpolation(1)
 
 vp = viewer3D.Slicer(vol, spectra[0,0], mean_spectra, cmaps=('jet', 'gray'),showIcon=False, showHisto=False, useSlider3D=True)
 
-
-
-vedo.interactive()
 # mean_spectrum_plot.GetPosition2Coordinate().SetValue(0.9, 0.2, 0)
 # mean_spectrum_plot.AddObserver("LeftButtonPressEvent", clickfunc)
 # mean_spectrum_plot.PickableOn()
