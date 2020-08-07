@@ -2,73 +2,21 @@ from __future__ import division, print_function
 import vtk
 from vedo.addons import addScalarBar
 from vedo.plotter import Plotter
-from vedo.pyplot import cornerHistogram,cornerPlot
+from vedo.pyplot import cornerHistogram
 from vedo.utils import mag, precision, linInterpolate, isSequence
 from vedo.colors import printc, colorMap, getColor
 from vedo.shapes import Text2D
 from vedo import settings
 import numpy as np
-import vedo
-import math
 
-
-
-def spectrumPlot(points, c):
-    """
-    Return a ``vtkChartXY`` that is a plot of `x` versus `y`,
-    where `points` is a list of `(x,y)` points.
-
-    :param int pos: assign position:
-
-        - 1, topleft,
-        - 2, topright,
-        - 3, bottomleft,
-        - 4, bottomright.
-    """
-    # if len(points) == 2:  # passing [allx, ally]
-    #     # points = list(zip(points[0], points[1]))
-    #     points = np.stack((points[0], points[1]), axis=1)
-
-
-    # c = vedo.colors.getColor(c)  # allow different codings
-    chart = vtk.vtkChartXY()
-    array_x = vtk.vtkFloatArray()
-    array_x.SetName("m/z")
-
-    array_y = vtk.vtkFloatArray()
-    array_y.SetName("Intensities")
-
-
-    table = vtk.vtkTable()
-    table.AddColumn(array_x)
-    table.AddColumn(array_y)
-
-    table.SetNumberOfRows(len(points[0]))
-    for i in range(len(points[0])):
-        table.SetValue(i, 0, points[0][i])
-        table.SetValue(i, 1, points[1][i])
-
-    chart.GetAxis(0).SetTitle("Intensities")
-    chart.GetAxis(1).SetTitle("m/z")
-
-
-    points = chart.AddPlot(vtk.vtkChart.LINE)
-    points.SetInputData(table, 0, 1)
-    points.SetColor(0, 50, 125, 255)
-    points.SetWidth(2.0)
-
-    return chart
-
-# globals
 _cmap_slicer='gist_ncar_r'
 _alphaslider0, _alphaslider1, _alphaslider2 = 0.33, 0.66, 1  # defaults
 _kact=0
 _showing_mesh = False
 
-##########################################################################
+
 def Slicer(volume,
-           mz,
-           mean_spectrum,
+           qtWidget,
            alpha=1,
            cmaps=('gist_ncar_r', "hot_r", "bone_r", "jet", "Spectral_r"),
            map2cells=False,  # buggy
@@ -107,22 +55,20 @@ def Slicer(volume,
     global _cmap_slicer
 
     if verbose: printc("Slicer tool", invert=1, c="m")
-
-    custom_shape = [
-        dict(bottomleft=(0.0,0.0), topright=(1.00,1.00), bg=bg, bg2=bg2),
-        dict(bottomleft=(0.01,0.01), topright=(0.95,0.20), bg=bg,  bg2=bg2)
-]
     ################################
-    vp = Plotter(shape=custom_shape, bg=bg, bg2=bg2,
+    vp = Plotter(qtWidget=qtWidget, bg=bg, bg2=bg2,
                  size=size,
                  screensize=screensize,
                  title=title,
                  interactive=False,
-                 verbose=verbose)
+                 offscreen=True,
+                 verbose=verbose
+    )
 
     ################################
     box = volume.box().wireframe().alpha(0)
 
+    vp.add(box, render=False)
     if showIcon:
         vp.showInset(volume, pos=(.85,.85), size=0.15, c='w', draggable=draggable)
 
@@ -147,7 +93,7 @@ def Slicer(volume,
     msh.alpha(alpha).lighting('', la, ld, 0)
     msh.pointColors(cmap=_cmap_slicer, vmin=rmin, vmax=rmax)
     if map2cells: msh.mapPointsToCells()
-    vp.renderers[0].AddActor(msh)
+    vp.renderer.AddActor(msh)
     visibles[2] = msh
     addScalarBar(msh, pos=(0.04,0.0), horizontal=True, titleFontSize=0)
 
@@ -156,8 +102,8 @@ def Slicer(volume,
         msh = volume.xSlice(i).alpha(alpha).lighting('', la, ld, 0)
         msh.pointColors(cmap=_cmap_slicer, vmin=rmin, vmax=rmax)
         if map2cells: msh.mapPointsToCells()
-        vp.renderers[0].RemoveActor(visibles[0])
-        if i and i<dims[0]: vp.renderers[0].AddActor(msh)
+        vp.renderer.RemoveActor(visibles[0])
+        if i and i<dims[0]: vp.renderer.AddActor(msh)
         visibles[0] = msh
 
     def sliderfunc_y(widget, event):
@@ -165,8 +111,8 @@ def Slicer(volume,
         msh = volume.ySlice(i).alpha(alpha).lighting('', la, ld, 0)
         msh.pointColors(cmap=_cmap_slicer, vmin=rmin, vmax=rmax)
         if map2cells: msh.mapPointsToCells()
-        vp.renderers[0].RemoveActor(visibles[1])
-        if i and i<dims[1]: vp.renderers[0].AddActor(msh)
+        vp.renderer.RemoveActor(visibles[1])
+        if i and i<dims[1]: vp.renderer.AddActor(msh)
         visibles[1] = msh
 
     def sliderfunc_z(widget, event):
@@ -174,12 +120,12 @@ def Slicer(volume,
         msh = volume.zSlice(i).alpha(alpha).lighting('', la, ld, 0)
         msh.pointColors(cmap=_cmap_slicer, vmin=rmin, vmax=rmax)
         if map2cells: msh.mapPointsToCells()
-        vp.renderers[0].RemoveActor(visibles[2])
-        if i and i<dims[2]: vp.renderers[0].AddActor(msh)
+        vp.renderer.RemoveActor(visibles[2])
+        if i and i<dims[2]: vp.renderer.AddActor(msh)
         visibles[2] = msh
 
     cx, cy, cz, ch = 'dr', 'dg', 'db', (0.3,0.3,0.3)
-    if np.sum(vp.renderers[0].GetBackground()) < 1.5:
+    if np.sum(vp.renderer.GetBackground()) < 1.5:
         cx, cy, cz = 'lr', 'lg', 'lb'
         ch = (0.8,0.8,0.8)
 
@@ -220,12 +166,27 @@ def Slicer(volume,
         )
 
 
-
-
-
     #################
-    def buttonfunc():
+    def keyfunc(iren, event):
+        print("keyfunc")
+        global _showing_mesh
+        key = iren.GetKeySym()
+        if key=='x':
+            _showing_mesh = not _showing_mesh
+            if _showing_mesh:
+                vp.add(volume)
+                vp.interactive = True
+            else:
+                vp.remove(volume)
+
+    def buttonfunc(iren, event):
         global _cmap_slicer
+        clickPos = iren.GetEventPosition()
+
+        picker = vtk.vtkPropPicker()
+        picker.Pick(clickPos[0], clickPos[1], 0, vp.renderer)
+        if not picker.GetActor2D():
+            return
         bu.switch()
         _cmap_slicer = bu.status()
         for mesh in visibles:
@@ -233,53 +194,14 @@ def Slicer(volume,
                 mesh.pointColors(cmap=_cmap_slicer, vmin=rmin, vmax=rmax)
                 if map2cells:
                     mesh.mapPointsToCells()
-        vp.renderers[0].RemoveActor(mesh.scalarbar)
+        vp.renderer.RemoveActor(mesh.scalarbar)
+        volume.mode(0).color(_cmap_slicer).jittering(True)
+
         mesh.scalarbar = addScalarBar(mesh,
                                       pos=(0.04,0.0),
                                       horizontal=True,
                                       titleFontSize=0)
-        vp.renderers[0].AddActor(mesh.scalarbar)
-
-    def keyfunc(key, vol, vp):
-        global _showing_mesh
-        if key=='x':
-            _showing_mesh = not _showing_mesh
-            if _showing_mesh:
-                vp.add(vol)
-            else:
-                vp.remove(vol)
-
-
-    def clickfunc(iren, event):
-
-        x, y = iren.GetEventPosition()
-        renderer = iren.FindPokedRenderer(x, y)
-        if renderer == vp.renderers[1]:
-            picker = iren.GetPicker()
-            picker.PickProp(x, y, renderer)
-            clickedActor = picker.GetActor2D()
-            print(clickedActor, picker.GetActor())
-            vp.clickedActor = clickedActor
-            if hasattr(clickedActor, 'picked3d'):
-                clickedActor.picked3d = picker.GetPickPosition()
-
-            if vp.mouseLeftClickFunction:
-                vp.mouseLeftClickFunction(clickedActor)
-
-
-
-    def mousemovefunc(interactor, event):
-        lastPos = interactor.GetLastEventPosition()
-        currPos = interactor.GetEventPosition()
-        renderer = interactor.FindPokedRenderer(currPos[0], currPos[1])
-        if renderer == vp.renderers[1]:
-            contextInteractorStyle.SetScene(scene)
-            interactor.SetInteractorStyle(contextInteractorStyle)
-
-        else:
-            contextInteractorStyle.SetScene(None)
-            interactor.SetInteractorStyle(trackInteractorStyle)
-
+        vp.renderer.AddActor(mesh.scalarbar)
 
     bu = vp.addButton(buttonfunc,
         pos=(0.27, 0.005),
@@ -289,26 +211,11 @@ def Slicer(volume,
         size=14,
         bold=True,
     )
+    vp.interactor.AddObserver("KeyPressEvent", keyfunc)
+
+    vp.interactor.AddObserver("LeftButtonPressEvent", buttonfunc)
 
     #################
-
-    mean_spectrum_plot = cornerPlot([mz,mean_spectrum],
-                                    s=0.9,
-                                    c=(0.0,0.1,0.3),
-                                    bg=(0.3,0.3,0.3),
-                                    pos=(0,0)
-    )
-    chart = spectrumPlot([mz, mean_spectrum], c=(0.0,0.1,0.3))
-
-    mean_spectrum_plot = vtk.vtkContextActor()
-    scene = vtk.vtkContextScene()
-    scene.AddItem(chart)
-    mean_spectrum_plot.SetScene(scene)
-
-    vp.renderers[1].AddActor(mean_spectrum_plot)
-    scene.SetRenderer(vp.renderers[1])
-
-
     hist = None
     if showHisto:
         hist = cornerHistogram(data, s=0.2,
@@ -320,25 +227,7 @@ def Slicer(volume,
         comment = Text2D("Use sliders to slice volume\nClick button to change colormap",
                          font='Montserrat', s=0.8)
 
-    # vp.keyPressFunction = lambda key, vol=volume, vp=vp: keyfunc(key, vol, vp)
-
-    contextInteractorStyle = vtk.vtkContextInteractorStyle()
-    contextInteractorStyle.SetScene(None)
-
-    trackInteractorStyle = vtk.vtkInteractorStyleTrackballCamera()
-
-    vp.interactor.RemoveObservers("TimerEvent")
-
-    vp.interactor.AddObserver("MouseMoveEvent", mousemovefunc)
-
-    # vp.interactor.AddObserver("LeftButtonPressEvent", clickfunc)
-    vp.show([msh, box], at=0, viewup="z", interactive=False)
-    # vp.show(box, at=0, viewup="z", interactive=False)
-
-    # vp.show(mean_spectrum_plot, at=1, sharecam=False, viewup="z", interactive=False)
-
-
-
+    vp.add([msh, hist, comment])
     if verbose:
         printc("Press button to cycle through color maps,", c="m")
         printc("Use sliders to select the slicing planes.", c="m")
