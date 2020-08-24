@@ -12,14 +12,14 @@ import esmraldi.spectraprocessing as sp
 import esmraldi.viewer3D as viewer3D
 import matplotlib.pyplot as plt
 
-import vedo.applications as applications
-
 import vedo
 
 import sys
 import vtk
-from PyQt5 import QtCore, QtGui
+
 from PyQt5 import Qt
+from PyQt5 import QtCore, QtGui
+
 
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 import random
@@ -191,7 +191,6 @@ if inputname.endswith(".imzML"):
             os.makedirs(memmap_dir, exist_ok=True)
             np.save(memmap_image_filename, image)
             np.save(memmap_spectra_filename, spectra)
-
     vol = vedo.Volume(image[..., 1000])
     mean_spectra = sp.spectra_mean(spectra)
 else:
