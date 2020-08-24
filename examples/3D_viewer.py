@@ -18,7 +18,7 @@ import sys
 import vtk
 
 from PyQt5 import Qt
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
@@ -66,21 +66,40 @@ class MainWindow(Qt.QMainWindow):
         # this is the Canvas Widget that displays the `figure`
         # it takes the `figure` instance as a parameter to __init__
         self.canvas = FigureCanvas(self.figure)
-        # self.canvas.setFixedHeight(150)
 
         # this is the Navigation widget
         # it takes the Canvas widget and a parent
         self.toolbar = NavigationToolbar(self.canvas, self)
 
+        self.hboxLayout = Qt.QHBoxLayout()
+        self.hboxLayout.setSizeConstraint(Qt.QLayout.SetMinAndMaxSize)
+
+
+        self.label_mz = QtWidgets.QLabel()
+        self.label_mz.setText("m/z")
+
+        self.edit_mz = QtWidgets.QLineEdit()
+        self.edit_mz.setMaximumWidth(80)
+
+        self.label_tol = QtWidgets.QLabel()
+        self.label_tol.setText("+/-")
+
+        self.edit_tol = QtWidgets.QLineEdit()
+        self.edit_tol.setMaximumWidth(80)
+
         # Just some button connected to `plot` method
         self.plot()
         self.figure.tight_layout()
-        # self.figure.canvas.mpl_connect('button_press_event', self.on_click)
 
+        self.hboxLayout.addStretch()
+        self.hboxLayout.addWidget(self.label_mz)
+        self.hboxLayout.addWidget(self.edit_mz)
+        self.hboxLayout.addWidget(self.label_tol)
+        self.hboxLayout.addWidget(self.edit_tol)
 
-
-        self.vl.addWidget(self.canvas, 3, 0)
-        self.vl.addWidget(self.toolbar, 4, 0)
+        self.vl.addLayout(self.hboxLayout, 3, 0)
+        self.vl.addWidget(self.canvas, 4, 0)
+        self.vl.addWidget(self.toolbar, 5, 0)
 
         self.frame.setLayout(self.vl)
         self.setCentralWidget(self.frame)
