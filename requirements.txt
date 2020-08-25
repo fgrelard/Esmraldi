@@ -1,7 +1,6 @@
 wheel>=0.30.0
 pyimzML>=1.3.0
 numpy>=1.18.3
-ms_peak_picker>=0.1.27
 seaborn>=0.9.0
 scipy>=1.3.3
 pandas>=0.24.2
@@ -9,9 +8,7 @@ matplotlib>=3.1.0
 opencv_python>=4.2.0.32
 XlsxWriter>=1.2.8
 nibabel>=2.5.1
-pyopenms>=2.4.0
 scikit_image>=0.16.2
-ms_deisotope>=0.0.14
 ordered_set>=4.0.1
 Pillow>=7.1.2
 scikit_learn>=0.23.1
