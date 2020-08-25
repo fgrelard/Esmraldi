@@ -194,8 +194,6 @@ class MainWindow(Qt.QMainWindow):
             self.current_mz = event.xdata
             self.edit_mz.setText(str(round(self.current_mz, 4)))
 
-            self.get_points_on_spectrum()
-
 
         self.rect = Rectangle((0,0), 0, 0, alpha=0.1, fc='r')
         self.ax.add_patch(self.rect)

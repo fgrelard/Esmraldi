@@ -6,13 +6,9 @@ from vedo.pyplot import cornerHistogram
 from vedo.utils import mag, precision, linInterpolate, isSequence
 from vedo.colors import printc, colorMap, getColor
 from vedo.shapes import Text2D
+from vedo.mesh import Mesh
 from vedo import settings
 import numpy as np
-
-_cmap_slicer='gist_ncar_r'
-_alphaslider0, _alphaslider1, _alphaslider2 = 0.33, 0.66, 1  # defaults
-_kact=0
-_showing_mesh = False
 
 
 class Slicer(Plotter):
@@ -59,61 +55,71 @@ class Slicer(Plotter):
                          verbose=verbose)
         ################################
         self.volume = volume
-        self.box = volume.box().wireframe().alpha(0)
+        self.cmap_slicer = cmaps[0]
         self.alpha = alpha
+        self.showing_mesh = False
+        self.pos_slider = [0, 0, int(volume.dimensions()[2]/2)]
+
+
+        self.volume.mode(0).color(self.cmap_slicer).jittering(True)
+
+        self.box = volume.box().wireframe().alpha(0)
         self.add(self.box, render=False)
 
         # inits
         la, ld = 0.7, 0.3 #ambient, diffuse
         dims = volume.dimensions()
         data = volume.getPointArray()
-        rmin, rmax = volume.imagedata().GetScalarRange()
+        self.rmin, self.rmax = volume.imagedata().GetScalarRange()
         if clamp:
             hdata, edg = np.histogram(data, bins=50)
             logdata = np.log(hdata+1)
             # mean  of the logscale plot
             meanlog = np.sum(np.multiply(edg[:-1], logdata))/np.sum(logdata)
-            rmax = min(rmax, meanlog+(meanlog-rmin)*0.9)
-            rmin = max(rmin, meanlog-(rmax-meanlog)*0.9)
+            self.rmax = min(self.rmax, meanlog+(meanlog-self.rmin)*0.9)
+            self.rmin = max(self.rmin, meanlog-(self.rmax-meanlog)*0.9)
             if verbose:
                 printc('scalar range clamped to: (' +
-                       precision(rmin, 3) +', '+  precision(rmax, 3)+')', c='m', bold=0)
-        _cmap_slicer = cmaps[0]
-        visibles = [None, None, None]
-        self.msh = volume.zSlice(int(dims[2]/2))
-        self.msh.alpha(alpha).lighting('', la, ld, 0)
-        self.msh.pointColors(cmap=_cmap_slicer, vmin=rmin, vmax=rmax)
+                       precision(self.rmin, 3) +', '+  precision(self.rmax, 3)+')', c='m', bold=0)
+
+        self.visibles = [None, None, None]
+        self.msh = volume.zSlice(self.pos_slider[2])
+        self.msh.alpha(self.alpha).lighting('', la, ld, 0)
+        self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
         if map2cells: self.msh.mapPointsToCells()
         self.renderer.AddActor(self.msh)
-        visibles[2] = self.msh
+        self.visibles[2] = self.msh
         addScalarBar(self.msh, pos=(0.04,0.0), horizontal=True, titleFontSize=0)
 
         def sliderfunc_x(widget, event):
             i = int(widget.GetRepresentation().GetValue())
-            self.msh = volume.xSlice(i).alpha(alpha).lighting('', la, ld, 0)
-            self.msh.pointColors(cmap=_cmap_slicer, vmin=rmin, vmax=rmax)
+            self.pos_slider[0] = i
+            self.msh = self.volume.xSlice(i).alpha(self.alpha).lighting('', la, ld, 0)
+            self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
             if map2cells: self.msh.mapPointsToCells()
-            self.renderer.RemoveActor(visibles[0])
+            self.renderer.RemoveActor(self.visibles[0])
             if i and i<dims[0]: self.renderer.AddActor(self.msh)
-            visibles[0] = self.msh
+            self.visibles[0] = self.msh
 
         def sliderfunc_y(widget, event):
             i = int(widget.GetRepresentation().GetValue())
-            self.msh = volume.ySlice(i).alpha(alpha).lighting('', la, ld, 0)
-            self.msh.pointColors(cmap=_cmap_slicer, vmin=rmin, vmax=rmax)
+            self.pos_slider[1] = i
+            self.msh = self.volume.ySlice(i).alpha(self.alpha).lighting('', la, ld, 0)
+            self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
             if map2cells: self.msh.mapPointsToCells()
-            self.renderer.RemoveActor(visibles[1])
+            self.renderer.RemoveActor(self.visibles[1])
             if i and i<dims[1]: self.renderer.AddActor(self.msh)
-            visibles[1] = self.msh
+            self.visibles[1] = self.msh
 
         def sliderfunc_z(widget, event):
             i = int(widget.GetRepresentation().GetValue())
-            self.msh = volume.zSlice(i).alpha(alpha).lighting('', la, ld, 0)
-            self.msh.pointColors(cmap=_cmap_slicer, vmin=rmin, vmax=rmax)
+            self.pos_slider[2] = i
+            self.msh = self.volume.zSlice(i).alpha(self.alpha).lighting('', la, ld, 0)
+            self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
             if map2cells: self.msh.mapPointsToCells()
-            self.renderer.RemoveActor(visibles[2])
+            self.renderer.RemoveActor(self.visibles[2])
             if i and i<dims[2]: self.renderer.AddActor(self.msh)
-            visibles[2] = self.msh
+            self.visibles[2] = self.msh
 
         cx, cy, cz, ch = 'dr', 'dg', 'db', (0.3,0.3,0.3)
         if np.sum(self.renderer.GetBackground()) < 1.5:
@@ -121,29 +127,30 @@ class Slicer(Plotter):
             ch = (0.8,0.8,0.8)
 
         self.addSlider2D(sliderfunc_x, 0, dims[0], title='X', titleSize=0.5,
+                         value=self.pos_slider[0],
+
                          pos=[(0.8,0.12), (0.95,0.12)], showValue=False, c=cx)
         self.addSlider2D(sliderfunc_y, 0, dims[1], title='Y', titleSize=0.5,
+                         value=self.pos_slider[1],
                          pos=[(0.8,0.08), (0.95,0.08)], showValue=False, c=cy)
         self.addSlider2D(sliderfunc_z, 0, dims[2], title='Z', titleSize=0.6,
-                         value=int(dims[2]/2),
+                         value=self.pos_slider[2],
                          pos=[(0.8,0.04), (0.95,0.04)], showValue=False, c=cz)
 
 
         #################
         def keyfunc(iren, event):
             print("keyfunc")
-            global _showing_mesh
             key = iren.GetKeySym()
             if key=='x':
-                _showing_mesh = not _showing_mesh
-                if _showing_mesh:
+                self.showing_mesh = not self.showing_mesh
+                if self.showing_mesh:
                     self.add(self.volume)
                     self.interactive = True
                 else:
                     self.remove(self.volume)
 
         def buttonfunc(iren, event):
-            global _cmap_slicer
             clickPos = iren.GetEventPosition()
 
             picker = vtk.vtkPropPicker()
@@ -151,14 +158,14 @@ class Slicer(Plotter):
             if not picker.GetActor2D():
                 return
             bu.switch()
-            _cmap_slicer = bu.status()
-            for mesh in visibles:
+            self.cmap_slicer = bu.status()
+            for mesh in self.visibles:
                 if mesh:
-                    mesh.pointColors(cmap=_cmap_slicer, vmin=rmin, vmax=rmax)
+                    mesh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
                     if map2cells:
                         mesh.mapPointsToCells()
+            self.volume.mode(0).color(self.cmap_slicer).jittering(True)
             self.renderer.RemoveActor(mesh.scalarbar)
-            volume.mode(0).color(_cmap_slicer).jittering(True)
 
             mesh.scalarbar = addScalarBar(mesh,
                                           pos=(0.04,0.0),
@@ -193,11 +200,52 @@ class Slicer(Plotter):
     def update(self, vol):
         la, ld = 0.7, 0.3 #ambient, diffuse
         dims = vol.dimensions()
-        rmin, rmax = vol.imagedata().GetScalarRange()
+        self.rmin, self.rmax = vol.imagedata().GetScalarRange()
         self.remove([self.volume, self.box, self.msh])
+        self.renderer.RemoveActor(self.msh)
+
         self.volume = vol
+        self.volume.mode(0).color(self.cmap_slicer).jittering(True)
+
         self.box = vol.box().wireframe().alpha(0)
-        self.msh = vol.zSlice(int(dims[2]/2))
-        self.msh.alpha(self.alpha).lighting('', la, ld, 0)
-        self.msh.pointColors(cmap=_cmap_slicer, vmin=rmin, vmax=rmax)
-        self.add([self.volume, self.box, self.msh])
+        self.add(self.box, render=False)
+
+        for m in self.visibles:
+            self.renderer.RemoveActor(m)
+        self.renderer.RemoveActor(self.msh.scalarbar)
+
+        previous_visibles = self.visibles
+        self.visibles = [None, None, None]
+
+        for i in range(len(previous_visibles)):
+            elem = previous_visibles[i]
+            index = self.pos_slider[i]
+            if elem and index > 0:
+                previous_visibles[i] = elem
+            else:
+                previous_visibles[i] = None
+
+        for i in range(len(previous_visibles)):
+            if i == 0:
+                self.msh = self.volume.xSlice(self.pos_slider[0]).alpha(self.alpha).lighting('', la, ld, 0)
+            elif i == 1:
+                self.msh = self.volume.ySlice(self.pos_slider[1]).alpha(self.alpha).lighting('', la, ld, 0)
+            elif i == 2:
+                self.msh = self.volume.zSlice(self.pos_slider[2]).alpha(self.alpha).lighting('', la, ld, 0)
+            self.msh.alpha(self.alpha).lighting('', la, ld, 0)
+            self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
+            if previous_visibles[i]:
+                self.visibles[i] = self.msh
+                self.renderer.AddActor(self.msh)
+            else:
+                self.visibles[i] = None
+
+        self.msh.scalarbar = addScalarBar(self.msh,
+                                          pos=(0.04,0.0),
+                                          horizontal=True,
+                                          titleFontSize=0)
+        self.renderer.AddActor(self.msh.scalarbar)
+        self.add(self.msh)
+
+        if self.showing_mesh:
+            self.add(self.volume)
