@@ -588,7 +588,8 @@ def realign_wrt_peaks_mzs(spectra, aligned_mzs, full_mzs, indices_to_width):
         spectrum = spectra[i]
         x, y = spectrum
         matching_indices = [bisect.bisect_left(x, ii) for ii in aligned_mzs]
-        y_realigned = y[matching_indices]
+        matching_indices = [elem if elem < len(x) else len(x) - 1 for elem in matching_indices]
+        y_realigned = np.array(y)[matching_indices]
         indices = full_mzs[i]
         for i in indices:
             mz, width = closest_peak(i, indices_to_width)

@@ -16,6 +16,7 @@ import os
 import re
 import esmraldi.registration as reg
 import esmraldi.segmentation as segmentation
+import esmraldi.spectraprocessing as sp
 
 class IndexTracker(object):
     def __init__(self, ax, X):
@@ -214,7 +215,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--fixed", help="Fixed image")
 parser.add_argument("-m", "--moving", help="Moving image")
 parser.add_argument("-r", "--register", help="Registration image or directory containing images (same number as in moving and fixed)")
-parser.add_argument("-p", "--pattern", help="Selects registration images fitting this regexp pattern (default=*) if parameter register is a directory", default="*")
 parser.add_argument("-o", "--output", help="Output")
 parser.add_argument("-b", "--bins", help="number per bins", default=10)
 parser.add_argument("-s", "--symmetry", help="best fit with flipped image", action="store_true", default=False)
@@ -313,10 +313,11 @@ if registername:
         register_image_names = extract_image_from_directories(registername, pattern)
 
     is_different_resampler = False
-    if len(list_image_names) == len(best_resamplers):
+    if len(register_image_names) == len(best_resamplers):
         is_different_resampler = True
 
     intensities, coordinates, mzs = [], [], []
+    spectra = []
     i = 1
     for register_name in register_image_names:
         if is_different_resampler:
@@ -335,12 +336,28 @@ if registername:
             coords = [(elem[0], elem[1], i) for elem in coords]
             intensities += I
             coordinates += coords
-            mzs += [mz] * len(coordinates)
-            spectra = np.stack((mzs, I), axis=1)
-            imzmlio.write_imzml(mzs, intensities, coordinates, outputname)
+            current_mzs = [mz] * len(coords)
+            mzs += current_mzs
+            current_spectra = np.stack((current_mzs, I), axis=1)
+            spectra = spectra + current_spectra.tolist()
         else:
             outRegister = apply_registration(register, best_resampler, to_flip)
             outRegister = sitk.Cast(outRegister, sitk.sitkUInt8)
             sitk.WriteImage(outRegister, outputname)
 
         i += 1
+        if i > 2:
+            break
+
+    if is_imzml:
+        if len(register_image_names) > 1:
+            spectra = np.array(spectra, dtype=object)
+            print(spectra.shape)
+            print(np.unique([len(mzs[i]) for i in range(len(mzs))]))
+            realigned_spectra = sp.realign_mzs(spectra, mzs, step=0.05)
+            print(realigned_spectra.shape)
+            mzs = realigned_spectra[:, 0]
+            intensities = realigned_spectra[:, 1]
+        imzmlio.write_imzml(mzs, intensities, coordinates, outputname)
+    else:
+        pass
