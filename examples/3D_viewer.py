@@ -42,9 +42,9 @@ class MainWindow(Qt.QMainWindow):
         self.vtkWidget = QVTKRenderWindowInteractor(self.frame)
         self.vl.addWidget(self.vtkWidget, 0, 0, 3, 7)
 
-        vp = viewer3D.Slicer(vol, self.vtkWidget, cmaps=('jet', 'gray'),showIcon=False, showHisto=False, useSlider3D=False)
+        self.vp = viewer3D.Slicer(vol, self.vtkWidget, cmaps=('jet', 'gray'),useSlider3D=False)
         # self.ren = vtk.vtkRenderer()
-        self.ren= vp.renderer
+        self.ren= self.vp.renderer
         self.vtkWidget.GetRenderWindow().AddRenderer(self.ren)
         # self.iren = self.vtkWidget.GetRenderWindow().GetInteractor()
         self.vtkWidget.GetRenderWindow().SetAlphaBitPlanes(1)
@@ -53,7 +53,7 @@ class MainWindow(Qt.QMainWindow):
         self.ren.SetMaximumNumberOfPeels(100)
         self.ren.SetOcclusionRatio(0.1)
 
-        self.iren = vp.interactor
+        self.iren = self.vp.interactor
 
         self.ren.ResetCamera()
 
@@ -85,7 +85,7 @@ class MainWindow(Qt.QMainWindow):
         self.frame.setLayout(self.vl)
         self.setCentralWidget(self.frame)
 
-        vp.show(interactive=0, interactorStyle=0)
+        self.vp.show(interactive=0, interactorStyle=0)
         self.show()
         # self.show()
         self.iren.Initialize()
@@ -128,13 +128,15 @@ class MainWindow(Qt.QMainWindow):
                 return
             tol = 1
             x1, y1 = event.xdata-tol/2, 0
-            x2, y2 = x1+tol, np.amax(data_y) + 0.1
-            print(y1, y2)
+            x2, y2 = x1+tol, self.ax.get_ylim()[1]
             mask= (data_x > min(x1,x2)) & (data_x < max(x1,x2)) & \
                   (data_y > min(y1,y2)) & (data_y < max(y1,y2))
             xmasked = data_x[mask]
             ymasked = data_y[mask]
-
+            indices = np.argwhere(mask == True)
+            print(indices[0][0])
+            vol = vedo.Volume(image[..., indices[0,0]])
+            self.vp.update(vol)
             if len(xmasked) > 0:
                 xmax = xmasked
                 ymax = ymasked

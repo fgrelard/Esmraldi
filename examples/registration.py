@@ -202,7 +202,8 @@ def read_image_to_register(registername, is_imzml):
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--fixed", help="Fixed image")
 parser.add_argument("-m", "--moving", help="Moving image")
-parser.add_argument("-r", "--register", help="Registration image")
+parser.add_argument("-r", "--register", help="Registration image or directory containing images (same number as in moving and fixed)")
+parser.add_argument("-p", "--pattern", help="Selects registration images fitting this regexp pattern (default=*) if parameter register is a directory", default="*")
 parser.add_argument("-o", "--output", help="Output")
 parser.add_argument("-b", "--bins", help="number per bins", default=10)
 parser.add_argument("-s", "--symmetry", help="best fit with flipped image", action="store_true", default=False)
@@ -252,10 +253,13 @@ width = fixed.GetWidth()
 height = fixed.GetHeight()
 numberOfBins = int(math.sqrt(height * width / bins))
 
-
+best_resamplers = []
+flips = []
 if dim_moving == 2:
     best_resampler, to_flip = register2D(fixed, moving, numberOfBins, is_best_rotation, array_moving, flipped, sampling_percentage, learning_rate, min_step, relaxation_factor)
     out = apply_registration(moving, best_resampler, to_flip)
+    best_resamplers.append(best_resampler)
+    flips.append(to_flip)
 
 
 if dim_moving == 3:
@@ -265,9 +269,12 @@ if dim_moving == 3:
     for i in range(array_moving.shape[0]):
         print("Slice ", i)
         best_resampler, to_flip = register2D(fixed[:,:,i], moving[:,:,i], numberOfBins, is_best_rotation, array_moving, flipped, sampling_percentage, learning_rate, min_step, relaxation_factor)
+
         out2D = apply_registration(moving[:,:,i], best_resampler, to_flip)
         out2D = sitk.JoinSeries(out2D)
         out = sitk.Paste(out, out2D, out2D.GetSize(), destinationIndex=[0,0,i])
+        best_resamplers.append(best_resampler)
+        flips.append(to_flip)
 
 if out != None:
     simg1 = sitk.Cast(sitk.RescaleIntensity(fixed), sitk.sitkUInt8)
@@ -293,15 +300,39 @@ if out != None:
 # print(" Metric value: {0}".format(R.GetMetricValue()))
 
 if registername:
-    is_imzml = registername.lower().endswith(".imzml")
-    register, mz = read_image_to_register(registername, is_imzml)
-
-    if is_imzml:
-        outRegister = apply_registration_imzml(register, best_resampler, to_flip)
-        intensities, coordinates = imzmlio.get_spectra_from_images(sitk.GetArrayFromImage(outRegister).T)
-        mzs = [mz] * len(coordinates)
-        imzmlio.write_imzml(mzs, intensities, coordinates, outputname)
+    if os.path.isdir(registername):
+        list_image_names = []
+        for root, dirs, files in os.walk(inputname):
+            for f in files:
+                if re_pattern.match(f):
+                    list_image_names.append(os.path.join(root, f))
     else:
-        outRegister = apply_registration(register, best_resampler, to_flip)
-        outRegister = sitk.Cast(outRegister, sitk.sitkUInt8)
-        sitk.WriteImage(outRegister, outputname)
+        list_image_names = [registername]
+
+    is_different_resampler = False
+    if len(list_image_names) == len(best_resamplers):
+        is_different_resampler = True
+
+    for i in range(len(list_image_names)):
+        if is_different_resampler:
+            best_resampler = best_resamplers[i]
+            to_flip = flips[i]
+        else:
+            best_resampler = best_resamplers[0]
+            to_flip = flips[0]
+
+        current_name = list_image_names[i]
+
+        is_imzml = current_name.lower().endswith(".imzml")
+        register, mz = read_image_to_register(current_name, is_imzml)
+
+        if is_imzml:
+            outRegister = apply_registration_imzml(register, best_resampler, to_flip)
+            intensities, coordinates = imzmlio.get_spectra_from_images(sitk.GetArrayFromImage(outRegister).T)
+            coordinates = coordinates + ((i,) for i in range(len(coordinates)))
+            mzs = [mz] * len(coordinates)
+            imzmlio.write_imzml(mzs, intensities, coordinates, outputname)
+        else:
+            outRegister = apply_registration(register, best_resampler, to_flip)
+            outRegister = sitk.Cast(outRegister, sitk.sitkUInt8)
+            sitk.WriteImage(outRegister, outputname)
