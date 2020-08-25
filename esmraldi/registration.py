@@ -7,6 +7,7 @@ import numpy as np
 import SimpleITK as sitk
 import matplotlib.pyplot as plt
 import esmraldi.segmentation as seg
+import esmraldi.imageutils as utils
 from scipy.ndimage.morphology import distance_transform_edt
 
 def precision(im1, im2):
@@ -245,8 +246,8 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
         transform = sitk.Similarity3DTransform()
 
     if find_best_rotation:
-        fixed_DT = seg.compute_DT(fixed)
-        moving_DT = seg.compute_DT(moving)
+        fixed_DT = utils.compute_DT(fixed)
+        moving_DT = utils.compute_DT(moving)
 
         R.SetMetricAsMeanSquares()
 

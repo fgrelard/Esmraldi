@@ -5,6 +5,7 @@ import nibabel as nib
 import numpy as np
 
 import esmraldi.imzmlio as io
+import esmraldi.imageutils as utils
 
 import matplotlib.pyplot as plt
 
@@ -17,18 +18,6 @@ def bounding_size(images):
         max_size = tuple(max(max_size[i], shape[i]) for i in range(len(shape)))
     return max_size
 
-def center_images(images, size):
-    shape_3D = size + (len(images),)
-    image_3D = np.zeros(shape_3D)
-    for i in range(len(images)):
-        im = images[i]
-        shape = im.shape
-        start = tuple((size[i] - shape[i])//2 for i in range(len(size)))
-        end = tuple(start[i] + shape[i] for i in range(len(shape)))
-        index = tuple(slice(start[i], end[i]) for i in range(len(start)))
-        index += (i,)
-        image_3D[index] = im
-    return image_3D
 
 
 
@@ -63,7 +52,7 @@ for im_name in list_image_names:
     list_image.append(im_array)
 
 max_size = bounding_size(list_image)
-image3D = center_images(list_image, max_size)
+image3D = utils.center_images(list_image, max_size)
 
 nibimg = nib.Nifti1Image(image3D, np.eye(4))
 nibimg.to_filename(outname)

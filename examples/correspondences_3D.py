@@ -1,4 +1,4 @@
-import esmraldi.segmentation as seg
+import esmraldi.imageutils as utils
 import argparse
 import nibabel as nib
 import matplotlib.pyplot as plt
@@ -31,7 +31,7 @@ moving = nib.load(moving_name).get_fdata()
 bin_fixed = np.where(fixed > 0, 255, 0)
 bin_moving = np.where(moving > 0, 255, 0)
 
-correspondences = seg.slice_correspondences(bin_fixed, bin_moving, sigma, is_reversed, is_continuity)
+correspondences = utils.slice_correspondences(bin_fixed, bin_moving, sigma, is_reversed, is_continuity)
 
 corresponding_images = fixed[..., correspondences]
 

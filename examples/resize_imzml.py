@@ -1,4 +1,5 @@
 import esmraldi.segmentation as seg
+import esmraldi.imageutils as utils
 import esmraldi.imzmlio as io
 import SimpleITK as sitk
 import argparse
@@ -25,7 +26,7 @@ size = image.shape[:2]
 
 new_size = [d*factor for d in size]
 new_size = new_size[::-1]
-resized_itk = seg.resize(itk_image, new_size)
+resized_itk = utils.resize(itk_image, new_size)
 
 resized_image = sitk.GetArrayFromImage(resized_itk)
 intensities, coordinates = io.get_spectra_from_images(resized_image)

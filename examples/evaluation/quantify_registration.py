@@ -15,6 +15,7 @@ from esmraldi.registration import *
 import matplotlib.colors as mcolors
 import scipy.ndimage
 import esmraldi.segmentation as seg
+import esmraldi.imageutils as utils
 
 def tryint(s):
     """
@@ -167,7 +168,7 @@ fixed_array = sitk.GetArrayFromImage(fixed)
 registered_array = sitk.GetArrayFromImage(registered)
 original_array = sitk.GetArrayFromImage(original)
 size = original.GetSize()
-scaled_registered = seg.resize(registered, (size[1], size[0]))
+scaled_registered = utils.resize(registered, (size[1], size[0]))
 scaled_registered_array = sitk.GetArrayFromImage(scaled_registered)
 
 print(scaled_registered_array.shape, original_array.shape)

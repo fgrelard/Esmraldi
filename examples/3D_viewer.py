@@ -80,7 +80,6 @@ class MainWindow(Qt.QMainWindow):
         self.hboxLayout = Qt.QHBoxLayout()
         self.hboxLayout.setSizeConstraint(Qt.QLayout.SetMinAndMaxSize)
 
-
         self.label_mz = QtWidgets.QLabel()
         self.label_mz.setText("m/z")
 
@@ -199,8 +198,6 @@ class MainWindow(Qt.QMainWindow):
         self.rect = Rectangle((0,0), 0, 0, alpha=0.1, fc='r')
         self.ax.add_patch(self.rect)
         self.ax.figure.canvas.mpl_connect('button_press_event', line_select_callback)
-
-
 
         # refresh canvas
         self.canvas.draw()

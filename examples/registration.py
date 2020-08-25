@@ -17,6 +17,7 @@ import re
 import esmraldi.registration as reg
 import esmraldi.segmentation as segmentation
 import esmraldi.spectraprocessing as sp
+import esmraldi.imageutils as utils
 
 class IndexTracker(object):
     def __init__(self, ax, X):
@@ -171,7 +172,7 @@ def apply_registration_imzml(image, best_resampler, to_flip):
         outRegister = sitk.Paste(outRegister, outSlice, outSlice.GetSize(), destinationIndex=[0,0,i])
     return outRegister
 
-def read_image_to_register(registername, is_imzml):
+def read_image_to_register(registername, is_imzml, to_flip):
     mz = None
     if is_imzml:
         imzml = imzmlio.open_imzml(registername)
@@ -191,7 +192,7 @@ def read_image_to_register(registername, is_imzml):
 
     if is_resize:
         new_size = moving.GetSize() + ((register.GetSize()[2],) if dim > 2 else ())
-        register = segmentation.resize(register, new_size)
+        register = utils.resize(register, new_size)
 
     identity = np.identity(dim).tolist()
     flat_list = [item for sublist in identity for item in sublist]
@@ -242,6 +243,7 @@ sampling_percentage = float(args.sampling_percentage)
 min_step = float(args.min_step)
 pattern = args.pattern
 
+
 fixed = sitk.ReadImage(fixedname, sitk.sitkFloat32)
 moving = sitk.ReadImage(movingname, sitk.sitkFloat32)
 
@@ -253,7 +255,7 @@ if is_resize:
     if dim_moving == 3:
         moving_size += (fixed_size[2], )
     print(moving_size)
-    moving = segmentation.resize(moving, moving_size)
+    moving = utils.resize(moving, moving_size)
     moving = sitk.Cast(moving, sitk.sitkFloat32)
 
 
@@ -306,7 +308,6 @@ if out != None:
         plt.show()
     plt.show()
 
-
 if registername:
     register_image_names = [registername]
     if os.path.isdir(registername):
@@ -320,6 +321,7 @@ if registername:
     spectra = []
     i = 1
     for register_name in register_image_names:
+        to_flip = False
         if is_different_resampler:
             best_resampler = best_resamplers[i]
             to_flip = flips[i]
@@ -328,10 +330,18 @@ if registername:
             to_flip = flips[0]
 
         is_imzml = register_name.lower().endswith(".imzml")
-        register, mz = read_image_to_register(register_name, is_imzml)
+        register, mz = read_image_to_register(register_name, is_imzml, to_flip)
+        register_array = np.load("/mnt/e/MALDI/imzML/Bobwhite_250DJ_Grain3_Xyl/00/mmap/registered.npy", mmap_mode="r")
+        register = sitk.GetImageFromArray(register_array)
+
+        register.SetSpacing([1 for i in range(register.GetDimension())])
 
         if is_imzml:
             outRegister = apply_registration_imzml(register, best_resampler, to_flip)
+            fig, ax = plt.subplots(1, 2)
+            ax[0].imshow(sitk.GetArrayFromImage(moving[:,:, 0]))
+            ax[1].imshow(sitk.GetArrayFromImage(fixed[:,:,i]))
+            plt.show()
             I, coords = imzmlio.get_spectra_from_images(sitk.GetArrayFromImage(outRegister).T)
             coords = [(elem[0], elem[1], i) for elem in coords]
             intensities += I

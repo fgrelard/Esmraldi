@@ -147,10 +147,14 @@ class Slicer(Plotter):
             else:
                 dim = self.volume.dimensions()
                 for i in range(dim[axis]):
+                    size = dim[axis]
+                    n = size / 10
                     if axis == 0:
-                        msh = self.volume.xSlice(i).alpha(self.alpha).lighting('', la, ld, 0)
+                        if i % n == 0:
+                            msh = self.volume.xSlice(i).alpha(self.alpha).lighting('', la, ld, 0)
                     elif axis == 1:
-                        msh = self.volume.ySlice(i).alpha(self.alpha).lighting('', la, ld, 0)
+                        if i % n == 0:
+                            msh = self.volume.ySlice(i).alpha(self.alpha).lighting('', la, ld, 0)
                     elif axis == 2:
                         msh = self.volume.zSlice(i).lighting('', la, ld, 0)
                     msh.alpha(self.alpha).lighting('', la, ld, 0)
@@ -232,7 +236,6 @@ class Slicer(Plotter):
         self.renderer.RemoveActor(self.msh)
 
         self.volume = vol
-        print(self.rmin, self.rmax)
         self.volume.mode(0).color(self.cmap_slicer).jittering(True)
 
         self.box = vol.box().wireframe().alpha(0)
@@ -244,8 +247,7 @@ class Slicer(Plotter):
 
         previous_visibles = self.visibles
         self.visibles = [None, None, None]
-
-        for i in range(len(previous_visibles)):
+        for i in range(len(previous_visibles), 1):
             elem = previous_visibles[i]
             index = self.pos_slider[i]
             if elem and index > 0:
