@@ -132,6 +132,7 @@ class MainWindow(Qt.QMainWindow):
         number, is_converted = self.locale.toDouble(text)
         if is_converted:
             self.tol = number
+            self.get_points_on_spectrum()
 
     def get_points_on_spectrum(self):
         x1 = self.current_mz - self.tol/2

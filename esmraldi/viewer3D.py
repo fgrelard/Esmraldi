@@ -83,6 +83,7 @@ class Slicer(Plotter):
                        precision(self.rmin, 3) +', '+  precision(self.rmax, 3)+')', c='m', bold=0)
 
         self.visibles = [None, None, None]
+        self.all_slices = [[], [], []]
         self.msh = volume.zSlice(self.pos_slider[2])
         self.msh.alpha(self.alpha).lighting('', la, ld, 0)
         self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
@@ -138,11 +139,37 @@ class Slicer(Plotter):
                          pos=[(0.8,0.04), (0.95,0.04)], showValue=False, c=cz)
 
 
+        def display_all_slices(axis):
+            if len(self.all_slices[axis]) > 0:
+                for elem in self.all_slices[axis]:
+                    self.remove(elem)
+                self.all_slices[axis].clear()
+            else:
+                dim = self.volume.dimensions()
+                for i in range(dim[axis]):
+                    if axis == 0:
+                        msh = self.volume.xSlice(i).alpha(self.alpha).lighting('', la, ld, 0)
+                    elif axis == 1:
+                        msh = self.volume.ySlice(i).alpha(self.alpha).lighting('', la, ld, 0)
+                    elif axis == 2:
+                        msh = self.volume.zSlice(i).lighting('', la, ld, 0)
+                    msh.alpha(self.alpha).lighting('', la, ld, 0)
+                    msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
+                    self.all_slices[axis].append(msh)
+                    self.add(msh)
+
         #################
         def keyfunc(iren, event):
-            print("keyfunc")
+            if not iren.GetKeyCode():
+                return
             key = iren.GetKeySym()
             if key=='x':
+                display_all_slices(0)
+            if key=='y':
+                display_all_slices(1)
+            if key=='z':
+                display_all_slices(2)
+            if key=='v':
                 self.showing_mesh = not self.showing_mesh
                 if self.showing_mesh:
                     self.add(self.volume)
@@ -205,6 +232,7 @@ class Slicer(Plotter):
         self.renderer.RemoveActor(self.msh)
 
         self.volume = vol
+        print(self.rmin, self.rmax)
         self.volume.mode(0).color(self.cmap_slicer).jittering(True)
 
         self.box = vol.box().wireframe().alpha(0)
@@ -249,3 +277,4 @@ class Slicer(Plotter):
 
         if self.showing_mesh:
             self.add(self.volume)
+            self.interactive=True
