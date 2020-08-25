@@ -150,7 +150,7 @@ class MainWindow(Qt.QMainWindow):
         indices = np.argwhere(mask == True)
 
         if indices.any():
-            vol = vedo.Volume(image[..., indices[0,0]])
+            vol = vedo.Volume(np.mean(image[..., indices.flatten()], axis=-1))
             self.vp.update(vol)
 
         if len(xmasked) > 0:
@@ -242,7 +242,7 @@ if inputname.endswith(".imzML"):
             os.makedirs(memmap_dir, exist_ok=True)
             np.save(memmap_image_filename, image)
             np.save(memmap_spectra_filename, spectra)
-    vol = vedo.Volume(image[..., 1000])
+    vol = vedo.Volume(image[..., 0])
     mean_spectra = sp.spectra_mean(spectra)
 else:
     vol = vedo.load(inputname) # load Volume
