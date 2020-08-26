@@ -7,7 +7,6 @@ import numpy as np
 import pyimzml.ImzMLParser as imzmlparser
 import skimage.transform as transform
 import scipy.spatial.distance as dist
-import scipy.signal as signal
 import cv2 as cv
 import SimpleITK as sitk
 
@@ -23,10 +22,6 @@ from skimage.feature import canny
 from skimage import data, color
 from skimage.draw import circle
 from skimage.morphology import binary_erosion, closing, disk
-from scipy.ndimage import gaussian_filter1d
-from scipy.ndimage.morphology import distance_transform_edt
-
-from dtw import *
 
 def max_variance_sort(image_maldi):
     """

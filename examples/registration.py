@@ -157,17 +157,16 @@ def apply_registration(image, best_resampler, to_flip):
         return None
     return out
 
-def apply_registration_imzml(image, best_resampler, to_flip):
-    size = register.GetSize()
-    pixel_type = register.GetPixelID()
-    fixed_size = fixed.GetSize()
+def apply_registration_imzml(image, best_resampler, to_flip, fixed_size):
+    size = image.GetSize()
+    pixel_type = image.GetPixelID()
 
     outRegister = sitk.Image(fixed_size[0], fixed_size[1], size[2], pixel_type )
     for i in range(size[2]):
-        slice = register[:,:,i]
+        slice = image[:,:,i]
         slice.SetSpacing([1, 1])
 
-        outSlice = best_resampler.Execute(slice)
+        outSlice = apply_registration(slice, best_resampler, to_flip)
         outSlice = sitk.JoinSeries(outSlice)
         outRegister = sitk.Paste(outRegister, outSlice, outSlice.GetSize(), destinationIndex=[0,0,i])
     return outRegister
@@ -185,7 +184,6 @@ def read_image_to_register(registername, is_imzml, to_flip):
         dim = register.GetDimension()
         flip = (True, False) + ((False,) if dim > 2 else ())
         register = sitk.Flip(register, flip)
-        register = sitk.GetImageFromArray(sitk.GetArrayFromImage(register))
 
     dim = register.GetDimension()
     register.SetSpacing([1 for i in range(dim)])
@@ -291,6 +289,7 @@ if dim_moving == 3:
         best_resamplers.append(best_resampler)
         flips.append(to_flip)
 
+#Display result
 if out != None:
     simg1 = sitk.Cast(sitk.RescaleIntensity(fixed), sitk.sitkUInt8)
 
@@ -308,6 +307,7 @@ if out != None:
         plt.show()
     plt.show()
 
+#Apply transformation to registration image
 if registername:
     register_image_names = [registername]
     if os.path.isdir(registername):
@@ -319,7 +319,7 @@ if registername:
 
     intensities, coordinates, mzs = [], [], []
     spectra = []
-    i = 1
+    i = 0
     for register_name in register_image_names:
         to_flip = False
         if is_different_resampler:
@@ -331,19 +331,23 @@ if registername:
 
         is_imzml = register_name.lower().endswith(".imzml")
         register, mz = read_image_to_register(register_name, is_imzml, to_flip)
-        register_array = np.load("/mnt/e/MALDI/imzML/Bobwhite_250DJ_Grain3_Xyl/00/mmap/registered.npy", mmap_mode="r")
-        register = sitk.GetImageFromArray(register_array)
+        # register_array = np.load("tmp.npy", mmap_mode="r")
+        # register = sitk.GetImageFromArray(register_array)
+
+        if register.GetSize()[0] != moving.GetSize()[0] or \
+           register.GetSize()[1] != moving.GetSize()[1]:
+            register_centered = utils.center_images(np.transpose(sitk.GetArrayFromImage(register), (0, 2, 1)), (moving.GetSize()[0], moving.GetSize()[1]))
+            register = sitk.GetImageFromArray(register_centered.T)
 
         register.SetSpacing([1 for i in range(register.GetDimension())])
-
         if is_imzml:
-            outRegister = apply_registration_imzml(register, best_resampler, to_flip)
+            outRegister = apply_registration_imzml(register, best_resampler, to_flip, fixed.GetSize())
             fig, ax = plt.subplots(1, 2)
-            ax[0].imshow(sitk.GetArrayFromImage(moving[:,:, 0]))
+            ax[0].imshow(sitk.GetArrayFromImage(outRegister[:,:,0]))
             ax[1].imshow(sitk.GetArrayFromImage(fixed[:,:,i]))
             plt.show()
             I, coords = imzmlio.get_spectra_from_images(sitk.GetArrayFromImage(outRegister).T)
-            coords = [(elem[0], elem[1], i) for elem in coords]
+            coords = [(elem[0], elem[1], i+1) for elem in coords]
             intensities += I
             coordinates += coords
             current_mzs = [mz] * len(coords)
@@ -356,16 +360,13 @@ if registername:
             sitk.WriteImage(outRegister, outputname)
 
         i += 1
-        if i > 2:
+        if i > 1:
             break
 
     if is_imzml:
         if len(register_image_names) > 1:
             spectra = np.array(spectra, dtype=object)
-            print(spectra.shape)
-            print(np.unique([len(mzs[i]) for i in range(len(mzs))]))
             realigned_spectra = sp.realign_mzs(spectra, mzs, step=0.05)
-            print(realigned_spectra.shape)
             mzs = realigned_spectra[:, 0]
             intensities = realigned_spectra[:, 1]
         imzmlio.write_imzml(mzs, intensities, coordinates, outputname)
