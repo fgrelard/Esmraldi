@@ -360,8 +360,6 @@ if registername:
             sitk.WriteImage(outRegister, outputname)
 
         i += 1
-        if i > 1:
-            break
 
     if is_imzml:
         if len(register_image_names) > 1:

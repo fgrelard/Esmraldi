@@ -8,6 +8,7 @@ from scipy.ndimage import gaussian_filter1d
 from dtw import *
 
 def center_images(images, size):
+
     shape_3D = size + (len(images),)
     image_3D = np.zeros(shape_3D)
     for i in range(len(images)):
