@@ -60,10 +60,13 @@ class Slicer(Plotter):
         self.showing_mesh = False
 
         dims = volume.dimensions()
+        self.rmin, self.rmax = volume.imagedata().GetScalarRange()
+
         self.pos_slider = [dims[0], dims[1], int(volume.dimensions()[2]/2)]
 
 
-        self.volume.mode(0).color(self.cmap_slicer).jittering(True)
+        self.volume.mode(1).color(self.cmap_slicer).jittering(True)
+        self.setOTF()
 
         self.box = volume.box().wireframe().alpha(0)
         self.add(self.box, render=False)
@@ -71,7 +74,7 @@ class Slicer(Plotter):
         # inits
         la, ld = 0.7, 0.3 #ambient, diffuse
         data = volume.getPointArray()
-        self.rmin, self.rmax = volume.imagedata().GetScalarRange()
+
         if clamp:
             hdata, edg = np.histogram(data, bins=50)
             logdata = np.log(hdata+1)
@@ -179,7 +182,7 @@ class Slicer(Plotter):
                     mesh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
                     if map2cells:
                         mesh.mapPointsToCells()
-            self.volume.mode(0).color(self.cmap_slicer).jittering(True)
+            self.volume.mode(1).color(self.cmap_slicer).jittering(True)
             self.renderer.RemoveActor(mesh.scalarbar)
 
             mesh.scalarbar = addScalarBar(mesh,
@@ -235,16 +238,24 @@ class Slicer(Plotter):
                 self.all_slices[axis].append(msh)
                 self.add(msh)
 
+    def setOTF(self):
+        opacity_function = self.volume.GetProperty().GetScalarOpacity()
+        opacity_function.RemoveAllPoints()
+        opacity_function.AddPoint(self.rmin, 0.0)
+        opacity_function.AddPoint(self.rmin + (self.rmax - self.rmin) * 0.1, 0.1)
+        opacity_function.AddPoint(self.rmin + (self.rmax - self.rmin) * 0.25, 0.7)
+        opacity_function.AddPoint(self.rmin + (self.rmax - self.rmin) * 0.5, 0.7)
+        opacity_function.AddPoint(self.rmin + (self.rmax - self.rmin) * 1.0, 1.0)
+
     def update(self, vol):
         la, ld = 0.7, 0.3 #ambient, diffuse
         dims = vol.dimensions()
         self.rmin, self.rmax = vol.imagedata().GetScalarRange()
         self.remove([self.volume, self.box, self.msh])
 
-        print(self.actors)
         self.volume = vol
-        self.volume.mode(0).color(self.cmap_slicer).jittering(True)
-
+        self.volume.mode(1).color(self.cmap_slicer).jittering(False)
+        self.setOTF()
         self.box = vol.box().wireframe().alpha(0)
         self.add(self.box, render=False)
 

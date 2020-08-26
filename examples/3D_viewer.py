@@ -155,7 +155,7 @@ class MainWindow(Qt.QMainWindow):
         if indices.any():
             vol = vedo.Volume(np.mean(image[..., indices.flatten()], axis=-1))
             vol.spacing([1, 1, spacing])
-            vol.interpolation(0)
+            vol.interpolation(1)
             self.vp.update(vol)
 
         if len(xmasked) > 0:
@@ -260,7 +260,7 @@ vedo.printHistogram(vol, logscale=True)
 
 vol.spacing([1, 1, spacing])
 vol.mode(0).color("jet").jittering(True)
-vol.interpolation(0)
+vol.interpolation(1)
 
 
 app = Qt.QApplication(sys.argv)
