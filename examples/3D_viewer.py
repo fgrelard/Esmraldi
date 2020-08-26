@@ -11,6 +11,7 @@ import esmraldi.imzmlio as imzmlio
 import esmraldi.spectraprocessing as sp
 import esmraldi.viewer3D as viewer3D
 import matplotlib.pyplot as plt
+import bisect
 
 import vedo
 
@@ -142,10 +143,13 @@ class MainWindow(Qt.QMainWindow):
 
         mask = (self.mz > min(x1,x2)) & (self.mz < max(x1,x2)) & \
                (self.mean_spectra > min(y1,y2)) & (self.mean_spectra < max(y1,y2))
+        no_intersection = not mask.any()
+        if no_intersection:
+            mask_index = min(bisect.bisect_left(self.mz, self.current_mz), len(self.mz)-1)
+            mask[mask_index] = True
+
         xmasked = self.mz[mask]
         ymasked = self.mean_spectra[mask]
-
-
         indices = np.argwhere(mask == True)
 
         if indices.any():
@@ -160,7 +164,10 @@ class MainWindow(Qt.QMainWindow):
             self.point.set_data([xmax],[ymax])
             self.rect.set_width(x2 - x1)
             self.rect.set_height(y2 - y1)
-            self.rect.set_xy((x1, y1))
+            if no_intersection:
+                self.rect.set_xy((np.median(xmax)-self.tol/2, 0))
+            else:
+                self.rect.set_xy((x1, 0))
             self.figure.canvas.draw_idle()
 
 
@@ -254,12 +261,6 @@ vedo.printHistogram(vol, logscale=True)
 vol.spacing([1, 1, spacing])
 vol.mode(0).color("jet").jittering(True)
 vol.interpolation(0)
-
-
-# vp = viewer3D.Slicer(vol, spectra[0,0], mean_spectra, cmaps=('jet', 'gray'),showIcon=False, showHisto=False, useSlider3D=True)
-
-# vp = applications.Slicer(vol, cmaps=('jet', 'gray'),showIcon=False, showHisto=False, useSlider3D=True)
-# vp.show()
 
 
 app = Qt.QApplication(sys.argv)

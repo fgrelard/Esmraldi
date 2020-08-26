@@ -85,13 +85,17 @@ class Slicer(Plotter):
 
         self.visibles = [None, None, None]
         self.all_slices = [[], [], []]
-        self.msh = volume.zSlice(self.pos_slider[2])
-        self.msh.alpha(self.alpha).lighting('', la, ld, 0)
-        self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
+        msh = volume.zSlice(self.pos_slider[2])
+        msh.alpha(self.alpha).lighting('', la, ld, 0)
+        msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
+        msh.SetVisibility(False)
+        self.add(msh)
+
+        self.msh = msh.clone()
         if map2cells: self.msh.mapPointsToCells()
         self.renderer.AddActor(self.msh)
         self.visibles[2] = self.msh
-        addScalarBar(self.msh, pos=(0.04,0.0), horizontal=True, titleFontSize=0)
+        addScalarBar(msh, pos=(0.04,0.0), horizontal=True, titleFontSize=0)
 
         def sliderfunc_x(widget, event):
             i = int(widget.GetRepresentation().GetValue())
@@ -236,8 +240,8 @@ class Slicer(Plotter):
         dims = vol.dimensions()
         self.rmin, self.rmax = vol.imagedata().GetScalarRange()
         self.remove([self.volume, self.box, self.msh])
-        self.renderer.RemoveActor(self.msh)
 
+        print(self.actors)
         self.volume = vol
         self.volume.mode(0).color(self.cmap_slicer).jittering(True)
 
@@ -246,7 +250,6 @@ class Slicer(Plotter):
 
         for m in self.visibles:
             self.renderer.RemoveActor(m)
-        self.renderer.RemoveActor(self.msh.scalarbar)
 
         previous_visibles = self.visibles
         self.visibles = [None, None, None]
@@ -273,11 +276,6 @@ class Slicer(Plotter):
             else:
                 self.visibles[i] = None
 
-        self.msh.scalarbar = addScalarBar(self.msh,
-                                          pos=(0.04,0.0),
-                                          horizontal=True,
-                                          titleFontSize=0)
-        self.renderer.AddActor(self.msh.scalarbar)
 
         indices = np.argwhere(self.all_slices).flatten()
         for i in indices:
