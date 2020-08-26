@@ -58,7 +58,9 @@ class Slicer(Plotter):
         self.cmap_slicer = cmaps[0]
         self.alpha = alpha
         self.showing_mesh = False
-        self.pos_slider = [0, 0, int(volume.dimensions()[2]/2)]
+
+        dims = volume.dimensions()
+        self.pos_slider = [dims[0], dims[1], int(volume.dimensions()[2]/2)]
 
 
         self.volume.mode(0).color(self.cmap_slicer).jittering(True)
@@ -68,7 +70,6 @@ class Slicer(Plotter):
 
         # inits
         la, ld = 0.7, 0.3 #ambient, diffuse
-        dims = volume.dimensions()
         data = volume.getPointArray()
         self.rmin, self.rmax = volume.imagedata().GetScalarRange()
         if clamp:
@@ -99,7 +100,7 @@ class Slicer(Plotter):
             self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
             if map2cells: self.msh.mapPointsToCells()
             self.renderer.RemoveActor(self.visibles[0])
-            if i and i<dims[0]: self.renderer.AddActor(self.msh)
+            if i<dims[0]: self.renderer.AddActor(self.msh)
             self.visibles[0] = self.msh
 
         def sliderfunc_y(widget, event):
@@ -109,7 +110,7 @@ class Slicer(Plotter):
             self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
             if map2cells: self.msh.mapPointsToCells()
             self.renderer.RemoveActor(self.visibles[1])
-            if i and i<dims[1]: self.renderer.AddActor(self.msh)
+            if i<dims[1]: self.renderer.AddActor(self.msh)
             self.visibles[1] = self.msh
 
         def sliderfunc_z(widget, event):
@@ -119,7 +120,7 @@ class Slicer(Plotter):
             self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
             if map2cells: self.msh.mapPointsToCells()
             self.renderer.RemoveActor(self.visibles[2])
-            if i and i<dims[2]: self.renderer.AddActor(self.msh)
+            if i<dims[2]: self.renderer.AddActor(self.msh)
             self.visibles[2] = self.msh
 
         cx, cy, cz, ch = 'dr', 'dg', 'db', (0.3,0.3,0.3)
@@ -127,40 +128,19 @@ class Slicer(Plotter):
             cx, cy, cz = 'lr', 'lg', 'lb'
             ch = (0.8,0.8,0.8)
 
-        self.addSlider2D(sliderfunc_x, 0, dims[0], title='X', titleSize=0.5,
+        self.addSlider2D(sliderfunc_x, 0, dims[0]+1, title='X', titleSize=0.5,
                          value=self.pos_slider[0],
 
                          pos=[(0.8,0.12), (0.95,0.12)], showValue=False, c=cx)
-        self.addSlider2D(sliderfunc_y, 0, dims[1], title='Y', titleSize=0.5,
+        self.addSlider2D(sliderfunc_y, 0, dims[1]+1, title='Y', titleSize=0.5,
                          value=self.pos_slider[1],
                          pos=[(0.8,0.08), (0.95,0.08)], showValue=False, c=cy)
-        self.addSlider2D(sliderfunc_z, 0, dims[2], title='Z', titleSize=0.6,
+        self.addSlider2D(sliderfunc_z, 0, dims[2]+1, title='Z', titleSize=0.6,
                          value=self.pos_slider[2],
                          pos=[(0.8,0.04), (0.95,0.04)], showValue=False, c=cz)
 
 
-        def display_all_slices(axis):
-            if len(self.all_slices[axis]) > 0:
-                for elem in self.all_slices[axis]:
-                    self.remove(elem)
-                self.all_slices[axis].clear()
-            else:
-                dim = self.volume.dimensions()
-                for i in range(dim[axis]):
-                    size = dim[axis]
-                    n = size / 10
-                    if axis == 0:
-                        if i % n == 0:
-                            msh = self.volume.xSlice(i).alpha(self.alpha).lighting('', la, ld, 0)
-                    elif axis == 1:
-                        if i % n == 0:
-                            msh = self.volume.ySlice(i).alpha(self.alpha).lighting('', la, ld, 0)
-                    elif axis == 2:
-                        msh = self.volume.zSlice(i).lighting('', la, ld, 0)
-                    msh.alpha(self.alpha).lighting('', la, ld, 0)
-                    msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
-                    self.all_slices[axis].append(msh)
-                    self.add(msh)
+
 
         #################
         def keyfunc(iren, event):
@@ -168,11 +148,11 @@ class Slicer(Plotter):
                 return
             key = iren.GetKeySym()
             if key=='x':
-                display_all_slices(0)
+                self.display_all_slices(0)
             if key=='y':
-                display_all_slices(1)
+                self.display_all_slices(1)
             if key=='z':
-                display_all_slices(2)
+                self.display_all_slices(2)
             if key=='v':
                 self.showing_mesh = not self.showing_mesh
                 if self.showing_mesh:
@@ -227,6 +207,29 @@ class Slicer(Plotter):
         if verbose:
             printc("Press button to cycle through color maps,", c="m")
             printc("Use sliders to select the slicing planes.", c="m")
+    def display_all_slices(self, axis):
+        la, ld = 0.7, 0.3 #ambient, diffuse
+        if len(self.all_slices[axis]) > 0:
+            for elem in self.all_slices[axis]:
+                self.remove(elem)
+            self.all_slices[axis].clear()
+        else:
+            dim = self.volume.dimensions()
+            for i in range(dim[axis]):
+                size = dim[axis]
+                n = size / 10
+                if axis == 0:
+                    if i % n == 0:
+                        msh = self.volume.xSlice(i).alpha(self.alpha).lighting('', la, ld, 0)
+                elif axis == 1:
+                    if i % n == 0:
+                        msh = self.volume.ySlice(i).alpha(self.alpha).lighting('', la, ld, 0)
+                elif axis == 2:
+                    msh = self.volume.zSlice(i).lighting('', la, ld, 0)
+                msh.alpha(self.alpha).lighting('', la, ld, 0)
+                msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
+                self.all_slices[axis].append(msh)
+                self.add(msh)
 
     def update(self, vol):
         la, ld = 0.7, 0.3 #ambient, diffuse
@@ -247,10 +250,10 @@ class Slicer(Plotter):
 
         previous_visibles = self.visibles
         self.visibles = [None, None, None]
-        for i in range(len(previous_visibles), 1):
+        for i in range(len(previous_visibles)):
             elem = previous_visibles[i]
             index = self.pos_slider[i]
-            if elem and index > 0:
+            if elem and index < dims[i]:
                 previous_visibles[i] = elem
             else:
                 previous_visibles[i] = None
@@ -266,7 +269,7 @@ class Slicer(Plotter):
             self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
             if previous_visibles[i]:
                 self.visibles[i] = self.msh
-                self.renderer.AddActor(self.msh)
+                self.add(self.msh)
             else:
                 self.visibles[i] = None
 
@@ -275,7 +278,11 @@ class Slicer(Plotter):
                                           horizontal=True,
                                           titleFontSize=0)
         self.renderer.AddActor(self.msh.scalarbar)
-        self.add(self.msh)
+
+        indices = np.argwhere(self.all_slices).flatten()
+        for i in indices:
+            self.display_all_slices(i)
+            self.display_all_slices(i)
 
         if self.showing_mesh:
             self.add(self.volume)

@@ -150,6 +150,8 @@ class MainWindow(Qt.QMainWindow):
 
         if indices.any():
             vol = vedo.Volume(np.mean(image[..., indices.flatten()], axis=-1))
+            vol.spacing([1, 1, spacing])
+            vol.interpolation(0)
             self.vp.update(vol)
 
         if len(xmasked) > 0:
@@ -208,10 +210,13 @@ class MainWindow(Qt.QMainWindow):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input 3D ITK image or imzML file")
+parser.add_argument("-s", "--spacing", help="Space between each slice", default=1)
 parser.add_argument("--memmap", help="Create and read a memmap file", action="store_true")
+
 args = parser.parse_args()
 
 inputname = args.input
+spacing = int(args.spacing)
 is_memmap = args.memmap
 
 
@@ -246,12 +251,9 @@ else:
 
 vedo.printHistogram(vol, logscale=True)
 
-
-
-sp = vol.spacing()
-vol.spacing([sp[0]*1, sp[1]*1, sp[2]*1])
+vol.spacing([1, 1, spacing])
 vol.mode(0).color("jet").jittering(True)
-vol.interpolation(1)
+vol.interpolation(0)
 
 
 # vp = viewer3D.Slicer(vol, spectra[0,0], mean_spectra, cmaps=('jet', 'gray'),showIcon=False, showHisto=False, useSlider3D=True)
