@@ -74,6 +74,24 @@ def normalize(image):
             image_normalized[..., k] = slice2DNorm
     return image_normalized
 
+def get_full_spectra(imzml):
+    max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
+    max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
+    max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
+    mzs, ints = imzml.getspectrum(0)
+    number_points = len(ints)
+    zeros_ints = [0 for i in range(number_points)]
+
+    full_spectra = np.zeros((max_x*max_y*max_z, 2, number_points))
+    full_spectra[:,0,:] = mzs
+    for i, (x, y, z) in enumerate(imzml.coordinates):
+        real_index = (x-1) + (y-1) * max_x + (z-1) * max_x * max_y
+        mz, ints = imzml.getspectrum(i)
+        full_spectra[real_index, 0] = mz
+        full_spectra[real_index, 1] = ints
+    return full_spectra
+
+
 def get_spectra(imzml, pixel_numbers=[]):
     """
     Extracts spectra from imzML
@@ -195,7 +213,7 @@ def get_images_from_spectra(spectra, shape):
 
     """
     intensities = spectra[:, 1, :]
-    image = np.reshape(intensities, shape + (intensities.shape[-1],))
+    image = np.reshape(intensities, shape + (intensities.shape[-1],), order="F")
     return image
 
 def get_image(imzml, mz, tol=0.01):

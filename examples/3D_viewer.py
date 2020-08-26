@@ -243,8 +243,11 @@ if inputname.endswith(".imzML"):
     else:
         imzml = imzmlio.open_imzml(inputname)
         mz, I = imzml.getspectrum(0)
-        spectra = imzmlio.get_spectra(imzml)
-        image = imzmlio.to_image_array_3D(imzml)
+        spectra = imzmlio.get_full_spectra(imzml)
+        max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
+        max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
+        max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
+        image = imzmlio.get_images_from_spectra(spectra, (max_x, max_y, max_z))
         image = np.transpose(image, (2,1,0,3))
 
         if is_memmap:
