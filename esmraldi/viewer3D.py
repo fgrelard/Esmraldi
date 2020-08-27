@@ -88,17 +88,17 @@ class Slicer(Plotter):
 
         self.visibles = [None, None, None]
         self.all_slices = [[], [], []]
-        msh = volume.zSlice(self.pos_slider[2])
-        msh.alpha(self.alpha).lighting('', la, ld, 0)
-        msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
-        msh.SetVisibility(False)
-        self.add(msh)
+        self.scalar_msh = volume.zSlice(self.pos_slider[2])
+        self.scalar_msh.alpha(self.alpha).lighting('', la, ld, 0)
+        self.scalar_msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
+        self.scalar_msh.SetVisibility(False)
+        self.scalar_msh.scalarbar = addScalarBar(self.scalar_msh, pos=(0.04,0.0), horizontal=True, titleFontSize=0)
+        self.add(self.scalar_msh)
 
-        self.msh = msh.clone()
+        self.msh = self.scalar_msh.clone()
         if map2cells: self.msh.mapPointsToCells()
         self.renderer.AddActor(self.msh)
         self.visibles[2] = self.msh
-        addScalarBar(msh, pos=(0.04,0.0), horizontal=True, titleFontSize=0)
 
         def sliderfunc_x(widget, event):
             i = int(widget.GetRepresentation().GetValue())
@@ -183,13 +183,17 @@ class Slicer(Plotter):
                     if map2cells:
                         mesh.mapPointsToCells()
             self.volume.mode(1).color(self.cmap_slicer).jittering(True)
-            self.renderer.RemoveActor(mesh.scalarbar)
 
-            mesh.scalarbar = addScalarBar(mesh,
+            self.scalar_msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
+            self.renderer.RemoveActor(self.scalar_msh.scalarbar)
+
+            self.scalar_msh.scalarbar = addScalarBar(self.scalar_msh,
                                           pos=(0.04,0.0),
                                           horizontal=True,
                                           titleFontSize=0)
-            self.renderer.AddActor(mesh.scalarbar)
+            self.renderer.AddActor(self.scalar_msh.scalarbar)
+            # self.add(self.scalar_msh)
+
 
         bu = self.addButton(buttonfunc,
             pos=(0.27, 0.005),
