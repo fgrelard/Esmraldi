@@ -51,7 +51,7 @@ def clustering_kmeans(X_r):
     kmeans = KMeans(n_clusters=5, random_state=0).fit(X_r)
     return kmeans
 
-def flatten(image_maldi):
+def flatten(image_maldi, is_spectral=False):
     """
     Preprocess for reduction : flattens
     a stack image with OpenCV
@@ -67,16 +67,16 @@ def flatten(image_maldi):
         normalized image
 
     """
-    x = image_maldi.shape[0]
-    y = image_maldi.shape[1]
-    z = image_maldi.shape[2] if len(image_maldi.shape) > 2 else 0
+    shape = image_maldi.shape
 
-    if z > 0:
-        norm_img = np.zeros(shape=(x*y,z), dtype=np.uint8)
+    if is_spectral:
+        flatten_first_dims = np.prod(shape[:-1])
+        norm_img = np.zeros(shape=(flatten_first_dims, shape[-1]), dtype=np.uint8)
         for index in range(image_maldi.shape[-1]):
             norm_img[..., index] = image_maldi[..., index].flatten()
     else:
-        norm_img = np.zeros(shape=(x*y, 1), dtype=np.uint8)
+        flatten_first_dims = np.prod(shape)
+        norm_img = np.zeros(shape=(flatten_first_dims, 1), dtype=np.uint8)
         norm_img[..., 0] = image_maldi.flatten()
 
     norm_img = norm_img.transpose()
