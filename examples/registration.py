@@ -171,7 +171,7 @@ def apply_registration_imzml(image, best_resampler, to_flip, fixed_size):
         outRegister = sitk.Paste(outRegister, outSlice, outSlice.GetSize(), destinationIndex=[0,0,i])
     return outRegister
 
-def read_image_to_register(registername, is_imzml, to_flip):
+def read_image_to_register(registername, is_imzml, to_flip, moving, is_resize):
     mz = None
     if is_imzml:
         imzml = imzmlio.open_imzml(registername)
@@ -189,7 +189,7 @@ def read_image_to_register(registername, is_imzml, to_flip):
     register.SetSpacing([1 for i in range(dim)])
 
     if is_resize:
-        new_size = moving.GetSize() + ((register.GetSize()[2],) if dim > 2 else ())
+        new_size = moving.GetSize() + ((register.GetSize()[2],) if dim > 2 and moving.GetDimension() == 2 else ())
         register = utils.resize(register, new_size)
 
     identity = np.identity(dim).tolist()
@@ -222,9 +222,10 @@ def get_resampler(is_different_resampler, best_resamplers, flips, index):
 
 def realign_image(image, reference):
     image_centered_itk = image
-
-    if image.GetSize()[0] != reference.GetSize()[0] or \
-       image.GetSize()[1] != reference.GetSize()[1]:
+    if image.GetDimension() == 3 and \
+       (image.GetSize()[0] != reference.GetSize()[0] or \
+        image.GetSize()[1] != reference.GetSize()[1]):
+        print(image.GetSize(), reference.GetSize())
         image_centered = utils.center_images(np.transpose(sitk.GetArrayFromImage(image), (0, 2, 1)), (reference.GetSize()[0], reference.GetSize()[1]))
         image_centered_itk = sitk.GetImageFromArray(image_centered.T)
 
@@ -260,7 +261,9 @@ def registration_itk(image, fixed, best_resamplers, flips):
             out2D = apply_registration(image[:,:,i], best_resampler, to_flip)
             out2D = sitk.JoinSeries(out2D)
             outImage = sitk.Paste(out, out2D, out2D.GetSize(), destinationIndex=[0,0,i])
-    # outImage = sitk.Cast(outImage, sitk.sitkUInt8)
+    pixel_type_reg = image.GetPixelID()
+    if pixel_type_reg >= sitk.sitkFloat32:
+        outImage = sitk.Cast(outImage, sitk.sitkFloat32)
     return outImage
 
 
@@ -300,6 +303,8 @@ pattern = args.pattern
 fixed = sitk.ReadImage(fixedname, sitk.sitkFloat32)
 moving = sitk.ReadImage(movingname, sitk.sitkFloat32)
 
+
+
 #Resizing
 dim_moving = moving.GetDimension()
 if is_resize:
@@ -312,7 +317,7 @@ if is_resize:
     moving = sitk.Cast(moving, sitk.sitkFloat32)
 
 
-fixed.SetSpacing([1 for i in range(dim_moving)])
+fixed.SetSpacing([1 for i in range(fixed.GetDimension())])
 moving.SetSpacing([1 for i in range(dim_moving)])
 
 array_moving = sitk.GetArrayFromImage(moving)
@@ -320,6 +325,8 @@ array_moving = sitk.GetArrayFromImage(moving)
 width = fixed.GetWidth()
 height = fixed.GetHeight()
 numberOfBins = int(math.sqrt(height * width / bins))
+
+
 
 best_resamplers = []
 flips = []
@@ -381,7 +388,7 @@ if registername:
         best_resampler, flip = get_resampler(is_different_resampler, best_resamplers, flips, i)
 
         is_imzml = register_name.lower().endswith(".imzml")
-        register, mz = read_image_to_register(register_name, is_imzml, to_flip)
+        register, mz = read_image_to_register(register_name, is_imzml, to_flip, moving, is_resize)
 
         register = realign_image(register, moving)
 

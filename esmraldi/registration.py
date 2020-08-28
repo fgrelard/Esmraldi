@@ -240,6 +240,8 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
     """
     R = sitk.ImageRegistrationMethod()
 
+
+
     transform = sitk.Similarity2DTransform()
 
     if fixed.GetDimension()==3:
@@ -251,14 +253,11 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
 
         R.SetMetricAsMeanSquares()
 
-        R.SetOptimizerAsExhaustive(numberOfSteps=[10,18,0,0,0,0], stepLength = 1)
-        R.SetOptimizerScales([0.1,0.1,1,1,1,1])
+        R.SetOptimizerAsExhaustive(numberOfSteps=[9,32,0,0,0,0], stepLength=0.1)
 
         tx = sitk.CenteredTransformInitializer(fixed_DT, moving_DT, transform, sitk.CenteredTransformInitializerFilter.MOMENTS)
         R.SetInitialTransform(tx, inPlace=True)
-
         outTx = R.Execute(fixed_DT, moving_DT)
-
         transform = sitk.Similarity2DTransform(outTx)
 
     R.SetMetricAsMattesMutualInformation(number_of_bins)

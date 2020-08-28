@@ -5,7 +5,6 @@ import sys
 import math
 import numpy as np
 import pyimzml.ImzMLParser as imzmlparser
-import skimage.transform as transform
 import scipy.spatial.distance as dist
 import cv2 as cv
 import SimpleITK as sitk

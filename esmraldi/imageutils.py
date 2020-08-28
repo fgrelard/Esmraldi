@@ -3,9 +3,12 @@ import SimpleITK as sitk
 import esmraldi.segmentation as seg
 import scipy.signal as signal
 
+import skimage.transform as transform
 from scipy.ndimage.morphology import distance_transform_edt
 from scipy.ndimage import gaussian_filter1d
 from dtw import *
+import matplotlib.pyplot as plt
+
 
 def center_images(images, size):
 
