@@ -116,7 +116,11 @@ class MainWindow(Qt.QMainWindow):
         self.frame.setLayout(self.vl)
         self.setCentralWidget(self.frame)
 
-        self.vp.show(interactive=0, interactorStyle=0)
+        pos = self.vp.camera.GetPosition()
+        self.vp.camera.Elevation(180)
+        self.vp.show(interactive=0, interactorStyle=0, camera={"viewup":(0, -1, 0)}
+        )
+
         self.show()
         self.iren.Initialize()
         self.iren.Start()
