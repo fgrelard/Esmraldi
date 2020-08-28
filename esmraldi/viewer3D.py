@@ -162,7 +162,7 @@ class Slicer(Plotter):
                 self.display_all_slices(2)
             if key=='v':
                 self.showing_mesh = not self.showing_mesh
-                if self.showing_mesh:
+                if self.showing_mesh and self.volume.GetBounds()[-1] > 0:
                     self.add(self.volume)
                     self.interactive = True
                 else:

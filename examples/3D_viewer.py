@@ -117,7 +117,7 @@ class MainWindow(Qt.QMainWindow):
         self.setCentralWidget(self.frame)
 
         pos = self.vp.camera.GetPosition()
-        self.vp.camera.Elevation(180)
+        self.vp.camera.Azimuth(180)
         self.vp.show(interactive=0, interactorStyle=0, camera={"viewup":(0, -1, 0)}
         )
 
