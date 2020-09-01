@@ -2,12 +2,12 @@ import numpy as np
 import SimpleITK as sitk
 import esmraldi.segmentation as seg
 import scipy.signal as signal
-
+import matplotlib.pyplot as plt
 import skimage.transform as transform
+
 from scipy.ndimage.morphology import distance_transform_edt
 from scipy.ndimage import gaussian_filter1d
 from dtw import *
-import matplotlib.pyplot as plt
 
 
 def center_images(images, size):
@@ -96,6 +96,20 @@ def slice_correspondences(reference, target, sigma, is_reversed=False, is_contin
 
     return correspondences
 
+def slice_correspondences_manual(reference, target, resolution_reference, resolution_target, slices_reference, slices_target, is_reversed=False):
+    correspondences = []
+
+    physical_slice_reference = [slice*resolution_reference for slice in slices_reference]
+    physical_slice_target = [slice*resolution_target for slice in slices_target]
+
+    if is_reversed:
+        physical_slice_reference = [max(physical_slice_reference) - elem for elem in physical_slice_reference]
+
+    print(physical_slice_reference)
+    print(physical_slice_target)
+
+    correspondences = [(np.abs(np.array(physical_slice_reference) - i)).argmin() for i in physical_slice_target]
+    return np.array(correspondences)
 
 def compute_DT(image_itk):
     image_array = sitk.GetArrayFromImage(image_itk)
