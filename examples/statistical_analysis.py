@@ -22,9 +22,12 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as colors
+
 from sklearn.preprocessing import StandardScaler
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from skimage.filters import threshold_otsu
+from esmraldi.sliceviewer import SliceViewer
+
 
 def plot_clustering(X, labels, mri):
     n_clusters = len(np.unique(labels))
@@ -37,7 +40,6 @@ def plot_clustering(X, labels, mri):
     plt.xlabel("First component")
     plt.ylabel("Second component")
     plt.show()
-
 
 
 def plot_pca(X_r, af):
@@ -90,7 +92,11 @@ if top <= 0:
 
 if inputname.lower().endswith(".imzml"):
     imzml = imzmlio.open_imzml(inputname)
-    image = imzmlio.to_image_array(imzml)
+    spectra = imzmlio.get_full_spectra(imzml)
+    max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
+    max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
+    max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
+    image = imzmlio.get_images_from_spectra(spectra, (max_x, max_y, max_z))
     mzs, intensities = imzml.getspectrum(0)
 else:
     image = sitk.GetArrayFromImage(sitk.ReadImage(inputname)).T
@@ -117,7 +123,7 @@ mzs = np.around(mzs, decimals=2)
 mzs = mzs.astype(str)
 
 
-image_mri = sitk.GetArrayFromImage(sitk.ReadImage(mriname, sitk.sitkUInt8)).T
+image_mri = sitk.GetArrayFromImage(sitk.ReadImage(mriname, sitk.sitkFloat32)).T
 
 if is_ratio:
     ratio_images, ratio_mzs = fusion.extract_ratio_images(image, mzs)
@@ -125,11 +131,13 @@ if is_ratio:
     mzs = np.concatenate((mzs, ratio_mzs))
 
 image = imzmlio.normalize(image)
-image_norm = fusion.flatten(image)
+image_norm = fusion.flatten(image, is_spectral=True)
 
 mri_norm = imzmlio.normalize(image_mri)
 mri_norm = fusion.flatten(mri_norm)
 
+print(mri_norm.shape)
+print(image_norm.shape)
 
 print("Computing Dimension reduction")
 
@@ -160,13 +168,22 @@ if not is_ratio:
     mri = StandardScaler().fit_transform(point)
     pca_all = pca_all[..., :2]
     size = (100, 100)
-    images_maldi = [cv2.resize(i, size) for i in image.T]
-    image_mri = cv2.resize(image_mri.T, size)
-    visualize_scatter_with_images(pca_all,
-                                  images_maldi,
-                                  image_mri,
-                                  figsize=size,
-                                  image_zoom=0.7)
+    if len(image.shape) == 3:
+        images_maldi = [cv2.resize(i, size) for i in image.T]
+        image_mri = cv2.resize(image_mri.T, size)
+        visualize_scatter_with_images(pca_all,
+                                      images_maldi,
+                                      image_mri,
+                                      figsize=size,
+                                      image_zoom=0.7)
+    elif len(image.shape) == 4:
+        images_maldi = [cv2.resize(i[..., i.shape[-1]//2], size) for i in np.transpose(image, (3, 0, 1, 2))]
+        image_mri = cv2.resize(image_mri[..., image_mri.shape[-1]//2], size)
+        visualize_scatter_with_images(pca_all,
+                                      images_maldi,
+                                      image_mri,
+                                      figsize=size,
+                                      image_zoom=0.7)
 
 plt.plot(X_r[:, 0], X_r[:, 1], "b.")
 plt.plot(point[:, 0], point[:, 1], "ro")
@@ -186,8 +203,14 @@ if top is not None:
     centers = af.cluster_centers_
 
 similar_images, similar_mzs, distances = fusion.select_images(image,point_mri, centers, weights,  mzs, labels, None)
+
 print("Selecting images end")
-similar_images = similar_images[..., 0:1000]
+
+similar_images = similar_images[..., 0:100]
+
+if len(similar_images.shape) == 4:
+    s = similar_images.shape
+    similar_images = similar_images.reshape(s[0], s[1], s[2]*s[3], order="F")
 
 itk_similar_images = sitk.GetImageFromArray(similar_images.T)
 sitk.WriteImage(itk_similar_images, outname)
