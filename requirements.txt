@@ -17,3 +17,5 @@ scikit-image>=0.16.2
 dtw-python>=1.1.5
 vedo>=2020.3.4
 vtk>=8.1.2
+PyQt5>=5.12.2
+PyQt5-sip>=4.19.17
