@@ -81,24 +81,13 @@ if is_ratio:
 
 print(image_mri_flatten.shape, image_flatten.shape)
 cosines = cosine_similarity(image_flatten,image_mri_flatten)
-print(cosines)
 
-# distances = []
-# for i in range(image_flatten.shape[-1]):
-#     maldi = image_flatten[..., i]
-#     mri = image_mri_flatten[..., 0]
-#     d = distance.cosine(first_maldi, first_mri)
-#     distances.append(d)
 
-# print(len(distances))
-# print(sorted(distances))
 indices = [i for i in range(len(cosines))]
 indices.sort(key=lambda x:cosines[x][0], reverse=True)
-# indices.sort(key=lambda x:distances[x], reverse=False)
+
 
 indices_array = np.array(indices)
-# print(distances)
-# print(indices_array)
 
 similar_images = np.take(image, indices, axis=-1)
 similar_mzs = np.take(mzs, indices)
