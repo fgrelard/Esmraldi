@@ -5,7 +5,6 @@ class SliceViewer(object):
         self.ax = np.array([ax]).flatten()
 
         self.ax[0].set_title('use scroll wheel to navigate images')
-        print(X)
         self.X = X
         self.ind = 0
 
