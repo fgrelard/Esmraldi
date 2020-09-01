@@ -57,17 +57,15 @@ image_mri = sitk.GetArrayFromImage(sitk.ReadImage(mriname, sitk.sitkFloat32)).T
 
 if len(image.shape) == 3:
     fig, ax = plt.subplots(1, 2)
+
     ax[0].imshow(image[..., 0])
-    ax[0].imshow(image_mri)
+    ax[1].imshow(image_mri)
     plt.show()
 elif len(image.shape) == 4:
-    fig, ax = plt.subplots(1, 1)
-    tracker = SliceViewer(ax, np.transpose(image[..., 0], (2, 1, 0)))
-    fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
-    plt.show()
-
-    fig, ax = plt.subplots(1, 1)
-    tracker = SliceViewer(ax, np.transpose(image_mri, (2, 1, 0)))
+    fig, ax = plt.subplots(1, 2)
+    display_maldi = np.transpose(image[..., 0], (2, 1, 0))
+    display_mri = np.transpose(image_mri, (2, 1, 0))
+    tracker = SliceViewer(ax, display_maldi, display_mri)
     fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
     plt.show()
 
