@@ -5,6 +5,7 @@ import esmraldi.segmentation as seg
 import esmraldi.fusion as fusion
 import SimpleITK as sitk
 import scipy.spatial.distance as distance
+from sklearn.metrics.pairwise import cosine_similarity
 import argparse
 
 from esmraldi.sliceviewer import SliceViewer
@@ -44,10 +45,7 @@ else:
     mzs = [i for i in range(image.shape[2])]
     mzs = np.asarray(mzs)
 
-print("Mass-to-charge ratio=", mzs)
-
 image = image[..., mzs >= threshold]
-image = imzmlio.normalize(image)
 
 mzs = mzs[mzs >= threshold]
 mzs = np.around(mzs, decimals=2)
@@ -70,25 +68,33 @@ elif len(image.shape) == 4:
     plt.show()
 
 
+image = imzmlio.normalize(image)
+image_flatten = fusion.flatten(image, is_spectral=True)
+image_mri = imzmlio.normalize(image_mri)
+image_mri_flatten = fusion.flatten(image_mri)
+
 if is_ratio:
     ratio_images, ratio_mzs = fusion.extract_ratio_images(image, mzs)
     image = np.concatenate((image, ratio_images), axis=2)
     mzs = np.concatenate((mzs, ratio_mzs))
 
 
-image_flatten = fusion.flatten(image, is_spectral=True).T
-image_mri = imzmlio.normalize(image_mri)
-image_mri_flatten = fusion.flatten(image_mri).T
-
 print(image_mri_flatten.shape, image_flatten.shape)
-distances = []
-for i in range(image_flatten.shape[-1]):
-    maldi = image_flatten[..., i]
-    d = distance.cosine(maldi, image_mri_flatten[..., 0])
-    distances.append(d)
+cosines = cosine_similarity(image_flatten,image_mri_flatten)
+print(cosines)
 
-indices = [i for i in range(len(distances))]
-indices.sort(key=lambda x:distances[x], reverse=False)
+# distances = []
+# for i in range(image_flatten.shape[-1]):
+#     maldi = image_flatten[..., i]
+#     mri = image_mri_flatten[..., 0]
+#     d = distance.cosine(first_maldi, first_mri)
+#     distances.append(d)
+
+# print(len(distances))
+# print(sorted(distances))
+indices = [i for i in range(len(cosines))]
+indices.sort(key=lambda x:cosines[x][0], reverse=True)
+# indices.sort(key=lambda x:distances[x], reverse=False)
 
 indices_array = np.array(indices)
 # print(distances)
@@ -101,10 +107,12 @@ np.savetxt(outname, similar_mzs, delimiter=";", fmt="%s")
 print(similar_mzs)
 
 if len(similar_images.shape) == 3:
-    plt.imshow(similar_images[..., 0])
+    fig, ax = plt.subplots(1, 2)
+    ax[0].imshow(similar_images[..., 0])
+    ax[1].imshow(image_mri)
     plt.show()
 elif len(similar_images.shape) == 4:
-    fig, ax = plt.subplots(1, 1)
-    tracker = SliceViewer(ax, np.transpose(similar_images[..., 0], (2, 1, 0)))
+    fig, ax = plt.subplots(1, 2)
+    tracker = SliceViewer(ax, np.transpose(similar_images[..., 0], (2, 1, 0)),  np.transpose(image_mri, (2, 1, 0)))
     fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
     plt.show()
