@@ -213,7 +213,10 @@ def get_images_from_spectra(spectra, shape):
 
     """
     intensities = spectra[:, 1, :]
-    image = np.reshape(intensities, shape + (intensities.shape[-1],), order="F")
+    new_shape = shape
+    if shape[-1] == 1:
+        new_shape = shape[:-1]
+    image = np.reshape(intensities, new_shape + (intensities.shape[-1],), order="F")
     return image
 
 def get_image(imzml, mz, tol=0.01):

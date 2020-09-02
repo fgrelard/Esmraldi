@@ -105,9 +105,6 @@ def slice_correspondences_manual(reference, target, resolution_reference, resolu
     if is_reversed:
         physical_slice_reference = [max(physical_slice_reference) - elem for elem in physical_slice_reference]
 
-    print(physical_slice_reference)
-    print(physical_slice_target)
-
     correspondences = [(np.abs(np.array(physical_slice_reference) - i)).argmin() for i in physical_slice_target]
     return np.array(correspondences)
 

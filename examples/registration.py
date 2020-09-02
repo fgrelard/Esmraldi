@@ -152,7 +152,11 @@ def read_image_to_register(registername, is_imzml, to_flip, moving, is_resize):
     mz = None
     if is_imzml:
         imzml = imzmlio.open_imzml(registername)
-        array = imzmlio.to_image_array(imzml).T
+        current_s = imzmlio.get_full_spectra(imzml)
+        max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
+        max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
+        max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
+        array = imzmlio.get_images_from_spectra(current_s, (max_x, max_y, max_z)).T
         register = sitk.GetImageFromArray(array)
         mz, _ = imzml.getspectrum(0)
     else:
@@ -166,7 +170,7 @@ def read_image_to_register(registername, is_imzml, to_flip, moving, is_resize):
     register.SetSpacing([1 for i in range(dim)])
 
     if is_resize:
-        new_size = moving.GetSize() + ((register.GetSize()[2],) if dim > 2 and moving.GetDimension() == 2 else ())
+        new_size = (moving.GetSize()[0], moving.GetSize()[1]) + ((register.GetSize()[2],) if dim > 2 else ())
         register = utils.resize(register, new_size)
 
     identity = np.identity(dim).tolist()
@@ -202,14 +206,13 @@ def realign_image(image, reference):
     if image.GetDimension() == 3 and \
        (image.GetSize()[0] != reference.GetSize()[0] or \
         image.GetSize()[1] != reference.GetSize()[1]):
-        print(image.GetSize(), reference.GetSize())
         image_centered = utils.center_images(np.transpose(sitk.GetArrayFromImage(image), (0, 2, 1)), (reference.GetSize()[0], reference.GetSize()[1]))
         image_centered_itk = sitk.GetImageFromArray(image_centered.T)
 
     image_centered_itk.SetSpacing([1 for i in range(image.GetDimension())])
     return image_centered_itk
 
-def registration_imzml(image, fixed, best_resampler, to_flip, mz):
+def registration_imzml(image, fixed, best_resampler, to_flip, mz, i):
     global intensities, coordinates, mzs, spectra
     outRegister = apply_registration_imzml(register, best_resampler, to_flip, fixed.GetSize())
     I, coords = imzmlio.get_spectra_from_images(sitk.GetArrayFromImage(outRegister).T)
@@ -370,7 +373,7 @@ if registername:
         register = realign_image(register, moving)
 
         if is_imzml:
-            registration_imzml(register, fixed, best_resampler, flip, mz)
+            registration_imzml(register, fixed, best_resampler, flip, mz, i)
         else:
             outImage = registration_itk(register, fixed, best_resamplers, flips)
             outImages.append(outImage)
