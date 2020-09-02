@@ -38,7 +38,6 @@ if inputname.lower().endswith(".imzml"):
     max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
     max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
     image = imzmlio.get_images_from_spectra(spectra, (max_x, max_y, max_z))
-    # image = imzmlio.to_image_array(imzml)
     mzs, intensities = imzml.getspectrum(0)
 else:
     image = sitk.GetArrayFromImage(sitk.ReadImage(inputname)).T

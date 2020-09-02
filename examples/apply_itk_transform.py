@@ -30,7 +30,11 @@ print(array.shape)
 is_imzml = inputname.lower().endswith(".imzml")
 if is_imzml:
     imzml = imzmlio.open_imzml(inputname)
-    image = imzmlio.to_image_array(imzml)
+    spectra = imzmlio.get_full_spectra(imzml)
+    max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
+    max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
+    max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
+    image = imzmlio.get_images_from_spectra(spectra, (max_x, max_y, max_z))
     image = sitk.GetImageFromArray(image.T)
 else:
     image = sitk.ReadImage(inputname)

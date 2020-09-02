@@ -28,7 +28,11 @@ outname = args.output
 
 root, ext = os.path.splitext(outname)
 image = imzmlio.open_imzml(inputname)
-img_array = imzmlio.to_image_array(image)
+spectra = imzmlio.get_full_spectra(image)
+max_x = max(image.coordinates, key=lambda item:item[0])[0]
+max_y = max(image.coordinates, key=lambda item:item[1])[1]
+max_z = max(image.coordinates, key=lambda item:item[2])[2]
+img_array = imzmlio.get_images_from_spectra(spectra, (max_x, max_y, max_z))
 mzs, y = image.getspectrum(0)
 imzmlio.to_nifti(img_array, outname)
 imzmlio.to_csv(mzs, root+".csv")
