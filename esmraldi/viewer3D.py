@@ -123,6 +123,7 @@ class Slicer(Plotter):
         def sliderfunc_z(widget, event):
             i = int(widget.GetRepresentation().GetValue())
             self.pos_slider[2] = i
+            self.comment.SetText(4, "z="+str(self.pos_slider[2]))
             self.msh = self.volume.zSlice(i).alpha(self.alpha).lighting('', la, ld, 0)
             self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
             if map2cells: self.msh.mapPointsToCells()
@@ -209,12 +210,9 @@ class Slicer(Plotter):
 
         #################
 
-        comment = None
-        if verbose:
-            comment = Text2D("Use sliders to slice volume\nClick button to change colormap",
-                             font='Montserrat', s=0.8)
-
-        self.add([self.msh, comment])
+        self.comment = Text2D("z="+str(self.pos_slider[2]),pos=5,
+                              font='Montserrat', s=0.6)
+        self.add([self.msh, self.comment])
         if verbose:
             printc("Press button to cycle through color maps,", c="m")
             printc("Use sliders to select the slicing planes.", c="m")
@@ -290,7 +288,6 @@ class Slicer(Plotter):
                 self.add(self.msh)
             else:
                 self.visibles[i] = None
-
 
         indices = np.argwhere(self.all_slices).flatten()
         for i in indices:
