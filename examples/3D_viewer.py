@@ -216,9 +216,6 @@ class MainWindow(Qt.QMainWindow):
         self.canvas.draw()
 
 
-
-
-
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input 3D ITK image or imzML file")
 parser.add_argument("-s", "--spacing", help="Space between each slice", default=1)
