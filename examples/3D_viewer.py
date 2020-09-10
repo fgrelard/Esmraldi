@@ -43,7 +43,6 @@ class MainWindow(Qt.QMainWindow):
         self.mz = mz
         self.mean_spectra = mean_spectra
         self.current_mz = self.mz.min()
-        self.current_I = 0
         self.is_text_editing = False
 
         self.frame = Qt.QFrame()
@@ -227,7 +226,6 @@ class MainWindow(Qt.QMainWindow):
                 return
             self.is_text_editing = False
             self.current_mz = event.xdata
-            self.current_I = event.ydata
             self.edit_mz.setText(str(round(self.current_mz, 4)))
             self.get_points_on_spectrum()
 
