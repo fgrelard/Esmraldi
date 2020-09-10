@@ -43,6 +43,8 @@ class MainWindow(Qt.QMainWindow):
         self.mz = mz
         self.mean_spectra = mean_spectra
         self.current_mz = self.mz.min()
+        self.current_I = 0
+        self.is_text_editing = False
 
         self.frame = Qt.QFrame()
         self.vl = Qt.QGridLayout()
@@ -88,8 +90,8 @@ class MainWindow(Qt.QMainWindow):
         self.edit_mz.setValidator(QtGui.QDoubleValidator(self.mz.min(), self.mz.max(), 4))
         self.edit_mz.setText(str(round(self.current_mz, 4)))
         self.edit_mz.setMaximumWidth(100)
-        self.edit_mz.textChanged.connect(self.changeMzValue)
-
+        self.edit_mz.textEdited.connect(self.changeMzValue)
+        self.edit_mz.returnPressed.connect(self.updateMzValue)
 
         self.label_tol = QtWidgets.QLabel()
         self.label_tol.setText("+/-")
@@ -97,7 +99,7 @@ class MainWindow(Qt.QMainWindow):
         self.edit_tol = QtWidgets.QLineEdit(str(self.tol))
         self.edit_tol.setValidator(QtGui.QDoubleValidator())
         self.edit_tol.setMaximumWidth(70)
-        self.edit_tol.textChanged.connect(self.changeToleranceValue)
+        self.edit_tol.textEdited.connect(self.changeToleranceValue)
 
         # Just some button connected to `plot` method
         self.plot()
@@ -118,21 +120,26 @@ class MainWindow(Qt.QMainWindow):
 
         pos = self.vp.camera.GetPosition()
         self.vp.camera.Azimuth(180)
-        self.vp.show(interactive=0, interactorStyle=0, camera={"viewup":(0, -1, 0)}
-        )
+        self.vp.show(interactive=0, interactorStyle=0, camera={"viewup":(0, -1, 0)})
 
         self.show()
         self.iren.Initialize()
         self.iren.Start()
 
     def changeMzValue(self, text):
+        self.is_text_editing = True
         number, is_converted = self.locale.toDouble(text)
         if is_converted:
             self.current_mz = number
             self.get_points_on_spectrum()
 
+    def updateMzValue(self):
+        self.is_text_editing = False
+        self.get_points_on_spectrum()
+
 
     def changeToleranceValue(self, text):
+        self.is_text_editing = True
         number, is_converted = self.locale.toDouble(text)
         if is_converted:
             self.tol = number
@@ -150,6 +157,14 @@ class MainWindow(Qt.QMainWindow):
         no_intersection = not mask.any()
         if no_intersection:
             mask_index = min(bisect.bisect_left(self.mz, self.current_mz), len(self.mz)-1)
+            if mask_index > 0 and \
+               abs(self.mz[mask_index-1]-self.current_mz) < \
+               abs(self.mz[mask_index]-self.current_mz):
+                mask_index = mask_index-1
+            if mask_index < len(self.mz) - 1 and \
+               abs(self.mz[mask_index+1]-self.current_mz) < \
+               abs(self.mz[mask_index]-self.current_mz):
+                mask_index = mask_index+1
             mask[mask_index] = True
 
         xmasked = self.mz[mask]
@@ -168,10 +183,16 @@ class MainWindow(Qt.QMainWindow):
             self.point.set_data([xmax],[ymax])
             self.rect.set_width(x2 - x1)
             self.rect.set_height(y2 - y1)
+
             if no_intersection:
-                self.rect.set_xy((np.median(xmax)-self.tol/2, 0))
+                self.current_mz = np.median(xmax)
+                self.rect.set_xy((self.current_mz-self.tol/2, 0))
             else:
                 self.rect.set_xy((x1, 0))
+
+            if not self.is_text_editing:
+                self.edit_mz.setText(str(round(self.current_mz, 4)))
+
             self.figure.canvas.draw_idle()
 
 
@@ -204,8 +225,11 @@ class MainWindow(Qt.QMainWindow):
         def line_select_callback(event):
             if self.toolbar._actions['zoom'].isChecked() or self.toolbar._actions['pan'].isChecked() or not event.xdata:
                 return
+            self.is_text_editing = False
             self.current_mz = event.xdata
+            self.current_I = event.ydata
             self.edit_mz.setText(str(round(self.current_mz, 4)))
+            self.get_points_on_spectrum()
 
 
         self.rect = Rectangle((0,0), 0, 0, alpha=0.1, fc='r')
