@@ -12,6 +12,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import esmraldi.spectraprocessing as sp
 import esmraldi.imzmlio as io
+import esmraldi.speciesrule as sr
+import esmraldi.spectrainterpretation as si
+from esmraldi.theoreticalspectrum import TheoreticalSpectrum
 import sys
 
 def plot_peak_selected(spectra, realigned_spectra):
@@ -43,7 +46,10 @@ parser.add_argument("-n", "--nbpeaks", help="Number of occurrence of peaks acros
 parser.add_argument("-z", "--nbcharges", help="Number of charges for deisotoping", default=2)
 parser.add_argument("-s", "--step", help="Tolerance step to realign peaks (in m/z)", default=0.05)
 parser.add_argument("-t", "--tolerance", help="Tolerance for deisotoping (in m/z)", default=0.05)
+parser.add_argument("-d", "--deisotope", help="Whether the realigned spectra should be deisotoped", action="store_true")
 parser.add_argument("--normalize", help="TIC normalization")
+parser.add_argument("--theoretical", help="If provided, only peaks close to the theoretical spectrum are kept")
+parser.add_argument("--tolerance_theoretical", help="Tolerance to match two peaks between theoretical spectrum and observed spectrum", default=0.1)
 
 args = parser.parse_args()
 
@@ -54,7 +60,10 @@ nb_peaks = int(args.nbpeaks)
 nb_charges = int(args.nbcharges)
 step_mz = float(args.step)
 tolerance_mz = float(args.tolerance)
+is_deisotoped = args.deisotope
 is_normalized = args.normalize
+theoretical = args.theoretical
+tolerance_theoretical = float(args.tolerance_theoretical)
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -79,19 +88,30 @@ print(realigned_spectra.shape)
 
 print("Before deisotoping", realigned_spectra[0, 0, ...])
 
-print("Deisotoping")
-averagine = {'C': 7.0, 'H': 11.8333, 'N': 0.5, 'O': 5.16666}
-deisotoped_spectra = sp.deisotoping_simple(realigned_spectra, tolerance=tolerance_mz, nb_charges=nb_charges, average_distribution={})
-# deisotoped_spectra = sp.deisotoping(np.array(realigned_spectra))
+if is_deisotoped:
+    print("Deisotoping")
+    averagine = {'C': 7.0, 'H': 11.8333, 'N': 0.5, 'O': 5.16666}
+    realigned_spectra = sp.deisotoping_simple(realigned_spectra, tolerance=tolerance_mz, nb_charges=nb_charges, average_distribution={})
+    # deisotoped_spectra = sp.deisotoping(np.array(realigned_spectra))
+    print(realigned_spectra.shape)
+    print("After deisotoping", realigned_spectra[0, 0, ...])
 
-print(deisotoped_spectra.shape)
-
-print("After deisotoping", deisotoped_spectra[0, 0, ...])
+if theoretical:
+    species = sr.json_to_species(theoretical)
+    ions = [mol for mol in species if mol.category=="Ion"]
+    adducts = [mol for mol in species if mol.category=="Adduct"]
+    modifications = [mol for mol in species if mol.category=="Modification"]
+    theoretical_spectrum = TheoreticalSpectrum(ions, adducts, modifications)
+    annotation = si.annotation(realigned_spectra[0, 0, ...].tolist(), theoretical_spectrum.spectrum, tolerance_theoretical)
+    peaks = [k for k,v in annotation.items() if len(v) > 0]
+    indices_to_width = {k:0 for k in peaks}
+    realigned_spectra = np.array(sp.realign_wrt_peaks_mzs(realigned_spectra, np.array(peaks), realigned_spectra[:, 0, ...], indices_to_width))
+    print("After alignment with theoretical", len(realigned_spectra[0, 0, ...]), ", length theoretical=", len(theoretical_spectrum.spectrum))
 
 mzs = []
 intensities = []
 to_array = []
-for spectrum in deisotoped_spectra:
+for spectrum in realigned_spectra:
     x, y = spectrum
     mzs.append(x)
     intensities.append(y)
