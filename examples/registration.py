@@ -124,7 +124,6 @@ def register2D(fixed, moving, numberOfBins, is_best_rotation=False, array_moving
 def apply_registration(image, best_resampler, to_flip):
     try:
         if to_flip:
-            print("Flipped!")
             image = sitk.Flip(image, (True, False))
             image = sitk.GetImageFromArray(sitk.GetArrayFromImage(image))
         out = best_resampler.Execute(image)

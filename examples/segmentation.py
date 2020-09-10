@@ -83,7 +83,7 @@ y = [elem[1] for elem in list_end]
 mask = np.ones_like(mean_image)
 mask[x, y] = 0
 mask = opening(mask, selem)
-masked_mean_image = np.ma.array(max_image, mask=mask)
+masked_mean_image = np.ma.array(mean_image, mask=mask)
 masked_mean_image = masked_mean_image.filled(0)
 masked_mean_image = masked_mean_image[padding:-padding, padding:-padding]
 fig, ax = plt.subplots(1,3)

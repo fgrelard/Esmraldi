@@ -192,7 +192,7 @@ def spectra_peak_mzs_adaptative(spectra, factor=1, wlen=10):
         mzs_current = x[indices_current]
         mzs.append(mzs_current)
         index += 1
-    return np.array(mzs)
+    return np.array(mzs, dtype=object)
 
 def spectra_peak_mzs_adaptative_noiselevel(spectra, factor=1, noise_level=1, wlen=10):
     """
@@ -230,7 +230,7 @@ def spectra_peak_mzs_adaptative_noiselevel(spectra, factor=1, noise_level=1, wle
         mzs_current = x[indices_current]
         mzs.append(mzs_current)
         index += 1
-    return np.array(mzs)
+    return np.array(mzs, dtype=object)
 
 
 def peak_indices(data, prominence, wlen):
@@ -313,7 +313,7 @@ def spectra_peak_mzs_cwt(spectra, factor, widths):
             mzs.append(x[indices_current])
         else:
             mzs.append([])
-    return np.array(mzs)
+    return np.array(mzs, dtype=object)
 
 def same_mz_axis(spectra, tol=0):
     """
@@ -358,26 +358,31 @@ def same_mz_axis(spectra, tol=0):
 
 
 
-def normalization_tic(y):
+def normalization_tic(spectra):
     """
     TIC (total ion count) normalization.
 
-    Divides each intensity in a spectrum by the sum of all its intensities.
+    Divides each intensity in a spectrum by
+    the sum of all its intensities.
 
     Parameters
     ----------
-    y: np.ndarray
-        spectrum
+    spectra: np.ndarray
+        spectra as [mz*I] array
 
     Returns
     ----------
     np.ndarray
         normalized spectrum
     """
-    sum_intensity = 0
-    for intensity in y:
-        sum_intensity += intensity
-    return y / sum_intensity
+    spectra_normalized = spectra.copy()
+    for i, (x, y) in enumerate(spectra):
+        spectra_sum = np.sum(y)
+        median = np.median(y)
+        new_y = y / spectra_sum * median
+        spectra_normalized[i, 1, :] = new_y
+    return spectra_normalized
+
 
 
 def index_groups(indices, step=1):

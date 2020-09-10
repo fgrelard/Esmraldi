@@ -43,6 +43,8 @@ parser.add_argument("-n", "--nbpeaks", help="Number of occurrence of peaks acros
 parser.add_argument("-z", "--nbcharges", help="Number of charges for deisotoping", default=2)
 parser.add_argument("-s", "--step", help="Tolerance step to realign peaks (in m/z)", default=0.05)
 parser.add_argument("-t", "--tolerance", help="Tolerance for deisotoping (in m/z)", default=0.05)
+parser.add_argument("--normalize", help="TIC normalization")
+
 args = parser.parse_args()
 
 inputname = args.input
@@ -52,6 +54,7 @@ nb_peaks = int(args.nbpeaks)
 nb_charges = int(args.nbcharges)
 step_mz = float(args.step)
 tolerance_mz = float(args.tolerance)
+is_normalized = args.normalize
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -67,6 +70,7 @@ wlen = max(10, int(50.0 / min_diff))
 print("Spatial resolution= ", min_diff)
 print("Window length= ", wlen)
 
+spectra = sp.normalization_tic(spectra)
 
 mzs = sp.spectra_peak_mzs_adaptative(spectra, factor=prominence, wlen=wlen)
 # realigned_spectra = sp.realign(spectra, prominence, nb_peaks)
