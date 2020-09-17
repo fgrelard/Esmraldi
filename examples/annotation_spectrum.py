@@ -116,6 +116,7 @@ parser.add_argument("-t", "--theoretical", help="Theoretical spectrum")
 parser.add_argument("-o", "--observed", help="Observed spectrum (.csv)")
 parser.add_argument("-c", "--output_csv", help="Output file with annotated observed spectrum (.csv)")
 parser.add_argument("-s", "--separate_species", help="Switch whether species names are split in separate columns", action="store_true")
+parser.add_argument("--tolerance", help="Tolerance to annotate spectrum", default=0.1)
 
 args = parser.parse_args()
 
@@ -123,6 +124,7 @@ theoretical_name = args.theoretical
 observed_name = args.observed
 output_name = args.output_csv
 is_separate = args.separate_species
+tolerance = float(args.tolerance)
 
 species = sr.json_to_species(theoretical_name)
 ions = [mol for mol in species if mol.category=="Ion"]
@@ -140,7 +142,7 @@ with open(observed_name) as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=";")
     observed_spectrum = [float(row[0]) for row in csv_reader]
 
-annotation = si.annotation(observed_spectrum, theoretical_spectrum.spectrum, 0.1)
+annotation = si.annotation(observed_spectrum, theoretical_spectrum.spectrum, tolerance)
 
 print([v for k, v in annotation.items()][:10])
 d = {k:v for k, v in annotation.items() if len(v) > 0}

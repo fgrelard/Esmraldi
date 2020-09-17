@@ -261,6 +261,7 @@ parser.add_argument("--learning_rate", help="Learning rate", default=1.1)
 parser.add_argument("--relaxation_factor", help="Relaxation factor", default=0.9)
 parser.add_argument("--sampling_percentage", help="Sampling percentage", default=0.1)
 parser.add_argument("--min_step", help="Minimum step for gradient descent", default=0.001)
+parser.add_argument("--step_realign", help="Step to realign mzs for 3D volumes", default=0.05)
 args = parser.parse_args()
 
 fixedname = args.fixed
@@ -277,6 +278,7 @@ relaxation_factor = float(args.relaxation_factor)
 sampling_percentage = float(args.sampling_percentage)
 min_step = float(args.min_step)
 pattern = args.pattern
+step_realign = float(args.step_realign)
 
 
 fixed = sitk.ReadImage(fixedname, sitk.sitkFloat32)
@@ -382,7 +384,7 @@ if registername:
     if is_imzml:
         if len(register_image_names) > 1:
             spectra = np.array(spectra, dtype=object)
-            realigned_spectra = sp.realign_mzs(spectra, mzs, step=0.05)
+            realigned_spectra = sp.realign_mzs(spectra, mzs, step=step_realign)
             mzs = realigned_spectra[:, 0]
             intensities = realigned_spectra[:, 1]
         imzmlio.write_imzml(mzs, intensities, coordinates, outputname)
