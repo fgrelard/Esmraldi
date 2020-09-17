@@ -229,10 +229,23 @@ class MainWindow(Qt.QMainWindow):
             self.edit_mz.setText(str(round(self.current_mz, 4)))
             self.get_points_on_spectrum()
 
+        def arrow_callback(iren, event):
+            key = iren.GetKeySym()
+            current_index = bisect.bisect_left(self.mz, self.current_mz)
+            if key != 'Right' or key != 'Left':
+                return
+            if key == 'Right':
+                new_index = current_index + 1 if current_index < len(self.mz) - 1 else 0
+            elif key == 'Left':
+                new_index = current_index - 1 if current_index > 0 else len(self.mz) - 1
+            self.current_mz = self.mz[new_index]
+            self.edit_mz.setText(str(round(self.current_mz, 4)))
+            self.get_points_on_spectrum()
 
         self.rect = Rectangle((0,0), 0, 0, alpha=0.1, fc='r')
         self.ax.add_patch(self.rect)
         self.ax.figure.canvas.mpl_connect('button_press_event', line_select_callback)
+        self.vp.interactor.AddObserver("KeyPressEvent", arrow_callback)
 
         # refresh canvas
         self.canvas.draw()
