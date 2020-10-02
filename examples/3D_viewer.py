@@ -232,7 +232,7 @@ class MainWindow(Qt.QMainWindow):
         def arrow_callback(iren, event):
             key = iren.GetKeySym()
             current_index = bisect.bisect_left(self.mz, self.current_mz)
-            if key != 'Right' or key != 'Left':
+            if key != 'Right' and key != 'Left':
                 return
             if key == 'Right':
                 new_index = current_index + 1 if current_index < len(self.mz) - 1 else 0
