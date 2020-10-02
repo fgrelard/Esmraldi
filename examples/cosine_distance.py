@@ -5,7 +5,7 @@ import esmraldi.segmentation as seg
 import esmraldi.fusion as fusion
 import SimpleITK as sitk
 import scipy.spatial.distance as distance
-from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics.pairwise import cosine_similarity, cosine_distances
 import argparse
 
 from esmraldi.sliceviewer import SliceViewer
@@ -78,7 +78,13 @@ if is_ratio:
     mzs = np.concatenate((mzs, ratio_mzs))
 
 
-print(image_mri_flatten.shape, image_flatten.shape)
+indices_closest = fusion.get_closest_indices(image_flatten[0], image_mri_flatten[0])
+values = np.array([255-int((i*255)/len(indices_closest)) for i in range(len(indices_closest))])
+maldi_closest = image_flatten[0]
+maldi_closest[indices_closest] = values
+maldi_closest = np.reshape(maldi_closest, image.shape[:-1])
+
+print(image_mri_flatten.shape, image_flatten.shape[:1])
 cosines = cosine_similarity(image_flatten,image_mri_flatten)
 
 
@@ -91,16 +97,19 @@ indices_array = np.array(indices)
 similar_images = np.take(image, indices, axis=-1)
 similar_mzs = np.take(mzs, indices)
 
+
+
 np.savetxt(outname, similar_mzs, delimiter=";", fmt="%s")
 print(similar_mzs)
 
 if len(similar_images.shape) == 3:
-    fig, ax = plt.subplots(1, 2)
+    fig, ax = plt.subplots(1, 3)
     ax[0].imshow(similar_images[..., 0])
     ax[1].imshow(image_mri)
+    ax[2].imshow(maldi_closest)
     plt.show()
 elif len(similar_images.shape) == 4:
-    fig, ax = plt.subplots(1, 2)
-    tracker = SliceViewer(ax, np.transpose(similar_images[..., 0], (2, 1, 0)),  np.transpose(image_mri, (2, 1, 0)))
+    fig, ax = plt.subplots(1, 3)
+    tracker = SliceViewer(ax, np.transpose(similar_images[..., 0], (2, 1, 0)),  np.transpose(image_mri, (2, 1, 0)), np.transpose(maldi_closest, (2, 1, 0)), vmin=0, vmax=255)
     fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
     plt.show()

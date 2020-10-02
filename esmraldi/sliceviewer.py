@@ -1,7 +1,7 @@
 import numpy as np
 
 class SliceViewer(object):
-    def __init__(self, ax, *X):
+    def __init__(self, ax, *X, **kwargs):
         self.ax = np.array([ax]).flatten()
 
         self.ax[0].set_title('use scroll wheel to navigate images')
@@ -12,7 +12,7 @@ class SliceViewer(object):
 
         self.im = []
         for i in range(len(self.ax)):
-            self.im.append(self.ax[i].imshow(self.X[i][self.ind, ...]))
+            self.im.append(self.ax[i].imshow(self.X[i][self.ind, ...], **kwargs))
 
         self.update()
 

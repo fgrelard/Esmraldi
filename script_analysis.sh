@@ -15,10 +15,11 @@ where:
      -t  theoretical spectrum (.json)
      -n  number of components for dimension reduction method
      -a  optional switch if alignment is not needed
-     -p  optional switch is normalization before NMF is not needed";
+     -p  optional switch is normalization before NMF is not needed
+     -r  optional switch to perform statistical analysis with NMF";
 }
 
-while getopts "i:o:t:n:ap" o; do
+while getopts "i:o:t:n:apr" o; do
     case "${o}" in
         i)
             INPUT=${OPTARG}
@@ -36,7 +37,7 @@ while getopts "i:o:t:n:ap" o; do
             OPT_NO_ALIGN='true'
             ;;
         p)
-            OPT_NO_NORMALIZE='true'
+            OPT_NORMALIZE='true'
             ;;
         r)
             OPT_ANALYSIS='true'
@@ -68,14 +69,14 @@ do
     outname=$outdir/$OUTPUT_NAME.csv
     mkdir -p $outdir
     if [[ ! $OPT_NO_ALIGN ]]; then
-        python3 -m examples.spectra_alignment -i $imzml -o $align -p 250 -n 3 -z 3 -s 0.055 --theoretical data/species_rule_fe.json --tolerance_theoretical 0.15
+        python3 -m examples.spectra_alignment -i $imzml -o $align -p 250 -n 3 -z 3 -s 0.055 #--theoretical $THEORETICAL --tolerance_theoretical 0.15
         python3 -m examples.tonifti -i $align -o $nii
     fi
     if [[ $OPT_ANALYSIS ]]; then
-        if [[ ! $OPT_NO_NORMALIZE ]]; then
-            python3 -m examples.evaluation.analysis_reduction -i $nii -m $peaks -o $outname -n $NUMBER_COMPONENTS -t $THEORETICAL -p
+        if [[ $OPT_NORMALIZE ]]; then
+            python3 -m examples.evaluation.analysis_reduction -i $nii -m $peaks -o $outname -n $NUMBER_COMPONENTS -t $THEORETICAL -p -f
         else
-            python3 -m examples.evaluation.analysis_reduction -i $nii -m $peaks -o $outname -n $NUMBER_COMPONENTS -t $THEORETICAL
+            python3 -m examples.evaluation.analysis_reduction -i $nii -m $peaks -o $outname -n $NUMBER_COMPONENTS -t $THEORETICAL -f
         fi
         python3 -m examples.average_images_same_species -i $nii -m $peaks -o $outdir -t $THEORETICAL
     fi

@@ -272,3 +272,14 @@ def get_score(model, data, scorer=metrics.explained_variance_score):
     """
     prediction = model.inverse_transform(model.transform(data))
     return scorer(data, prediction)
+
+
+def get_closest_indices(image1, image2):
+    print(image1.shape, image2.shape)
+    indices = np.where((image1 != 0) & (image2 != 0))[0]
+    image1_positive = np.int16(image1[indices])
+    image2_positive = np.int16(image2[indices])
+    abs_diff = np.abs(image1_positive - image2_positive)
+    indices_abs_diff = [i for i in range(len(indices))]
+    indices_abs_diff.sort(key=lambda x:abs_diff[x], reverse=False)
+    return indices[indices_abs_diff]
