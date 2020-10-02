@@ -274,6 +274,9 @@ def get_score(model, data, scorer=metrics.explained_variance_score):
     return scorer(data, prediction)
 
 
+def get_reconstructed_image_from_components(components, weights):
+    return np.sum([components[..., i].T * weights[i] for i in range(len(weights))], axis=0)
+
 def get_closest_indices(image1, image2):
     print(image1.shape, image2.shape)
     indices = np.where((image1 != 0) & (image2 != 0))[0]

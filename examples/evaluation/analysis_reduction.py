@@ -17,8 +17,10 @@ import esmraldi.spectrainterpretation as si
 import esmraldi.fusion as fusion
 
 from sklearn.metrics import mean_squared_error
-from sklearn.decomposition import NMF
+from sklearn.decomposition import NMF, PCA
 from esmraldi.theoreticalspectrum import TheoreticalSpectrum
+
+from esmraldi.sliceviewer import SliceViewer
 
 
 parser = argparse.ArgumentParser()
@@ -44,7 +46,7 @@ is_normalized = args.preprocess
 is_nmf = args.nmf
 
 outroot, outext = os.path.splitext(outname)
-
+print(inputname, mzsname, theoretical_name, outname, is_normalized, is_nmf)
 if inputname.lower().endswith(".imzml"):
     imzml = imzmlio.open_imzml(inputname)
     spectra = imzmlio.get_full_spectra(imzml)
@@ -94,7 +96,8 @@ if is_nmf:
     eigenvectors_transposed = eigenvalues.T
 else:
     # p, n = M.shape
-    fit_pca = fusion.pca(M, n)
+    pca = PCA(n)
+    fit_pca = pca.fit(M)
     eigenvectors = fit_pca.components_
     eigenvalues = fit_pca.transform(M)
     inverse_transform = pca.inverse_transform(eigenvalues)
@@ -106,24 +109,33 @@ outlier_indices = [i for i in range(len(mse))]
 outlier_indices.sort(key=lambda x:mse[x], reverse=True)
 
 number_outliers = 10
-for i in range(number_outliers):
-    outlier_index = outlier_indices[i]
-    image_original = M[..., outlier_index]
-    image_original = np.reshape(image_original, (np.prod(image_shape[:-1]), image_shape[-1]))
-    image_reconstructed = inverse_transform[..., outlier_index]
-    image_reconstructed = np.reshape(image_reconstructed, (np.prod(image_shape[:-1]), image_shape[-1]))
+# for i in range(number_outliers):
+#     outlier_index = outlier_indices[i]
+#     image_original = M[..., outlier_index]
+#     image_original = np.reshape(image_original, (np.prod(image_shape[:-1]), image_shape[-1]))
+#     image_reconstructed = inverse_transform[..., outlier_index]
+#     image_reconstructed = np.reshape(image_reconstructed, (np.prod(image_shape[:-1]), image_shape[-1]))
 
-    mse_slice = mean_squared_error(image_original, image_reconstructed, multioutput='raw_values')
-    mse_slice = ((image_original-image_reconstructed)**2).sum(axis=1)
-    outlier_slice_indices = [i for i in range(len(mse_slice))]
-    outlier_slice_indices.sort(key=lambda x:mse_slice[x], reverse=True)
-    print(mzs[outlier_index], " slices=", outlier_slice_indices)
+#     mse_slice = mean_squared_error(image_original, image_reconstructed, multioutput='raw_values')
+#     mse_slice = ((image_original-image_reconstructed)**2).sum(axis=1)
+#     outlier_slice_indices = [i for i in range(len(mse_slice))]
+#     outlier_slice_indices.sort(key=lambda x:mse_slice[x], reverse=True)
+#     print(mzs[outlier_index], " slices=", outlier_slice_indices)
 
 
 
 image_eigenvectors = eigenvectors_transposed.T
 new_shape = image_shape + (image_eigenvectors.shape[-1],)
 image_eigenvectors = image_eigenvectors.reshape(new_shape)
+
+
+weights = eigenvectors[..., 0] / np.sum(eigenvectors[..., 0])
+image_0 = fusion.get_reconstructed_image_from_components(image_eigenvectors, weights)
+
+fig, ax = plt.subplots(1, 2)
+ax[0].imshow(image
+ax[1].imshow(image_0)
+plt.show()
 
 print(image_eigenvectors.shape)
 

@@ -24,6 +24,8 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 
 from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import NMF, PCA
+
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from skimage.filters import threshold_otsu
 from esmraldi.sliceviewer import SliceViewer
@@ -141,14 +143,33 @@ print(image_norm.shape)
 
 print("Computing Dimension reduction")
 
-fit_red = fusion.nmf(image_norm, n)
+# fit_red = fusion.nmf(image_norm, n)
+# print(mri_norm.T.shape)
+nmf = NMF(n_components=n, init='nndsvda', solver='mu', random_state=0)
+# fit_red = nmf.fit(image_norm.T)
+# eigenvectors = fit_red.components_ #H
+# image_eigenvectors = nmf.transform(image_norm.T); #W
+# mri_eigenvectors = nmf.transform(mri_norm.T)
+
+# shape_mri = image_mri.shape + (mri_eigenvectors.shape[-1],)
+# mri_eigenvectors = mri_eigenvectors.reshape(shape_mri)
+
+
+
+fit_red = nmf.fit(image_norm)
 point = fit_red.transform(mri_norm)
-
-print("Explained variance ratio=", fusion.get_score(fit_red, image_norm))
-
 X_r = fit_red.transform(image_norm)
+image_eigenvectors = nmf.inverse_transform(X_r)
 centers = X_r
 point_mri = point
+
+image_eigenvectors = image_eigenvectors.T
+new_shape = image.shape[:-1] + (image_eigenvectors.shape[-1],)
+image_eigenvectors = image_eigenvectors.reshape(new_shape)
+
+print(image_eigenvectors.shape)
+
+print("Explained variance ratio=", fusion.get_score(fit_red, image_norm))
 
 if post_process:
     X_train, X_test = fusion.post_processing(X_r, point)
@@ -178,10 +199,11 @@ if not is_ratio:
                                       image_zoom=0.7)
     elif len(image.shape) == 4:
         images_maldi = [cv2.resize(i[..., i.shape[-1]//2], size) for i in np.transpose(image, (3, 0, 1, 2))]
-        image_mri = cv2.resize(image_mri[..., image_mri.shape[-1]//2], size)
+        thumbnail_mri = image_mri.copy()
+        thumbnail_mri = cv2.resize(thumbnail_mri[..., thumbnail_mri.shape[-1]//2], size)
         visualize_scatter_with_images(pca_all,
                                       images_maldi,
-                                      image_mri,
+                                      thumbnail_mri,
                                       figsize=size,
                                       image_zoom=0.7)
 
@@ -190,12 +212,8 @@ plt.plot(point[:, 0], point[:, 1], "ro")
 plt.show()
 plt.close()
 
-
 labels = None
-
-
 weights = [1 for i in range(centers.shape[1])]
-
 
 if top is not None:
     af = fusion.clustering_kmeans(image_norm, X_r)
@@ -207,6 +225,38 @@ similar_images, similar_mzs, distances = fusion.select_images(image,point_mri, c
 print("Selecting images end")
 
 similar_images = similar_images[..., 0:100]
+
+index = np.where(mzs == similar_mzs[0])[0]
+w = X_r[index, ...] / np.sum(X_r[index, ...])
+image_closest = fusion.get_reconstructed_image_from_components(image_eigenvectors, w)
+image_closest = np.transpose(image_closest, (2, 1, 0))
+image_closest = imzmlio.normalize(image_closest)
+
+w_mri = point / np.sum(point)
+print(w, w_mri)
+print(X_r.shape)
+print(point, X_r[index, ...])
+mri_reconstructed = fusion.get_reconstructed_image_from_components(image_eigenvectors, w_mri.T)
+mri_reconstructed = np.transpose(mri_reconstructed, (2, 1, 0))
+mri_reconstructed = imzmlio.normalize(mri_reconstructed)
+
+if len(similar_images.shape) == 3:
+    fig, ax = plt.subplots(1, 4)
+    ax[0].imshow(similar_images[..., 0])
+    ax[1].imshow(mri_norm)
+    ax[2].imshow(image_closest)
+    ax[3].imshow(mri_reconstructed)
+    plt.show()
+elif len(similar_images.shape) == 4:
+    fig, ax = plt.subplots(1, 4)
+    tracker = SliceViewer(ax,
+                          np.transpose(similar_images[..., 0], (2, 1, 0)),
+                          np.transpose(np.reshape(mri_norm, image_mri.shape), (2, 1, 0)),
+                          np.transpose(image_closest, (2, 1, 0)),
+                          np.transpose(mri_reconstructed, (2, 1, 0)),
+                          vmin=0, vmax=255)
+    fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
+    plt.show()
 
 if len(similar_images.shape) == 4:
     s = similar_images.shape
