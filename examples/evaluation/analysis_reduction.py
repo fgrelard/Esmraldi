@@ -127,13 +127,13 @@ number_outliers = 10
 image_eigenvectors = eigenvectors_transposed.T
 new_shape = image_shape + (image_eigenvectors.shape[-1],)
 image_eigenvectors = image_eigenvectors.reshape(new_shape)
-
+print(image_eigenvectors.shape)
 
 weights = eigenvectors[..., 0] / np.sum(eigenvectors[..., 0])
 image_0 = fusion.get_reconstructed_image_from_components(image_eigenvectors, weights)
 
 fig, ax = plt.subplots(1, 2)
-ax[0].imshow(image
+ax[0].imshow(image[..., 0])
 ax[1].imshow(image_0)
 plt.show()
 

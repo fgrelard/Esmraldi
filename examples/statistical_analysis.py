@@ -159,7 +159,8 @@ nmf = NMF(n_components=n, init='nndsvda', solver='mu', random_state=0)
 fit_red = nmf.fit(image_norm)
 point = fit_red.transform(mri_norm)
 X_r = fit_red.transform(image_norm)
-image_eigenvectors = nmf.inverse_transform(X_r)
+image_eigenvectors = fit_red.components_
+
 centers = X_r
 point_mri = point
 
@@ -228,27 +229,25 @@ similar_images = similar_images[..., 0:100]
 
 index = np.where(mzs == similar_mzs[0])[0]
 w = X_r[index, ...] / np.sum(X_r[index, ...])
-image_closest = fusion.get_reconstructed_image_from_components(image_eigenvectors, w)
-image_closest = np.transpose(image_closest, (2, 1, 0))
+image_closest = fusion.get_reconstructed_image_from_components(image_eigenvectors, w.T)
+image_closest = image_closest.T
 image_closest = imzmlio.normalize(image_closest)
 
 w_mri = point / np.sum(point)
-print(w, w_mri)
-print(X_r.shape)
-print(point, X_r[index, ...])
 mri_reconstructed = fusion.get_reconstructed_image_from_components(image_eigenvectors, w_mri.T)
-mri_reconstructed = np.transpose(mri_reconstructed, (2, 1, 0))
+mri_reconstructed = mri_reconstructed.T
 mri_reconstructed = imzmlio.normalize(mri_reconstructed)
 
 if len(similar_images.shape) == 3:
     fig, ax = plt.subplots(1, 4)
     ax[0].imshow(similar_images[..., 0])
-    ax[1].imshow(mri_norm)
+    ax[1].imshow(np.reshape(mri_norm, image_mri.shape))
     ax[2].imshow(image_closest)
     ax[3].imshow(mri_reconstructed)
     plt.show()
 elif len(similar_images.shape) == 4:
     fig, ax = plt.subplots(1, 4)
+
     tracker = SliceViewer(ax,
                           np.transpose(similar_images[..., 0], (2, 1, 0)),
                           np.transpose(np.reshape(mri_norm, image_mri.shape), (2, 1, 0)),
