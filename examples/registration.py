@@ -239,7 +239,7 @@ def registration_itk(image, fixed, best_resamplers, flips):
             best_resampler, flip = get_resampler(diff_resampler, best_resamplers, flips, i)
             out2D = apply_registration(image[:,:,i], best_resampler, to_flip)
             out2D = sitk.JoinSeries(out2D)
-            outImage = sitk.Paste(out, out2D, out2D.GetSize(), destinationIndex=[0,0,i])
+            outImage = sitk.Paste(outImage, out2D, out2D.GetSize(), destinationIndex=[0,0,i])
     pixel_type_reg = image.GetPixelID()
     if pixel_type_reg >= sitk.sitkFloat32:
         outImage = sitk.Cast(outImage, sitk.sitkFloat32)
