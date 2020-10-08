@@ -79,9 +79,13 @@ wlen = max(10, int(50.0 / min_diff))
 print("Spatial resolution= ", min_diff)
 print("Window length= ", wlen)
 
-spectra = sp.normalization_tic(spectra)
 
-mzs = sp.spectra_peak_mzs_adaptative(spectra, factor=prominence, wlen=wlen)
+peak_indices = sp.spectra_peak_indices_adaptative(spectra, factor=prominence, wlen=wlen)
+
+mzs = np.array([x[peak_indices[i]] for i, (x,y) in enumerate(spectra)], dtype=object)
+
+spectra = sp.normalization_sic(spectra, peak_indices)
+
 # realigned_spectra = sp.realign(spectra, prominence, nb_peaks)
 realigned_spectra = sp.realign_mzs(spectra, mzs, reference="median", nb_occurrence=nb_peaks, step=step_mz)
 print(realigned_spectra.shape)

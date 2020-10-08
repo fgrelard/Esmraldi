@@ -155,7 +155,7 @@ def spectra_peak_indices_adaptative(spectra, factor=1, wlen=10):
         x, y = spectrum
         indices_current = peak_indices(y, stddev * factor, wlen)
         indices.append(indices_current)
-    return np.array(indices)
+    return np.array(indices, dtype=object)
 
 def spectra_peak_mzs_adaptative(spectra, factor=1, wlen=10):
     """
@@ -382,7 +382,38 @@ def normalization_tic(spectra):
         spectra_normalized[i, 1, :] = new_y
     return spectra_normalized
 
+def normalization_sic(spectra, indices_peaks, width_peak=10):
+    """
+    SIC (selective ion count) normalization.
 
+    Defined as : TIC - sum of peaks of high intensities
+    Peaks are given with indices_peaks.
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        spectra as [mz*I] array
+    indices_peaks: np.ndarray
+        indices peaks
+    width_peak: int
+        average width of peaks
+
+    Returns
+    ----------
+    np.ndarray
+        normalized spectrum
+    """
+    spectra_normalized = spectra.copy()
+    for i, (x, y) in enumerate(spectra):
+        indices = indices_peaks[i]
+        indices = np.unique(np.array([int(max(0, min(ind+i, y.shape[0]-1))) for ind in indices for i in range(-width_peak//2, width_peak//2)], dtype=np.int64))
+        mask = np.zeros(y.shape, dtype=bool)
+        mask[indices] = True
+        y_without_indices = y[~mask]
+        spectra_sum = np.sum(y_without_indices)
+        new_y = y / spectra_sum
+        spectra_normalized[i, 1, :] = new_y
+    return spectra_normalized
 
 def index_groups(indices, step=1):
     """
