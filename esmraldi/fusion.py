@@ -274,14 +274,18 @@ def get_score(model, data, scorer=metrics.explained_variance_score):
     return scorer(data, prediction)
 
 
-def get_reconstructed_image_from_components(components, weights):
+def reconstruct_image_from_components(components, weights):
     return np.sum([components[..., i].T * weights[i] for i in range(len(weights))], axis=0)
 
-def get_closest_indices(image1, image2):
-    print(image1.shape, image2.shape)
+def closest_pixels_cosine(image1, image2):
     indices = np.where((image1 != 0) & (image2 != 0))[0]
-    image1_positive = np.int16(image1[indices])
-    image2_positive = np.int16(image2[indices])
+    image1_positive = np.float64(image1[indices])
+    image2_positive = np.float64(image2[indices])
+    print(np.linalg.norm(image1_positive.flatten()))
+    print(image1_positive.max())
+    print(image2_positive.max())
+    image1_positive /= np.linalg.norm(image1_positive.flatten())
+    image2_positive /= np.linalg.norm(image2_positive.flatten())
     abs_diff = np.abs(image1_positive - image2_positive)
     indices_abs_diff = [i for i in range(len(indices))]
     indices_abs_diff.sort(key=lambda x:abs_diff[x], reverse=False)

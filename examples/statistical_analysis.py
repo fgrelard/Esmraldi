@@ -229,21 +229,21 @@ similar_images = similar_images[..., 0:100]
 
 index = np.where(mzs == similar_mzs[0])[0]
 w = X_r[index, ...] / np.sum(X_r[index, ...])
-image_closest = fusion.get_reconstructed_image_from_components(image_eigenvectors, w.T)
+image_closest = fusion.reconstruct_image_from_components(image_eigenvectors, w.T)
 image_closest = image_closest.T
 image_closest = imzmlio.normalize(image_closest)
 
 w_mri = point / np.sum(point)
-mri_reconstructed = fusion.get_reconstructed_image_from_components(image_eigenvectors, w_mri.T)
+mri_reconstructed = fusion.reconstruct_image_from_components(image_eigenvectors, w_mri.T)
 mri_reconstructed = mri_reconstructed.T
 mri_reconstructed = imzmlio.normalize(mri_reconstructed)
 
 if len(similar_images.shape) == 3:
     fig, ax = plt.subplots(1, 4)
-    ax[0].imshow(similar_images[..., 0])
-    ax[1].imshow(np.reshape(mri_norm, image_mri.shape))
-    ax[2].imshow(image_closest)
-    ax[3].imshow(mri_reconstructed)
+    ax[0].imshow(similar_images[..., 0], cmap="gray")
+    ax[1].imshow(np.reshape(mri_norm, image_mri.shape), cmap="gray")
+    ax[2].imshow(image_closest, cmap="gray")
+    ax[3].imshow(mri_reconstructed, cmap="gray")
     plt.show()
 elif len(similar_images.shape) == 4:
     fig, ax = plt.subplots(1, 4)

@@ -87,9 +87,15 @@ def quality_registration(imRef, imRegistered, threshold=-1):
     imRef_bin = threshold_filter.Execute(imRef)
     imRegistered_bin = threshold_filter.Execute(imRegistered)
 
-    p = precision(imRef_bin, imRegistered_bin)
-    r = recall(imRef_bin, imRegistered_bin)
-    return p, r
+    p, r = [], []
+    if imRef_bin.GetDimension() > 2:
+        for i in range(imRef_bin.GetSize()[-1]):
+            p.append(precision(imRef_bin[:,:,i], imRegistered_bin[:,:,i]))
+            r.append(recall(imRef_bin[:,:,i], imRegistered_bin[:,:,i]))
+    else:
+        p.append(precision(imRef_bin, imRegistered_bin))
+        r.append(recall(imRef_bin, imRegistered_bin))
+    return np.array(p), np.array(r)
 
 
 def fmeasure(precision, recall):

@@ -78,7 +78,7 @@ if is_ratio:
     mzs = np.concatenate((mzs, ratio_mzs))
 
 
-indices_closest = fusion.get_closest_indices(image_flatten[0], image_mri_flatten[0])
+indices_closest = fusion.closest_pixels_cosine(image_flatten[0], image_mri_flatten[0])
 values = np.array([255-int((i*255)/len(indices_closest)) for i in range(len(indices_closest))])
 maldi_closest = image_flatten[0]
 maldi_closest[indices_closest] = values
@@ -104,9 +104,9 @@ print(similar_mzs)
 
 if len(similar_images.shape) == 3:
     fig, ax = plt.subplots(1, 3)
-    ax[0].imshow(similar_images[..., 0])
-    ax[1].imshow(image_mri)
-    ax[2].imshow(maldi_closest)
+    ax[0].imshow(similar_images[..., 0], cmap="gray")
+    ax[1].imshow(image_mri, cmap="gray")
+    ax[2].imshow(maldi_closest, cmap="gray")
     plt.show()
 elif len(similar_images.shape) == 4:
     fig, ax = plt.subplots(1, 3)

@@ -157,13 +157,21 @@ simg1 = sitk.Cast(sitk.RescaleIntensity(fixed), sitk.sitkUInt8)
 simg2 = sitk.Cast(sitk.RescaleIntensity(registered), sitk.sitkUInt8)
 
 cimg = sitk.Compose(simg1, simg2, simg1//3.+simg2//1.5)
-plt.imshow(sitk.GetArrayFromImage(cimg))
-plt.axis('off')
-plt.show()
+
+if cimg.GetDimension() == 2:
+    plt.imshow(sitk.GetArrayFromImage(cimg))
+    plt.axis('off')
+    plt.show()
+else:
+    plt.imshow(sitk.GetArrayFromImage(cimg[:,:,0]))
+    plt.axis('off')
+    plt.show()
+
 p, r = quality_registration(fixed, registered, threshold)
 f = (2*p*r)/(p+r)
 print("Precision=", p, " recall=", r, " fmeasure=", f)
 
+print("Average precision=", np.mean(p), " recall=", np.mean(r), " fmeasure=", np.mean(f))
 fixed_array = sitk.GetArrayFromImage(fixed)
 registered_array = sitk.GetArrayFromImage(registered)
 original_array = sitk.GetArrayFromImage(original)

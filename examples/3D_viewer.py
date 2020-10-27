@@ -25,6 +25,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 import random
 
+import scipy.spatial.distance as distance
+
 from PyQt5.QtWidgets import QDialog, QApplication, QPushButton, QVBoxLayout
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -34,8 +36,9 @@ from matplotlib.patches import Rectangle
 
 class MainWindow(Qt.QMainWindow):
 
-    def __init__(self, vol, mz, mean_spectra, parent = None):
+    def __init__(self, inputname, vol, mz, mean_spectra, parent = None):
         Qt.QMainWindow.__init__(self, parent)
+        self.setWindowTitle(os.path.basename(inputname))
 
         self.locale = Qt.QLocale(Qt.QLocale.English)
         Qt.QLocale.setDefault(self.locale)
@@ -43,7 +46,10 @@ class MainWindow(Qt.QMainWindow):
 
         self.mz = mz
         self.mean_spectra = mean_spectra
+        self.spectrum = np.array([self.mz, self.mean_spectra])
+        self.spectrum = (self.spectrum.T / [self.spectrum[0].max(), self.spectrum[1].max()]).T
         self.current_mz = self.mz.min()
+        self.current_intensity = 0
         self.is_text_editing = False
 
         self.frame = Qt.QFrame()
@@ -234,6 +240,7 @@ class MainWindow(Qt.QMainWindow):
                 return
             self.is_text_editing = False
             self.current_mz = event.xdata
+            self.current_intensity = event.ydata
             self.edit_mz.setText(str(round(self.current_mz, 4)))
             self.get_points_on_spectrum()
 
@@ -314,5 +321,5 @@ vol.interpolation(1)
 
 
 app = Qt.QApplication(sys.argv)
-window = MainWindow(vol, spectra[0, 0], mean_spectra)
+window = MainWindow(inputname, vol, spectra[0, 0], mean_spectra)
 sys.exit(app.exec_())
