@@ -39,7 +39,6 @@ def resize(image, size):
     ----------
     sitk.Image
         new resized image
-
     """
     image_array = sitk.GetArrayFromImage(image)
     reversed_size = np.array(size)[::-1]

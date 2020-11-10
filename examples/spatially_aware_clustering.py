@@ -27,7 +27,14 @@ def gaussian_weights(radius):
 def spatially_aware_clustering(image, k, radius):
     weights = gaussian_weights(radius)
     mapping_matrix = mapping_neighbors(image, radius, weights)
-    print(weights)
+    print(mapping_matrix.shape)
+    distance_spectra(mapping_matrix[50,50], mapping_matrix[50,51])
+
+def distance_spectra(s1, s2):
+    D = (s1 - s2)**2
+    distance = np.sum(D)
+    return distance
+
 
 
 
@@ -35,7 +42,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input MALDI image (imzML or nii)")
 parser.add_argument("-o", "--output", help="Output image (ITK format)")
 parser.add_argument("-n", "--number", help="Number of components for dimension reduction", default=5)
-parser.add_argument("-r", "--radius", help="Radius for spatial features")
+parser.add_argument("-r", "--radius", help="Radius for spatial features", default=1)
 parser.add_argument("-g", "--threshold", help="Mass to charge ratio threshold (optional)", default=0)
 
 args = parser.parse_args()

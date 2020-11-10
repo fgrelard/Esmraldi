@@ -183,6 +183,18 @@ def display_starting_point(data, X, Y, translation):
     plt.imshow(M)
     plt.show()
 
+def best_spearman(image_curvature, mri_curvature,sigma=1.5):
+    image_curvature = scipy.ndimage.gaussian_filter1d(np.copy(image_curvature), sigma)
+    mri_curvature = scipy.ndimage.zoom(mri_curvature, len(image_curvature)/len(mri_curvature), order=2)
+    mri_curvature = scipy.ndimage.gaussian_filter1d(np.copy(mri_curvature), sigma)
+    best_s = 0
+    for i in range(len(image_curvature)):
+        tmp = np.roll(image_curvature, i)
+        s = spearmanr(mri_curvature, tmp)[0]
+        if s > best_s:
+            best_s = s
+    return best_s
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--fixed", help="Fixed curvature")
