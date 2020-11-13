@@ -74,6 +74,24 @@ def normalize(image):
             image_normalized[..., k] = slice2DNorm
     return image_normalized
 
+def get_full_spectra(imzml):
+    max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
+    max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
+    max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
+    mzs, ints = imzml.getspectrum(0)
+    number_points = len(ints)
+    zeros_ints = [0 for i in range(number_points)]
+
+    full_spectra = np.zeros((max_x*max_y*max_z, 2, number_points))
+    full_spectra[:,0,:] = mzs
+    for i, (x, y, z) in enumerate(imzml.coordinates):
+        real_index = (x-1) + (y-1) * max_x + (z-1) * max_x * max_y
+        mz, ints = imzml.getspectrum(i)
+        full_spectra[real_index, 0] = mz
+        full_spectra[real_index, 1] = ints
+    return full_spectra
+
+
 def get_spectra(imzml, pixel_numbers=[]):
     """
     Extracts spectra from imzML
@@ -178,7 +196,8 @@ def get_spectra_from_images(images):
 def get_images_from_spectra(spectra, shape):
     """
     Extracts image as a numpy array from
-    spectra intensities and coordinates
+    spectra intensities and the shape of the image,
+    i.e the tuple (width, height)
 
     Parameters
     ----------
@@ -194,7 +213,10 @@ def get_images_from_spectra(spectra, shape):
 
     """
     intensities = spectra[:, 1, :]
-    image = np.reshape(intensities, shape + (intensities.shape[-1],))
+    new_shape = shape
+    if shape[-1] == 1:
+        new_shape = shape[:-1]
+    image = np.reshape(intensities, new_shape + (intensities.shape[-1],), order="F")
     return image
 
 def get_image(imzml, mz, tol=0.01):
@@ -218,7 +240,7 @@ def get_image(imzml, mz, tol=0.01):
 
 def to_image_array(image):
     """
-    Extracts all existing images from imzML
+    Extracts all existing images from imzML.
 
     Parameters
     ----------
@@ -235,6 +257,33 @@ def to_image_array(image):
     for mz in x:
         im = get_image(image, mz)
         image_list.append(im)
+    img_array = np.transpose(np.asarray(image_list))
+    return img_array
+
+def to_image_array_3D(image):
+    """
+    Extracts all existing images from 3D imzML
+
+    Parameters
+    ----------
+    image: imzmlparser.ImzMLParser
+        parser
+
+    Returns
+    ----------
+    np.ndarray
+        image array
+    """
+    x, y = image.getspectrum(0)
+    image_list = []
+    min_z = min(image.coordinates, key=lambda item:item[2])[2]
+    max_z = max(image.coordinates, key=lambda item:item[2])[2]
+    for mz in x:
+        images_along_z = []
+        for i in range(min_z, max_z + 1):
+            im = imzmlparser.getionimage(image, mz, tol=0.01, z=i)
+            images_along_z.append(im)
+        image_list.append(images_along_z)
     img_array = np.transpose(np.asarray(image_list))
     return img_array
 
