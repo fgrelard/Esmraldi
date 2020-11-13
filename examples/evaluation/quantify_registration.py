@@ -134,9 +134,9 @@ def determine_scale(imRef, image):
 
     number_nzs = np.count_nonzero(imRef)
     max_diff = 2**32
-    best_size = (imRef_array.shape[1], imRef_array.shape[0])
+    best_size = (imRef_array.shape[0], imRef_array.shape[1])
     for s in range(100):
-        size = (imRef_array.shape[1], imRef_array.shape[0])
+        size = (imRef_array.shape[0], imRef_array.shape[1])
         size = tuple([round((1+s*0.01)*x) for x in size])
         imScaled = utils.resize(image, size)
         imScaled_array = sitk.GetArrayFromImage(imScaled)
@@ -205,15 +205,12 @@ fixed_array = sitk.GetArrayFromImage(fixed)
 registered_array = sitk.GetArrayFromImage(registered)
 original_array = sitk.GetArrayFromImage(original)
 size = original.GetSize()
-scale = determine_scale(original, registered)
-scaled_registered = utils.resize(registered, scale)
+scaled_registered = utils.resize(registered, size)
 
 scaled_registered_array = sitk.GetArrayFromImage(scaled_registered)
-scaled_registered_array = crop_nonzero(scaled_registered_array, size)
-scaled_registered = sitk.GetImageFromArray(scaled_registered_array)
 
 print(scaled_registered_array.shape, original_array.shape)
-print("Non zeros count=",np.count_nonzero(scaled_registered_array), np.count_nonzero(original_array))
+
 # fig, ax = plt.subplots(1,2)
 # ax[0].imshow(original_array)
 # ax[1].imshow(scaled_registered_array.T)

@@ -314,6 +314,8 @@ flips = []
 if dim_moving == 2:
     best_resampler, to_flip = register2D(fixed, moving, numberOfBins, is_best_rotation, array_moving, flipped, sampling_percentage, learning_rate, min_step, relaxation_factor)
     out = apply_registration(moving, best_resampler, to_flip)
+    p,r =reg.quality_registration(sitk.Cast(fixed, sitk.sitkUInt8), sitk.Cast(out, sitk.sitkUInt8), 40)
+    print(reg.fmeasure(np.mean(p), np.mean(r)))
     best_resamplers.append(best_resampler)
     flips.append(to_flip)
 
