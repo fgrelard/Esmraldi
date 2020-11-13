@@ -8,14 +8,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import SimpleITK as sitk
 import argparse
-from sklearn import metrics
 import os
 import re
-from esmraldi.registration import *
+import math
 import matplotlib.colors as mcolors
 import scipy.ndimage
 import esmraldi.segmentation as seg
 import esmraldi.imageutils as utils
+
+from sklearn import metrics
+from esmraldi.registration import *
+
 
 def tryint(s):
     """
@@ -126,7 +129,33 @@ def quality_registration_size_bin(fixed, registered_dir):
     return zip(*sorted(precision.items()))
 
 
+def determine_scale(imRef, image):
+    imRef_array = sitk.GetArrayFromImage(imRef)
 
+    number_nzs = np.count_nonzero(imRef)
+    max_diff = 2**32
+    best_size = (imRef_array.shape[1], imRef_array.shape[0])
+    for s in range(100):
+        size = (imRef_array.shape[1], imRef_array.shape[0])
+        size = tuple([round((1+s*0.01)*x) for x in size])
+        imScaled = utils.resize(image, size)
+        imScaled_array = sitk.GetArrayFromImage(imScaled)
+        number_nzs_scaled =  np.count_nonzero(imScaled_array)
+        diff = abs(number_nzs - number_nzs_scaled)
+        if diff < max_diff:
+            max_diff = diff
+            best_size = size
+    return best_size
+
+def crop_nonzero(image, size):
+    x, y = np.nonzero(image)
+    xl,xr = x.min(),x.max()
+    yl,yr = y.min(),y.max()
+    im = image[xl:xr+1, yl:yr+1]
+    pad_w, pad_h = (size[0] - im.shape[0])/2, (size[1] - im.shape[1])/2
+    print(pad_w, pad_h)
+    im = np.pad(im, ((int(pad_w), math.ceil(pad_w)), (int(pad_h), math.ceil(pad_h))), mode='constant')
+    return im
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--fixed", help="Fixed image")
@@ -176,16 +205,20 @@ fixed_array = sitk.GetArrayFromImage(fixed)
 registered_array = sitk.GetArrayFromImage(registered)
 original_array = sitk.GetArrayFromImage(original)
 size = original.GetSize()
-scaled_registered = utils.resize(registered, (size[0], size[1]))
-scaled_registered_array = sitk.GetArrayFromImage(scaled_registered)
+scale = determine_scale(original, registered)
+scaled_registered = utils.resize(registered, scale)
 
-plt.imshow(scaled_registered_array)
-plt.show()
+scaled_registered_array = sitk.GetArrayFromImage(scaled_registered)
+scaled_registered_array = crop_nonzero(scaled_registered_array, size)
+scaled_registered = sitk.GetImageFromArray(scaled_registered_array)
+
 print(scaled_registered_array.shape, original_array.shape)
+print("Non zeros count=",np.count_nonzero(scaled_registered_array), np.count_nonzero(original_array))
 # fig, ax = plt.subplots(1,2)
 # ax[0].imshow(original_array)
-# ax[1].imshow(scaled_registered_array)
+# ax[1].imshow(scaled_registered_array.T)
 # plt.show()
+
 # The one-dimensional histograms of the example slices:
 
 #plot_similarity(fixed_array, registered_array)
