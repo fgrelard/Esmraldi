@@ -89,6 +89,6 @@ image = image[..., mzs >= threshold]
 print("Number of peaks=",image.shape[-1])
 flatten_image = fusion.flatten(image, is_spectral=True)
 
-image_labels = spatially_aware_clustering(image, n, k, radius)
+image_labels = spatially_aware_clustering(image, k, n, radius)
 image_labels_itk = sitk.GetImageFromArray(image_labels.astype(np.uint8))
 sitk.WriteImage(image_labels_itk, outname)
