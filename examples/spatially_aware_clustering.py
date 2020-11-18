@@ -1,9 +1,11 @@
+import os
+import argparse
+
 import numpy as np
 import matplotlib.pyplot as plt
 import esmraldi.segmentation as seg
 import esmraldi.imzmlio as imzmlio
 import esmraldi.fusion as fusion
-import argparse
 import scipy.ndimage as ndimage
 import SimpleITK as sitk
 
@@ -48,8 +50,7 @@ def spatially_aware_clustering(image, k, n, radius):
     kmeans = KMeans(k, random_state=0).fit(proj)
     labels = kmeans.labels_
     image_labels = labels.reshape(old_shape[:-3])
-    plt.imshow(image_labels)
-    plt.show()
+
     return image_labels
 
 
@@ -61,6 +62,7 @@ parser.add_argument("-n", "--number", help="Number of dimensions after dimension
 parser.add_argument("-k", "--classes", help="Number of clusters for kmeans", default=7)
 parser.add_argument("-r", "--radius", help="Radius for spatial features", default=1)
 parser.add_argument("-g", "--threshold", help="Mass to charge ratio threshold (optional)", default=0)
+parser.add_argument("--normalize", help="Normalize spectra by their norm", action="store_true")
 
 args = parser.parse_args()
 
@@ -70,6 +72,7 @@ radius = int(args.radius)
 n = int(args.number)
 k = int(args.classes)
 threshold = int(args.threshold)
+normalize = args.normalize
 
 
 if inputname.lower().endswith(".imzml"):
@@ -86,9 +89,41 @@ else:
     mzs = np.asarray(mzs)
 
 image = image[..., mzs >= threshold]
-print("Number of peaks=",image.shape[-1])
-flatten_image = fusion.flatten(image, is_spectral=True)
+if normalize:
+    for index in np.ndindex(image.shape[:-1]):
+        spectrum = image[index]
+        norm =  np.linalg.norm(spectrum)
+        if norm > 0:
+            spectrum /= norm
+            image[index] = spectrum
+
+
+mzs = mzs[mzs >= threshold]
+mzs = np.around(mzs, decimals=2)
+mzs = mzs.astype(str)
+
+nb_peaks = image.shape[-1]
+print("Number of peaks=", nb_peaks)
 
 image_labels = spatially_aware_clustering(image, k, n, radius)
+
+
+image = imzmlio.normalize(image)
+outname_csv = os.path.splitext(outname)[0] + ".csv"
+out_array = np.zeros(shape=(nb_peaks, k))
+for i in range(k):
+    indices = np.where(image_labels == i)
+    not_indices = np.where(image_labels != i)
+    median_spectrum = np.median(image[indices], axis=0)
+    other_median_spectrum = np.median(image[not_indices], axis=0)
+    median_spectrum -= other_median_spectrum
+    top_indices = np.argsort(median_spectrum)[::-1]
+    top_molecules = mzs[top_indices]
+    out_array[:, i] = top_molecules
+np.savetxt(outname_csv, out_array, delimiter=";", fmt="%s")
+
 image_labels_itk = sitk.GetImageFromArray(image_labels.astype(np.uint8))
 sitk.WriteImage(image_labels_itk, outname)
+
+plt.imshow(image_labels.T)
+plt.show()
