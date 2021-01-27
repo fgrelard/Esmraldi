@@ -115,6 +115,7 @@ for i in range(k):
     indices = np.where(image_labels == i)
     not_indices = np.where(image_labels != i)
     median_spectrum = np.median(image[indices], axis=0)
+    print(median_spectrum.shape)
     other_median_spectrum = np.median(image[not_indices], axis=0)
     median_spectrum -= other_median_spectrum
     top_indices = np.argsort(median_spectrum)[::-1]
