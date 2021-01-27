@@ -13,7 +13,7 @@ args = parser.parse_args()
 
 inputname = args.input
 outputname = args.output
-threshold = args.threshold
+threshold = int(args.threshold)
 
 fixed_image = sitk.ReadImage(inputname,sitk.sitkFloat32)
 
