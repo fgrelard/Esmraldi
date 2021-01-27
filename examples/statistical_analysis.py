@@ -236,7 +236,11 @@ image_closest = imzmlio.normalize(image_closest)
 w_mri = point / np.sum(point)
 mri_reconstructed = fusion.reconstruct_image_from_components(image_eigenvectors, w_mri.T)
 mri_reconstructed = mri_reconstructed.T
+i = np.where((mri_reconstructed>0))
+img_tmp = np.reshape(mri_norm, image_mri.shape)
 mri_reconstructed = imzmlio.normalize(mri_reconstructed)
+diff_reconstruction = np.mean(np.abs(mri_reconstructed[i] - img_tmp[i]))/np.max(img_tmp)
+print("Average diff NMF reconstruction (percentage)=", "{:.5f}".format(diff_reconstruction))
 
 if len(similar_images.shape) == 3:
     fig, ax = plt.subplots(1, 4)
