@@ -126,5 +126,5 @@ np.savetxt(outname_csv, out_array, delimiter=";", fmt="%s")
 image_labels_itk = sitk.GetImageFromArray(image_labels.astype(np.uint8))
 sitk.WriteImage(image_labels_itk, outname)
 
-plt.imshow(image_labels.T)
-plt.show()
+#plt.imshow(image_labels.T)
+#plt.show()

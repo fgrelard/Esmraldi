@@ -16,10 +16,12 @@ where:
      -n  number of components for dimension reduction method
      -a  optional switch if alignment is not needed
      -p  optional switch is normalization before NMF is not needed
-     -r  optional switch to perform statistical analysis with NMF";
+     -r  optional switch to perform statistical analysis with NMF
+     -s  directory number to start with (region);"
 }
 
-while getopts "i:o:t:n:apr" o; do
+START_DIR=0
+while getopts "i:o:t:n:s:apr" o; do
     case "${o}" in
         i)
             INPUT=${OPTARG}
@@ -41,6 +43,9 @@ while getopts "i:o:t:n:apr" o; do
             ;;
         r)
             OPT_ANALYSIS='true'
+            ;;
+        s)
+            START_DIR=${OPTARG}
             ;;
         h|*)
             print_help;
@@ -68,6 +73,10 @@ do
     outdir=$OUTPUT_DIR/$name
     outname=$outdir/$OUTPUT_NAME.csv
     mkdir -p $outdir
+    if [[ $name -lt $START_DIR ]];
+    then
+        continue
+    fi
     if [[ ! $OPT_NO_ALIGN ]]; then
         python3 -m examples.spectra_alignment -i $imzml -o $align -p 1000 -n 3 -z 3 -s 0.055 #--theoretical $THEORETICAL --tolerance_theoretical 0.15
         python3 -m examples.tonifti -i $align -o $nii

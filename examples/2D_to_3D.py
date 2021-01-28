@@ -22,7 +22,7 @@ def bounding_size(images):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--input", help="Input 2D image directories containing NifTI images (.nii)")
+parser.add_argument("-i", "--input", help="Input 2D image directories containing NifTI images (.nii or .tif)")
 parser.add_argument("-o", "--output", help="Output peak selected imzML")
 parser.add_argument("-r", "--recursive", help="Traverse input directory recursively", action="store_true" )
 parser.add_argument("-p", "--pattern", help="Selects images fitting this regexp pattern (default=*)", default="*")
@@ -42,13 +42,17 @@ for root, dirs, files in os.walk(inputname):
     first_level = (root.count(os.sep) - inputname.count(os.sep) == 0)
     if (not is_recursive and first_level) or is_recursive:
         for f in files:
-            if f.endswith(".nii") and re_pattern.match(f):
+            if (f.endswith(".nii") or f.endswith(".tif")) and re_pattern.match(f):
                 list_image_names.append(os.path.join(root, f))
 
 list_image = []
 for im_name in list_image_names:
-    im = nib.load(im_name)
-    im_array = im.get_fdata()
+    if im_name.endswith(".nii"):
+        im = nib.load(im_name)
+        im_array = im.get_fdata()
+    else:
+        image_itk = sitk.ReadImage(im_name, sitk.sitkFloat32)
+        im_array = sitk.GetArrayFromImage(image_itk)
     list_image.append(im_array)
 
 max_size = bounding_size(list_image)
