@@ -8,7 +8,7 @@ import esmraldi.imzmlio as io
 import esmraldi.imageutils as utils
 
 import matplotlib.pyplot as plt
-
+import SimpleITK as sitk
 
 
 def bounding_size(images):
@@ -58,5 +58,8 @@ for im_name in list_image_names:
 max_size = bounding_size(list_image)
 image3D = utils.center_images(list_image, max_size)
 
-nibimg = nib.Nifti1Image(image3D, np.eye(4))
-nibimg.to_filename(outname)
+if outname.endswith(".nii"):
+    nibimg = nib.Nifti1Image(image3D, np.eye(4))
+    nibimg.to_filename(outname)
+else:
+    sitk.WriteImage(sitk.Cast(sitk.GetImageFromArray(image3D.T), sitk.sitkFloat32), outname)
