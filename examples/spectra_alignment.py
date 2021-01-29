@@ -50,7 +50,7 @@ parser.add_argument("-d", "--deisotope", help="Whether the realigned spectra sho
 parser.add_argument("--normalize", help="TIC normalization")
 parser.add_argument("--theoretical", help="If provided, only peaks close to the theoretical spectrum are kept")
 parser.add_argument("--tolerance_theoretical", help="Tolerance to match two peaks between theoretical spectrum and observed spectrum", default=0.1)
-
+parser.add_argument("--no_picking", help="Whether to perform no picking and alignement. Only deisotoping is done.", action="store_true")
 args = parser.parse_args()
 
 inputname = args.input
@@ -64,6 +64,7 @@ is_deisotoped = args.deisotope
 is_normalized = args.normalize
 theoretical = args.theoretical
 tolerance_theoretical = float(args.tolerance_theoretical)
+is_nopicking = args.no_picking
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -80,18 +81,20 @@ print("Spectral resolution= ", min_diff)
 print("Window length= ", wlen)
 
 
-peak_indices = sp.spectra_peak_indices_adaptative(spectra, factor=prominence, wlen=wlen)
+realigned_spectra = spectra
+if not is_nopicking:
+    peak_indices = sp.spectra_peak_indices_adaptative(spectra, factor=prominence, wlen=wlen)
 
-mzs = np.array([x[peak_indices[i]] for i, (x,y) in enumerate(spectra)], dtype=object)
+    mzs = np.array([x[peak_indices[i]] for i, (x,y) in enumerate(spectra)], dtype=object)
 
-spectra = sp.normalization_sic(spectra, peak_indices)
+    spectra = sp.normalization_sic(spectra, peak_indices)
 
-# realigned_spectra = sp.realign(spectra, prominence, nb_peaks)
-realigned_spectra = sp.realign_mzs(spectra, mzs, reference="median", nb_occurrence=nb_peaks, step=step_mz)
-print(realigned_spectra.shape)
+    # realigned_spectra = sp.realign(spectra, prominence, nb_peaks)
+    realigned_spectra = sp.realign_mzs(spectra, mzs, reference="median", nb_occurrence=nb_peaks, step=step_mz)
+    print(realigned_spectra.shape)
 
 print("Before deisotoping", realigned_spectra[0, 0, ...])
-
+print("Length =", len(realigned_spectra[0, 0, ...]))
 if is_deisotoped:
     print("Deisotoping")
     averagine = {'C': 7.0, 'H': 11.8333, 'N': 0.5, 'O': 5.16666}
@@ -99,6 +102,7 @@ if is_deisotoped:
     # deisotoped_spectra = sp.deisotoping(np.array(realigned_spectra))
     print(realigned_spectra.shape)
     print("After deisotoping", realigned_spectra[0, 0, ...])
+    print("Length =", len(realigned_spectra[0, 0, ...]))
 
 if theoretical:
     species = sr.json_to_species(theoretical)

@@ -378,7 +378,7 @@ def normalization_tic(spectra):
     spectra_normalized = spectra.copy()
     for i, (x, y) in enumerate(spectra):
         spectra_sum = np.sum(y)
-        new_y = y
+        new_y = y.copy()
         if spectra_sum > 0:
             new_y /= spectra_sum
         spectra_normalized[i, 1, :] = new_y
@@ -413,7 +413,9 @@ def normalization_sic(spectra, indices_peaks, width_peak=10):
         mask[indices] = True
         y_without_indices = y[~mask]
         spectra_sum = np.sum(y_without_indices)
-        new_y = y / spectra_sum
+        new_y = y.copy()
+        if spectra_sum > 0:
+            new_y /= spectra_sum
         spectra_normalized[i, 1, :] = new_y
     return spectra_normalized
 
@@ -823,7 +825,7 @@ def find_isotopic_pattern(neighbours, tolerance, nb_charges):
         previous = pattern[-1]
         d_previous = n[0] - previous[0]
         eps_previous = abs(d_previous - round(d_previous))
-        if eps < tolerance and d_previous-eps_previous < nb_charges:
+        if eps < tolerance and d_previous-eps_previous < 1+tolerance:
             pattern.append(n)
     return pattern
 
@@ -932,7 +934,7 @@ def mz_second_isotope_most_abundant(average_distribution):
             matches = pattern.findall(list_names)
             with_isotopes += sum([v*masses[m]*distribution[m] for m in matches])
     if with_isotopes == without_isotopes:
-        return 0
+        return 2**32
     n = 1.0 / (with_isotopes - without_isotopes)
     mz = n * without_isotopes
     return mz
@@ -1002,12 +1004,15 @@ def deisotoping_simple(spectra, tolerance=0.1, nb_neighbours=8, nb_charges=5, av
         if np.any([np.isclose(ignore_indices[j][0], peaks[0, i]) for j in range(len(ignore_indices))]):
             continue
         peak = peaks[..., i]
+
         N = neighbours(i, nb_neighbours, peaks.T)
         pattern = find_isotopic_pattern(N, tolerance, nb_charges)
         if peak[0] < mz_second_isotope:
-            peaks_pattern = peaks_max_intensity_isotopic_pattern(pattern)
+            # peaks_pattern = peaks_max_intensity_isotopic_pattern(pattern)
+            peaks_pattern = [pattern[0]]
         else:
             peaks_pattern = peaks_derivative_isotopic_pattern(pattern)
+
         isotopes = isotopes_from_pattern(pattern, peaks_pattern)
         ignore_indices.extend(isotopes)
         indices = [peak_to_index(peak, pattern) for peak in peaks_pattern]
