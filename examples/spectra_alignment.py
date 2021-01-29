@@ -74,9 +74,9 @@ mz, I = spectra[0]
 
 print("Realignment")
 min_diff = mz[1] - mz[0]
-wlen = max(10, int(50.0 / min_diff))
+wlen = max(int(len(mz)/10), int(50.0 / min_diff))
 
-print("Spatial resolution= ", min_diff)
+print("Spectral resolution= ", min_diff)
 print("Window length= ", wlen)
 
 

@@ -210,8 +210,8 @@ if not is_ratio:
 
 plt.plot(X_r[:, 0], X_r[:, 1], "b.")
 plt.plot(point[:, 0], point[:, 1], "ro")
-plt.show()
-plt.close()
+# plt.show()
+# plt.close()
 
 labels = None
 weights = [1 for i in range(centers.shape[1])]
@@ -248,7 +248,7 @@ if len(similar_images.shape) == 3:
     ax[1].imshow(np.reshape(mri_norm, image_mri.shape), cmap="gray")
     ax[2].imshow(image_closest, cmap="gray")
     ax[3].imshow(mri_reconstructed, cmap="gray")
-    plt.show()
+    # plt.show()
 elif len(similar_images.shape) == 4:
     fig, ax = plt.subplots(1, 4)
 
@@ -259,7 +259,7 @@ elif len(similar_images.shape) == 4:
                           np.transpose(mri_reconstructed, (2, 1, 0)),
                           vmin=0, vmax=255)
     fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
-    plt.show()
+    # plt.show()
 
 if len(similar_images.shape) == 4:
     s = similar_images.shape
@@ -267,6 +267,7 @@ if len(similar_images.shape) == 4:
 
 itk_similar_images = sitk.GetImageFromArray(similar_images.T)
 sitk.WriteImage(itk_similar_images, outname)
+sitk.WriteImage(sitk.GetImageFromArray(mri_reconstructed.T), os.path.splitext(outname)[0] + "_reconstruction.tif")
 
 outname_csv = os.path.splitext(outname)[0] + ".csv"
 np.savetxt(outname_csv, np.transpose((similar_mzs, distances)), delimiter=";", fmt="%s")

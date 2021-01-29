@@ -378,7 +378,9 @@ def normalization_tic(spectra):
     spectra_normalized = spectra.copy()
     for i, (x, y) in enumerate(spectra):
         spectra_sum = np.sum(y)
-        new_y = y / spectra_sum
+        new_y = y
+        if spectra_sum > 0:
+            new_y /= spectra_sum
         spectra_normalized[i, 1, :] = new_y
     return spectra_normalized
 
