@@ -194,6 +194,39 @@ def spectra_peak_mzs_adaptative(spectra, factor=1, wlen=10):
         index += 1
     return np.array(mzs, dtype=object)
 
+def spectra_peak_indices_adaptative_noiselevel(spectra, factor=1, noise_level=1, wlen=10):
+    """
+    Estimates and extracts significant peaks in the spectra
+    with specified noise level(s),
+    by using the local prominence
+    (height of the peak relative to
+    the background noise)
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        Spectra as [mz*I] array
+    factor: float
+        prominence factor
+    noise_level: float or list
+        noise level
+    wlen: int
+        size of the window
+
+    Returns
+    ----------
+    np.ndarray
+        Peaks m/z
+    """
+    indices = []
+    print(noise_level, factor)
+    for spectrum in spectra:
+        x, y = spectrum
+        indices_current = peak_indices(y, noise_level * factor, wlen)
+        indices.append(indices_current)
+    return np.array(indices, dtype=object)
+
+
 def spectra_peak_mzs_adaptative_noiselevel(spectra, factor=1, noise_level=1, wlen=10):
     """
     Estimates and extracts significant peaks in the spectra
@@ -202,9 +235,6 @@ def spectra_peak_mzs_adaptative_noiselevel(spectra, factor=1, noise_level=1, wle
     (height of the peak relative to
     the background noise)
 
-    Background noise is estimated as the
-    standard deviation of the
-    signal over a window of size wlen.
 
     Parameters
     ----------

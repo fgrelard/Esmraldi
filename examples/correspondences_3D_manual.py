@@ -27,6 +27,7 @@ spacing_moving = args.spacing_moving
 is_reversed = bool(args.reverse)
 
 fixed = nib.load(fixed_name).get_fdata()
+fixed = fixed.reshape(fixed.shape[:3])
 moving = nib.load(moving_name).get_fdata()
 
 print(spacing_fixed)
@@ -46,6 +47,6 @@ else:
 
 correspondences = utils.slice_correspondences_manual(fixed, moving, resolution_fixed, resolution_moving, slicenumber_fixed, slicenumber_moving, is_reversed)
 corresponding_images = fixed[..., correspondences]
-
+print(fixed.shape, moving.shape)
 correspondence_image = nib.Nifti1Image(corresponding_images, np.eye(4))
 correspondence_image.to_filename(output_name)

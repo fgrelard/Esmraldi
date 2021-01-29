@@ -51,6 +51,7 @@ parser.add_argument("--normalize", help="TIC normalization")
 parser.add_argument("--theoretical", help="If provided, only peaks close to the theoretical spectrum are kept")
 parser.add_argument("--tolerance_theoretical", help="Tolerance to match two peaks between theoretical spectrum and observed spectrum", default=0.1)
 parser.add_argument("--no_picking", help="Whether to perform no picking and alignement. Only deisotoping is done.", action="store_true")
+parser.add_argument("--noise_level", help="Define noise level manually. If not provided, assumed as the standard deviation of the minimum spectrum.", default=0)
 args = parser.parse_args()
 
 inputname = args.input
@@ -65,6 +66,7 @@ is_normalized = args.normalize
 theoretical = args.theoretical
 tolerance_theoretical = float(args.tolerance_theoretical)
 is_nopicking = args.no_picking
+noise_level = float(args.noise_level)
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -83,8 +85,10 @@ print("Window length= ", wlen)
 
 realigned_spectra = spectra
 if not is_nopicking:
-    peak_indices = sp.spectra_peak_indices_adaptative(spectra, factor=prominence, wlen=wlen)
-
+    if noise_level <= 0:
+        peak_indices = sp.spectra_peak_indices_adaptative(spectra, factor=prominence, wlen=wlen)
+    else:
+        peak_indices = sp.spectra_peak_indices_adaptative_noiselevel(spectra, factor=prominence, wlen=wlen, noise_level=noise_level)
     mzs = np.array([x[peak_indices[i]] for i, (x,y) in enumerate(spectra)], dtype=object)
 
     spectra = sp.normalization_sic(spectra, peak_indices)
