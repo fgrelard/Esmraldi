@@ -44,12 +44,16 @@ parser.add_argument("-i", "--input", help="Input (.nii)")
 parser.add_argument("-o", "--output", help="Output segmentation (.nii)")
 parser.add_argument("-f", "--factor", help="Factor for the spatially coherent images")
 parser.add_argument("-t", "--threshold", help="Lower threshold for region growing", default=60)
+parser.add_argument("-q", "--quantiles", nargs="+", type=int, help="Quantile lower thresholds", default=[60, 70, 80, 90])
+parser.add_argument("-u", "--quantile_upper", help="Quantile upper threshold", default=100)
 args = parser.parse_args()
 
 threshold = int(args.threshold)
 inputname = args.input
 outname = args.output
 factor = float(args.factor)
+quantiles = args.quantiles
+quantile_upper = int(args.quantile_upper)
 
 radius = 1
 selem = disk(radius)
@@ -60,7 +64,7 @@ img_data = image.get_data()
 padding = 3
 img_data = np.pad(img_data, (padding,padding), 'constant')
 
-similar_images = seg.find_similar_images_spatial_coherence_percentage(img_data, factor, quantiles=[60, 70, 80, 90])
+similar_images = seg.find_similar_images_spatial_coherence_percentage(img_data, factor, quantiles=quantiles, upper=quantile_upper)
 # similar_images = seg.find_similar_images_spatial_chaos(img_data, factor, quantiles=[60, 70, 80, 90])
 # similar_images = seg.find_similar_images_variance(img_data, factor)
 print(similar_images.shape)

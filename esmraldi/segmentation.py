@@ -559,7 +559,7 @@ def spatial_coherence(image):
     else:
         return r.area
 
-def find_similar_images_spatial_coherence(image_maldi, factor, quantiles=[]):
+def find_similar_images_spatial_coherence(image_maldi, factor, quantiles=[], upper=100):
     """
     Finds images with spatial
     coherence values greater than a given threshold.
@@ -576,6 +576,8 @@ def find_similar_images_spatial_coherence(image_maldi, factor, quantiles=[]):
         threshold for spatial coherence values
     quantiles: list
         quantile threshold values (list of integers)
+    upper: int
+        quantile upper threshold
 
     Returns
     ----------
@@ -587,9 +589,10 @@ def find_similar_images_spatial_coherence(image_maldi, factor, quantiles=[]):
         image2D = image_maldi[..., i]
         norm_img = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
         min_area = sys.maxsize
+        upper_threshold = np.percentile(norm_img, upper)
         for quantile in quantiles:
             threshold = int(np.percentile(norm_img, quantile))
-            sc = spatial_coherence(norm_img > threshold)
+            sc = spatial_coherence( (norm_img > threshold) & (norm_img <= upper_threshold) )
             if sc < min_area:
                 min_area = sc
         values.append(min_area)
@@ -597,7 +600,7 @@ def find_similar_images_spatial_coherence(image_maldi, factor, quantiles=[]):
     similar_images = image_maldi[..., value_array > factor]
     return similar_images
 
-def find_similar_images_spatial_coherence_percentage(image_maldi, percentage, quantiles=[]):
+def find_similar_images_spatial_coherence_percentage(image_maldi, percentage, quantiles=[], upper=100):
     """
     Finds images with spatial
     coherence values greater than a threshold defined as a
@@ -616,6 +619,8 @@ def find_similar_images_spatial_coherence_percentage(image_maldi, percentage, qu
         multiplicative factor for spatial coherence values
     quantiles: list
         quantile threshold values (list of integers)
+    upper: int
+        quantile upper threshold
 
     Returns
     ----------
@@ -627,9 +632,10 @@ def find_similar_images_spatial_coherence_percentage(image_maldi, percentage, qu
         image2D = image_maldi[..., i]
         norm_img = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
         min_area = sys.maxsize
+        upper_threshold = np.percentile(norm_img, upper)
         for quantile in quantiles:
             threshold = int(np.percentile(norm_img, quantile))
-            sc = spatial_coherence(norm_img > threshold)
+            sc = spatial_coherence( (norm_img > threshold) & (norm_img <= upper_threshold) )
             if sc < min_area:
                 min_area = sc
         values.append(min_area)
