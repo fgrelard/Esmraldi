@@ -73,12 +73,12 @@ do
     outdir=$OUTPUT_DIR/$name
     outname=$outdir/$OUTPUT_NAME.csv
     mkdir -p $outdir
-    if [[ $name -lt $START_DIR ]];
+    if [[ ${name#0} -lt $START_DIR ]];
     then
         continue
     fi
     if [[ ! $OPT_NO_ALIGN ]]; then
-        python3 -m examples.spectra_alignment -i $imzml -o $align -p 1000 -n 3 -z 3 -s 0.055 #--theoretical $THEORETICAL --tolerance_theoretical 0.15
+        python3 -m examples.spectra_alignment -i $imzml -o $align -p 2000 -n 3 -z 3 -s 0.055 #--theoretical $THEORETICAL --tolerance_theoretical 0.15
         python3 -m examples.tonifti -i $align -o $nii
     fi
     if [[ $OPT_ANALYSIS ]]; then

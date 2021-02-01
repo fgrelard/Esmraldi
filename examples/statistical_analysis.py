@@ -68,7 +68,7 @@ def visualize_scatter_with_images(X_all, images_maldi, images_mri,figsize=(45,45
 def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_process):
     if is_ratio:
         ratio_images, ratio_mzs = fusion.extract_ratio_images(image, mzs)
-        image = np.concatenate((image, ratio_images), axis=2)
+        image = np.concatenate((image, ratio_images), axis=-1)
         mzs = np.concatenate((mzs, ratio_mzs))
 
     image = imzmlio.normalize(image)

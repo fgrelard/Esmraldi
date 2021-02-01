@@ -235,14 +235,13 @@ def extract_ratio_images(image, mzs):
     z = image.shape[-1]
     c = 0
     new_mzs = np.zeros(((z**2-z)//2,), dtype='object')
-    ratio_images = np.zeros((image.shape[0], image.shape[1], (z**2-z)//2), dtype=np.uint8)
+    ratio_images = np.zeros(image.shape[:-1] + ((z**2-z)//2, ), dtype=np.uint8)
     for i in range(z-1, 0, -1):
         for j in range(i):
             first_image = image[..., i]
             second_image = image[..., j]
             divided = np.zeros_like(first_image, dtype=np.float64)
             np.divide(first_image, second_image, out=divided, where=second_image!=0)
-
             divided = np.uint8(cv.normalize(divided, None, 0, 255, cv.NORM_MINMAX))
             ratio_images[..., c] = divided
             current_ratio = mzs[i] + "/" + mzs[j]
