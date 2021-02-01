@@ -27,6 +27,8 @@ from skimage.morphology import binary_erosion, opening, disk
 from skimage.filters import threshold_otsu, rank
 from sklearn import manifold
 
+from scipy import ndimage
+
 def display_stack(img):
     n = img.shape[-1]
     w = math.ceil(math.sqrt(n))
@@ -46,6 +48,7 @@ parser.add_argument("-f", "--factor", help="Factor for the spatially coherent im
 parser.add_argument("-t", "--threshold", help="Lower threshold for region growing", default=60)
 parser.add_argument("-q", "--quantiles", nargs="+", type=int, help="Quantile lower thresholds", default=[60, 70, 80, 90])
 parser.add_argument("-u", "--quantile_upper", help="Quantile upper threshold", default=100)
+parser.add_argument("--fill_holes", help="Fill holes in the image.", default=0)
 args = parser.parse_args()
 
 threshold = int(args.threshold)
@@ -54,6 +57,7 @@ outname = args.output
 factor = float(args.factor)
 quantiles = args.quantiles
 quantile_upper = int(args.quantile_upper)
+fill_holes = int(args.fill_holes)
 
 radius = 1
 selem = disk(radius)
@@ -87,9 +91,15 @@ y = [elem[1] for elem in list_end]
 mask = np.ones_like(mean_image)
 mask[x, y] = 0
 mask = opening(mask, selem)
+if fill_holes > 0:
+    mask = 1 - ndimage.morphology.binary_fill_holes(1 - mask, structure=np.ones((fill_holes, fill_holes)))
+
 masked_mean_image = np.ma.array(mean_image, mask=mask)
 masked_mean_image = masked_mean_image.filled(0)
 masked_mean_image = masked_mean_image[padding:-padding, padding:-padding]
+
+
+
 fig, ax = plt.subplots(1,3)
 ax[0].imshow(mean_image.T)
 ax[1].imshow(mask.T)

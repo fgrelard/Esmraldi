@@ -37,7 +37,6 @@ if len(spacing_fixed) == 1:
     slicenumber_fixed = [i*spacing_fixed for i in range(fixed.shape[-1])]
 else:
     slicenumber_fixed = list(spacing_fixed)
-    print(slicenumber_fixed)
 
 if len(spacing_moving) == 1:
     spacing_moving = float(spacing_moving[0])
