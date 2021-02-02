@@ -66,3 +66,32 @@ def annotation(observed, theoretical, tolerance=0.1):
         closest_peaks = closest_peak(peak, theoretical, tolerance)
         annotated[peak] = closest_peaks
     return annotated
+
+
+def annotation_ratio(observed, theoretical, tolerance=0.1):
+    """
+    Annotate an observed spectrum by comparison
+    to a theoretical spectrum. The observed spectrum
+    may contain ratio between two species.
+
+    Parameters
+    ----------
+    observed: list
+        mass list
+    theoretical: dict
+        theoretical spectrum generated from several species rule
+    tolerance: float
+        acceptable mz delta to consider peaks are equal
+
+    Returns
+    ----------
+    dict
+        annotated mass list
+    """
+    O = [o for o in observed if isinstance(o, float)]
+    annotated = annotation(O, theoretical, tolerance)
+    ratios = [o for o in observed if o not in O]
+    for peak in ratios:
+        value = [annotated[peak[0]], annotated[peak[1]]]
+        annotated[peak] = value
+    return annotated

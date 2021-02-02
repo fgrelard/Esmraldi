@@ -299,6 +299,7 @@ if inputname.endswith(".imzML"):
         max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
         max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
         image = imzmlio.get_images_from_spectra(spectra, (max_x, max_y, max_z))
+        print(image.shape)
         if len(image.shape) == 3:
             shape_4D = image.shape[:-1] +  (1, image.shape[-1])
             image = np.reshape(image, shape_4D)

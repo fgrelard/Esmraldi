@@ -140,13 +140,20 @@ print(theoretical_spectrum.spectrum)
 
 with open(observed_name) as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=";")
-    observed_spectrum = [float(row[0]) for row in csv_reader]
+    observed_spectrum = []
+    for row in csv_reader:
+        first_cell = row[0]
+        ratio = first_cell.split("/")
+        if len(ratio) > 1:
+            observed_spectrum.append(tuple((float(r) for r in ratio)))
+        else:
+            observed_spectrum.append(float(ratio[0]))
 
-annotation = si.annotation(observed_spectrum, theoretical_spectrum.spectrum, tolerance)
+annotation = si.annotation_ratio(observed_spectrum, theoretical_spectrum.spectrum, tolerance)
 
-print([v for k, v in annotation.items()][:10])
+print([annotation[k] for k in observed_spectrum][:10])
 d = {k:v for k, v in annotation.items() if len(v) > 0}
-keys_sorted = {k:v for k,v in sorted(annotation.items(), key=lambda item: item[0])}
+keys_sorted = {k:v for k,v in sorted(annotation.items(), key=lambda item: str(item[0]))}
 
 if is_separate:
     values = keys_sorted.values()
@@ -160,7 +167,11 @@ if output_name:
         if is_separate:
             writer.writerow([""] + columns)
         for k, v in keys_sorted.items():
-            row = [k] + [e for e in v]
+            row = [k]
+            for e in v:
+                row += ([e] if (v and type(e) is str) else [i for i in e] if e else ["?"])
+            if len(row) == 1:
+                row += ["?"]
             writer.writerow(row)
 else:
     pp = pprint.PrettyPrinter(indent=1)
