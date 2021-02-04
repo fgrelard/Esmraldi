@@ -65,11 +65,24 @@ def visualize_scatter_with_images(X_all, images_maldi, images_mri,figsize=(45,45
     ax.autoscale()
     plt.show()
 
-def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_process):
+def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_process, is_memmap):
     if is_ratio:
         ratio_images, ratio_mzs = fusion.extract_ratio_images(image, mzs)
         image = np.concatenate((image, ratio_images), axis=-1)
         mzs = np.concatenate((mzs, ratio_mzs))
+
+    memmap_dir = os.path.dirname(outname) + os.path.sep + "mmap" + os.path.sep
+    memmap_basename = os.path.splitext(os.path.basename(outname))[0]
+    memmap_image_filename = memmap_dir + memmap_basename + ".npy"
+    memmap_files_exist = (os.path.exists(memmap_dir)
+                          and os.path.exists(memmap_image_filename))
+    if is_memmap and not memmap_files_exist:
+        print("Writing mem-map")
+        os.makedirs(memmap_dir, exist_ok=True)
+        np.save(memmap_image_filename, image)
+    if is_memmap:
+        print("Reading mem-map")
+        image = np.load(memmap_image_filename, mmap_mode="r")
 
     image = imzmlio.normalize(image)
     image_norm = fusion.flatten(image, is_spectral=True)
@@ -223,6 +236,7 @@ parser.add_argument("-g", "--threshold", help="Mass to charge ratio threshold (o
 parser.add_argument("--norm", help="Normalization image filename (optional)")
 parser.add_argument("--post_process", help="Post process with tSNE (optional)", action="store_true")
 parser.add_argument("--split", help="For 3D volumes, process each 2D slice independently.", action="store_true")
+parser.add_argument("--memmap", help="Whether to store to memory map files.", action="store_true")
 
 args = parser.parse_args()
 
@@ -236,6 +250,7 @@ threshold = int(args.threshold)
 normname = args.norm
 post_process = args.post_process
 is_split = args.split
+is_memmap = args.memmap
 
 if top <= 0:
     top = None
@@ -283,6 +298,6 @@ if is_split and len(image.shape) == 4 and len(image_mri.shape) == 3:
         current_image_mri = image_mri[..., k]
         current_name = outroot + "_" + str(k) + outext
         print(current_image.shape, current_image_mri.shape, current_name)
-        statistical_analysis(current_name, current_image, current_image_mri, mzs, n, is_ratio, top, post_process)
+        statistical_analysis(current_name, current_image, current_image_mri, mzs, n, is_ratio, top, post_process, is_memmap)
 else:
-    statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_process)
+    statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_process, is_memmap)

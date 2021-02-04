@@ -10,6 +10,8 @@ import esmraldi.spectrainterpretation as si
 from esmraldi.theoreticalspectrum import TheoreticalSpectrum
 import pprint
 
+from itertools import zip_longest
+
 
 def column_names(values, ions, adducts, modifications, delimiter="_"):
     """
@@ -110,6 +112,39 @@ def export_theoretical_to_csv(theoretical, filename):
             writer.writerow([k, v])
 
 
+def process_cell(cell):
+    ratio = cell.split("/")
+    try:
+        float(ratio[0])
+    except:
+        return -1
+    if len(ratio) > 1:
+        return tuple((float(r) for r in ratio))
+    return float(ratio[0])
+
+def sort_keys(annotations, is_separate, ions, adducts, modifications):
+    K = []
+    for annotation in annotations:
+        keys_sorted = {k:v for k,v in sorted(annotation.items(), key=lambda item: str(item[0]))}
+
+        if is_separate:
+            values = keys_sorted.values()
+            columns = column_names(values, ions, adducts, modifications)
+            new_values = assign_names_to_columns(columns, values)
+            keys_sorted = {list(keys_sorted.keys())[i]:new_values[i] for i in range(len(new_values))}
+
+        K.append(keys_sorted)
+
+    return K
+
+def write_list_dictionaries(L, writer, order=False):
+    for all_elements_by_row in zip_longest(*[d.items() for d in L]):
+        if order:
+            row = [elem[1] for elem in all_elements_by_row]
+        else:
+            row = [item for elem in all_elements_by_row for item in (elem or [])]
+        writer.writerow(row)
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--theoretical", help="Theoretical spectrum")
@@ -117,6 +152,8 @@ parser.add_argument("-o", "--observed", help="Observed spectrum (.csv)")
 parser.add_argument("-c", "--output_csv", help="Output file with annotated observed spectrum (.csv)")
 parser.add_argument("-s", "--separate_species", help="Switch whether species names are split in separate columns", action="store_true")
 parser.add_argument("--tolerance", help="Tolerance to annotate spectrum", default=0.1)
+parser.add_argument("--order", help="Preserve order in output file.", action="store_true")
+parser.add_argument("-w", "--whole", help="Read the whole document (each column). Default is only the first column.", action="store_true")
 
 args = parser.parse_args()
 
@@ -125,6 +162,8 @@ observed_name = args.observed
 output_name = args.output_csv
 is_separate = args.separate_species
 tolerance = float(args.tolerance)
+order = args.order
+whole = args.whole
 
 species = sr.json_to_species(theoretical_name)
 ions = [mol for mol in species if mol.category=="Ion"]
@@ -134,45 +173,34 @@ print(len(ions), "ions,", len(adducts), "adducts,", len(modifications), "modific
 
 theoretical_spectrum = TheoreticalSpectrum(ions, adducts, modifications)
 
-print(theoretical_spectrum.spectrum)
-
-# export_theoretical_to_csv(theoretical_spectrum, "100_spectra_wheat_theoretical.csv")
-
 with open(observed_name) as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=";")
     observed_spectrum = []
     for row in csv_reader:
-        first_cell = row[0]
-        ratio = first_cell.split("/")
-        if len(ratio) > 1:
-            observed_spectrum.append(tuple((float(r) for r in ratio)))
+        if whole:
+            observed_spectrum.append([process_cell(cell) for cell in row])
         else:
-            observed_spectrum.append(float(ratio[0]))
+            observed_spectrum.append([process_cell(row[0])])
 
-annotation = si.annotation_ratio(observed_spectrum, theoretical_spectrum.spectrum, tolerance)
+#Transpose
+observed_spectrum = list(map(list, zip_longest(*observed_spectrum, fillvalue=None)))
 
-print([annotation[k] for k in observed_spectrum][:10])
-d = {k:v for k, v in annotation.items() if len(v) > 0}
-keys_sorted = {k:v for k,v in sorted(annotation.items(), key=lambda item: str(item[0]))}
+annotations = []
+for o in observed_spectrum:
+    a = si.annotation_ratio(o, theoretical_spectrum.spectrum, tolerance)
+    annotations.append(a)
 
-if is_separate:
-    values = keys_sorted.values()
-    columns = column_names(values, ions, adducts, modifications)
-    new_values = assign_names_to_columns(columns, values)
-    keys_sorted = {list(keys_sorted.keys())[i]:new_values[i] for i in range(len(new_values))}
+keys_sorted = sort_keys(annotations, is_separate, ions, adducts, modifications)
 
 if output_name:
     with open(output_name, "w") as f:
         writer = csv.writer(f, delimiter=";")
         if is_separate:
             writer.writerow([""] + columns)
-        for k, v in keys_sorted.items():
-            row = [k]
-            for e in v:
-                row += ([e] if (v and type(e) is str) else [i for i in e] if e else ["?"])
-            if len(row) == 1:
-                row += ["?"]
-            writer.writerow(row)
+        if order:
+            write_list_dictionaries(annotations, writer, True)
+        else:
+            write_list_dictionaries(keys_sorted, writer)
 else:
     pp = pprint.PrettyPrinter(indent=1)
     pp.pprint(keys_sorted)

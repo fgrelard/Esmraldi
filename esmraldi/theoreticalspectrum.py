@@ -68,7 +68,7 @@ class TheoreticalSpectrum:
             cleaned = [elem for elem in l if elem is not None]
             if len(cleaned):
                 b.append(np.array(cleaned))
-        mix = np.array(b)
+        mix = np.array(b, dtype=object)
         return mix
 
 
