@@ -147,7 +147,7 @@ def apply_registration_imzml(image, best_resampler, to_flip, fixed_size):
         outRegister = sitk.Paste(outRegister, outSlice, outSlice.GetSize(), destinationIndex=[0,0,i])
     return outRegister
 
-def read_image_to_register(registername, is_imzml, to_flip, moving, is_resize):
+def read_image_to_register(registername, is_imzml, to_flip, moving):
     mz = None
     if is_imzml:
         imzml = imzmlio.open_imzml(registername)
@@ -168,10 +168,6 @@ def read_image_to_register(registername, is_imzml, to_flip, moving, is_resize):
     dim = register.GetDimension()
     register.SetSpacing([1 for i in range(dim)])
 
-    if is_resize:
-        new_size = (moving.GetSize()[0], moving.GetSize()[1]) + ((register.GetSize()[2],) if dim > 2 else ())
-        register = utils.resize(register, new_size)
-
     identity = np.identity(dim).tolist()
     flat_list = [item for sublist in identity for item in sublist]
     direction = tuple(flat_list)
@@ -179,11 +175,20 @@ def read_image_to_register(registername, is_imzml, to_flip, moving, is_resize):
 
     return register, mz
 
+def walklevel(some_dir, level=1):
+    some_dir = some_dir.rstrip(os.path.sep)
+    assert os.path.isdir(some_dir)
+    num_sep = some_dir.count(os.path.sep)
+    for root, dirs, files in os.walk(some_dir):
+        yield root, dirs, files
+        num_sep_this = root.count(os.path.sep)
+        if num_sep + level <= num_sep_this:
+            del dirs[:]
 
-def extract_image_from_directories(path, pattern):
+def extract_image_from_directories(path, pattern, level=2):
     list_image_names = []
     re_pattern = re.compile(pattern)
-    for root, dirs, files in os.walk(path):
+    for root, dirs, files in walklevel(path, level):
         for f in files:
             if re_pattern.match(f):
                 list_image_names.append(os.path.join(root, f))
@@ -202,7 +207,8 @@ def get_resampler(is_different_resampler, best_resamplers, flips, index):
 
 def realign_image(image, reference):
     image_centered_itk = image
-    if image.GetDimension() == 3 and \
+    dim = image.GetDimension()
+    if dim == 3 and \
        (image.GetSize()[0] != reference.GetSize()[0] or \
         image.GetSize()[1] != reference.GetSize()[1]):
         image_centered = utils.center_images(np.transpose(sitk.GetArrayFromImage(image), (0, 2, 1)), (reference.GetSize()[0], reference.GetSize()[1]))
@@ -211,7 +217,7 @@ def realign_image(image, reference):
     image_centered_itk.SetSpacing([1 for i in range(image.GetDimension())])
     return image_centered_itk
 
-def registration_imzml(image, fixed, best_resampler, to_flip, mz, i):
+def registration_imzml(register, fixed, best_resampler, to_flip, mz, i):
     global intensities, coordinates, mzs, spectra
     outRegister = apply_registration_imzml(register, best_resampler, to_flip, fixed.GetSize())
     I, coords = imzmlio.get_spectra_from_images(sitk.GetArrayFromImage(outRegister).T)
@@ -255,6 +261,7 @@ parser.add_argument("-o", "--output", help="Output")
 parser.add_argument("-b", "--bins", help="number per bins", default=10)
 parser.add_argument("-s", "--symmetry", help="best fit with flipped image", action="store_true", default=False)
 parser.add_argument("--pattern", help="Pattern to match image if registername is a directory", default=".*")
+parser.add_argument("--level", help="Level to find files", default=2)
 parser.add_argument("--resize", help="Resize the moving image to match the fixed image size", action="store_true")
 parser.add_argument("--best_rotation", help="Initialize registration by finding the best rotation angle between the two images", action="store_true")
 parser.add_argument("--learning_rate", help="Learning rate", default=1.1)
@@ -278,6 +285,7 @@ relaxation_factor = float(args.relaxation_factor)
 sampling_percentage = float(args.sampling_percentage)
 min_step = float(args.min_step)
 pattern = args.pattern
+level = int(args.level)
 step_realign = float(args.step_realign)
 
 
@@ -288,6 +296,7 @@ moving = sitk.ReadImage(movingname, sitk.sitkFloat32)
 
 #Resizing
 dim_moving = moving.GetDimension()
+moving_before_resize = sitk.GetImageFromArray(sitk.GetArrayFromImage(moving))
 if is_resize:
     fixed_size = fixed.GetSize()
     moving_size = (fixed_size[0], int(moving.GetSize()[1]*fixed_size[0]/moving.GetSize()[0]))
@@ -356,11 +365,13 @@ if out != None:
 if registername:
     register_image_names = [registername]
     if os.path.isdir(registername):
-        register_image_names = extract_image_from_directories(registername, pattern)
+        register_image_names = extract_image_from_directories(registername, pattern, level)
 
     is_different_resampler = False
     if len(register_image_names) == len(best_resamplers):
         is_different_resampler = True
+
+    print("Different resampler" , is_different_resampler)
 
     intensities, coordinates, mzs = [], [], []
     spectra = []
@@ -369,11 +380,14 @@ if registername:
     outImages = []
     for register_name in register_image_names:
         best_resampler, flip = get_resampler(is_different_resampler, best_resamplers, flips, i)
-
         is_imzml = register_name.lower().endswith(".imzml")
-        register, mz = read_image_to_register(register_name, is_imzml, to_flip, moving, is_resize)
+        register, mz = read_image_to_register(register_name, is_imzml, to_flip, moving)
 
-        register = realign_image(register, moving)
+        register = realign_image(register, moving_before_resize)
+
+        if is_resize:
+            new_size = (moving.GetSize()[0], moving.GetSize()[1]) + ((register.GetSize()[2],) if register.GetDimension() > 2 else ())
+            register = utils.resize(register, new_size)
 
         if is_imzml:
             registration_imzml(register, fixed, best_resampler, flip, mz, i)

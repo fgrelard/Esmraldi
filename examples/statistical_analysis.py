@@ -225,6 +225,16 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     np.savetxt(outname_csv, np.transpose((similar_mzs, distances)), delimiter=";", fmt="%s")
 
 
+def normalize(image):
+    image_normalized = image.copy()
+    for index in np.ndindex(image.shape[:-1]):
+        spectrum = image[index]
+        norm = np.linalg.norm(spectrum)
+        if norm > 0:
+            image_normalized[index] = spectrum / norm
+    return image_normalized
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input MALDI image (imzML or nii)")
 parser.add_argument("-m", "--mri", help="Input MRI image (ITK format)")
@@ -233,7 +243,8 @@ parser.add_argument("-n", "--number", help="Number of components for dimension r
 parser.add_argument("-r", "--ratio", help="Compute ratio images (optional)", action="store_true")
 parser.add_argument("-t", "--top", help="#Top (optional)", default=0)
 parser.add_argument("-g", "--threshold", help="Mass to charge ratio threshold (optional)", default=0)
-parser.add_argument("--norm", help="Normalization image filename (optional)")
+parser.add_argument("--norm", help="Whether to normalize the spectra with respect to their L2 norm", action="store_true")
+parser.add_argument("--norm_img", help="Normalization image filename (optional)")
 parser.add_argument("--post_process", help="Post process with tSNE (optional)", action="store_true")
 parser.add_argument("--split", help="For 3D volumes, process each 2D slice independently.", action="store_true")
 parser.add_argument("--memmap", help="Whether to store to memory map files.", action="store_true")
@@ -247,7 +258,8 @@ is_ratio = args.ratio
 n = int(args.number)
 top = int(args.top)
 threshold = int(args.threshold)
-normname = args.norm
+normname = args.norm_img
+is_norm = args.norm
 post_process = args.post_process
 is_split = args.split
 is_memmap = args.memmap
@@ -271,7 +283,11 @@ else:
 
 # print("Mass-to-charge ratio=", mzs)
 
+
 image = image[..., mzs >= threshold]
+
+if is_norm:
+    image = normalize(image)
 
 if normname is not None:
     print("Norm image detected")
