@@ -125,7 +125,7 @@ def process_cell(cell):
 def sort_keys(annotations, is_separate, ions, adducts, modifications):
     K = []
     for annotation in annotations:
-        keys_sorted = {k:v for k,v in sorted(annotation.items(), key=lambda item: str(item[0]))}
+        keys_sorted = {k:v for k,v in sorted(annotation.items(), key=lambda item: alphanum_key(str(item[0])))}
 
         if is_separate:
             values = keys_sorted.values()
@@ -140,10 +140,19 @@ def sort_keys(annotations, is_separate, ions, adducts, modifications):
 def write_list_dictionaries(L, writer, order=False):
     for all_elements_by_row in zip_longest(*[d.items() for d in L]):
         if order:
-            row = [elem[1] for elem in all_elements_by_row]
+            row = [elem[1] if elem else [] for elem in all_elements_by_row]
         else:
             row = [item for elem in all_elements_by_row for item in (elem or [])]
         writer.writerow(row)
+
+def tryfloat(s):
+    try:
+        return float(s)
+    except:
+        return s
+
+def alphanum_key(s):
+    return [ tryfloat(c) for c in re.split('([0-9]+)', s) ]
 
 
 parser = argparse.ArgumentParser()
@@ -154,6 +163,7 @@ parser.add_argument("-s", "--separate_species", help="Switch whether species nam
 parser.add_argument("--tolerance", help="Tolerance to annotate spectrum", default=0.1)
 parser.add_argument("--order", help="Preserve order in output file.", action="store_true")
 parser.add_argument("-w", "--whole", help="Read the whole document (each column). Default is only the first column.", action="store_true")
+parser.add_argument("--skip", help="Skip the every nth column", default=0)
 
 args = parser.parse_args()
 
@@ -164,6 +174,7 @@ is_separate = args.separate_species
 tolerance = float(args.tolerance)
 order = args.order
 whole = args.whole
+skip = int(args.skip)
 
 species = sr.json_to_species(theoretical_name)
 ions = [mol for mol in species if mol.category=="Ion"]
@@ -186,8 +197,11 @@ with open(observed_name) as csv_file:
 observed_spectrum = list(map(list, zip_longest(*observed_spectrum, fillvalue=None)))
 
 annotations = []
-for o in observed_spectrum:
-    a = si.annotation_ratio(o, theoretical_spectrum.spectrum, tolerance)
+for i, o in enumerate(observed_spectrum):
+    if skip > 0 and (i+1) % (skip+1) == 0:
+        a = {k:v for k, v in enumerate(o)}
+    else:
+        a = si.annotation_ratio(o, theoretical_spectrum.spectrum, tolerance)
     annotations.append(a)
 
 keys_sorted = sort_keys(annotations, is_separate, ions, adducts, modifications)

@@ -4,6 +4,7 @@ Module for the annotation of a spectrum
 
 import numpy as np
 from collections.abc import Iterable
+import numbers
 
 def closest_peak(reference_mz, theoretical_spectrum, tolerance):
     """
@@ -92,7 +93,7 @@ def annotation_ratio(observed, theoretical, tolerance=0.1):
     O = []
     OT = set()
     for o in observed:
-        if isinstance(o, float):
+        if isinstance(o, numbers.Number):
             O += [o]
         else:
             OT |= {i for i in o}
