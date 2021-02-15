@@ -217,11 +217,25 @@ def realign_image(image, reference):
     image_centered_itk.SetSpacing([1 for i in range(image.GetDimension())])
     return image_centered_itk
 
-def registration_imzml(register, fixed, best_resampler, to_flip, mz, i):
+def registration_imzml(register, fixed, best_resampler, to_flip, mz, index):
     global intensities, coordinates, mzs, spectra
+    size = fixed.GetSize()
+    pixel_type = register.GetPixelID()
     outRegister = apply_registration_imzml(register, best_resampler, to_flip, fixed.GetSize())
-    I, coords = imzmlio.get_spectra_from_images(sitk.GetArrayFromImage(outRegister).T)
-    coords = [(elem[0], elem[1], i+1) for elem in coords]
+    k = outRegister.GetSize()[2]
+    outResized = sitk.Image(size[0], size[1], k, pixel_type)
+    for i in range(k):
+        out2D = sitk.JoinSeries(outRegister[:,:,i])
+        outResized = sitk.Paste(outResized, out2D, out2D.GetSize(), destinationIndex=[0,0,i])
+    I, coords = imzmlio.get_spectra_from_images(sitk.GetArrayFromImage(outResized).T)
+    coords = [(elem[0], elem[1], index+1) for elem in coords]
+    max_x = max(coords, key=lambda item:item[0])[0]
+    max_y = max(coords, key=lambda item:item[1])[1]
+    if (max_x != size[0] or max_y != size[1]):
+        I += [[0 for i in range(len(mz))]]
+        coords += [(size[0], size[1], index+1)]
+    max_x = max(coords, key=lambda item:item[0])[0]
+    max_y = max(coords, key=lambda item:item[1])[1]
     intensities += I
     coordinates += coords
     current_mzs = [mz] * len(coords)
@@ -358,8 +372,8 @@ if out != None:
         fig, ax = plt.subplots(1, 1)
         tracker = SliceViewer(ax, sitk.GetArrayFromImage(cimg))
         fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
-        plt.show()
-    plt.show()
+    #     plt.show()
+    # plt.show()
 
 #Apply transformation to registration image
 if registername:

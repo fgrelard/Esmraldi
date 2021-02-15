@@ -92,9 +92,9 @@ if len(shape) == 3:
 elif len(shape) == 4:
     before = before[:,:, index[-2], index[-1]]
     after = after[:,:, index[-2], index[-1]]
-ax[0].imshow(before.T)
-ax[1].imshow(after.T)
-plt.show()
+# ax[0].imshow(before.T)
+# ax[1].imshow(after.T)
+# plt.show()
 
 if is_imzml:
     mz, y = imzml.getspectrum(0)
