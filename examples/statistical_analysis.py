@@ -22,6 +22,7 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as colors
+import tifffile
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import NMF, PCA
@@ -215,10 +216,11 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
 
     if len(similar_images.shape) == 4:
         s = similar_images.shape
-        similar_images = similar_images.reshape(s[0], s[1], s[2]*s[3], order="F")
-
-    itk_similar_images = sitk.GetImageFromArray(similar_images.T)
-    sitk.WriteImage(itk_similar_images, outname)
+        similar_images = similar_images.reshape(s[0], s[1], s[2], s[3], order="F")
+        tifffile.imwrite(outname, similar_images.T, imagej=True)
+    else:
+        itk_similar_images = sitk.GetImageFromArray(similar_images.T)
+        sitk.WriteImage(itk_similar_images, outname)
     sitk.WriteImage(sitk.GetImageFromArray(mri_reconstructed.T), os.path.splitext(outname)[0] + "_reconstruction.tif")
 
     outname_csv = os.path.splitext(outname)[0] + ".csv"
