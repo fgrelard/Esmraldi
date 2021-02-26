@@ -19,7 +19,6 @@ import matplotlib.pyplot as plt
 from xlsxwriter.utility import xl_rowcol_to_cell, xl_col_to_name
 from PIL import Image
 from io import BytesIO
-from urllib.request import urlopen
 
 import esmraldi.imzmlio as imzmlio
 import esmraldi.speciesrule as sr
