@@ -205,6 +205,20 @@ def best_fit(fixed, array_moving, number_of_bins, sampling_percentage, find_best
                 best_resampler = resampler
     return best_resampler, index
 
+def update_dt_values(registration_method, fixed, moving):
+    global moving_DT
+    tx = registration_method.GetInitialTransform()
+    resampler = sitk.ResampleImageFilter()
+    resampler.SetReferenceImage(fixed)
+    resampler.SetInterpolator(sitk.sitkNearestNeighbor)
+    resampler.SetDefaultPixelValue(0)
+    resampler.SetTransform(tx)
+    deformed = resampler.Execute(moving)
+    deformed_updated = utils.compute_DT(deformed)
+    moving_DT = deformed_updated
+
+
+
 
 def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotation=False, seed=sitk.sitkWallClock, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
     """
@@ -262,6 +276,7 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
         R.SetOptimizerAsExhaustive(numberOfSteps=[9,32,0,0,0,0], stepLength=0.1)
 
         tx = sitk.CenteredTransformInitializer(fixed_DT, moving_DT, transform, sitk.CenteredTransformInitializerFilter.MOMENTS)
+        R.AddCommand(sitk.sitkIterationEvent, lambda: update_dt_values(R, fixed_DT, moving_DT))
         R.SetInitialTransform(tx, inPlace=True)
         outTx = R.Execute(fixed_DT, moving_DT)
         transform = sitk.Similarity2DTransform(outTx)

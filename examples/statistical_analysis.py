@@ -111,6 +111,7 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
 
     fit_red = nmf.fit(image_norm)
     point = fit_red.transform(mri_norm)
+
     X_r = fit_red.transform(image_norm)
     image_eigenvectors = fit_red.components_
 
@@ -146,11 +147,11 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
         if len(image.shape) == 3:
             images_maldi = [cv2.resize(i, size) for i in image.T]
             image_mri = cv2.resize(image_mri.T, size)
-            #visualize_scatter_with_images(pca_all,
-            #                              images_maldi,
-            #                              image_mri,
-            #                              figsize=size,
-            #                              image_zoom=0.7)
+            visualize_scatter_with_images(pca_all,
+                                         images_maldi,
+                                         image_mri,
+                                         figsize=size,
+                                         image_zoom=0.7)
         elif len(image.shape) == 4:
             images_maldi = [cv2.resize(i[..., i.shape[-1]//2], size) for i in np.transpose(image, (3, 0, 1, 2))]
             thumbnail_mri = image_mri.copy()
@@ -161,8 +162,8 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
             #                              figsize=size,
             #                              image_zoom=0.7)
 
-    plt.plot(X_r[:, 0], X_r[:, 1], "b.")
-    plt.plot(point[:, 0], point[:, 1], "ro")
+    # plt.plot(X_r[:, 0], X_r[:, 1], "b.")
+    # plt.plot(point[:, 0], point[:, 1], "ro")
     # plt.show()
     # plt.close()
 
@@ -177,6 +178,19 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     similar_images, similar_mzs, distances = fusion.select_images(image,point_mri, centers, weights,  mzs, labels, None)
 
     print("Selecting images end")
+    diff = fusion.closest_reconstruction(image, X_r, point, image_eigenvectors)
+    print(mzs.shape)
+    print(similar_mzs[:10], mzs[diff.argsort()][:10])
+    for i in range(3):
+        indices = diff.argsort()
+        current_index = indices[i]
+        rec_im = image[..., current_index]
+        nmf_im = similar_images[..., i]
+        fig, ax = plt.subplots(1,3)
+        ax[0].imshow(rec_im)
+        ax[1].imshow(nmf_im)
+        ax[2].imshow(image_mri)
+        plt.show()
 
     similar_images = similar_images[..., 0:100]
 
@@ -249,6 +263,7 @@ parser.add_argument("--norm", help="Whether to normalize the spectra with respec
 parser.add_argument("--norm_img", help="Normalization image filename (optional)")
 parser.add_argument("--post_process", help="Post process with tSNE (optional)", action="store_true")
 parser.add_argument("--split", help="For 3D volumes, process each 2D slice independently.", action="store_true")
+parser.add_argument("--number_slice", help="Number of the slice to process", default=-1)
 parser.add_argument("--memmap", help="Whether to store to memory map files.", action="store_true")
 
 args = parser.parse_args()
@@ -264,6 +279,7 @@ normname = args.norm_img
 is_norm = args.norm
 post_process = args.post_process
 is_split = args.split
+number_slice = int(args.number_slice)
 is_memmap = args.memmap
 
 if top <= 0:
@@ -312,10 +328,11 @@ image_mri = sitk.GetArrayFromImage(sitk.ReadImage(mriname, sitk.sitkFloat32)).T
 if is_split and len(image.shape) == 4 and len(image_mri.shape) == 3:
     outroot, outext = os.path.splitext(outname)
     for k in range(image.shape[2]):
-        current_image = image[:,:,k,:]
-        current_image_mri = image_mri[..., k]
-        current_name = outroot + "_" + str(k) + outext
-        print(current_image.shape, current_image_mri.shape, current_name)
-        statistical_analysis(current_name, current_image, current_image_mri, mzs, n, is_ratio, top, post_process, is_memmap)
+        if number_slice < 0 or (number_slice >= 0 and k == number_slice):
+            current_image = image[:,:,k,:]
+            current_image_mri = image_mri[..., k]
+            current_name = outroot + "_" + str(k) + outext
+            print(current_image.shape, current_image_mri.shape, current_name)
+            statistical_analysis(current_name, current_image, current_image_mri, mzs, n, is_ratio, top, post_process, is_memmap)
 else:
     statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_process, is_memmap)

@@ -3,6 +3,7 @@ Module for the joint statistical
 analysis of images
 """
 
+import esmraldi.imzmlio as imzmlio
 import numpy as np
 import cv2 as cv
 from sklearn import metrics
@@ -10,6 +11,9 @@ from sklearn.decomposition import PCA
 from sklearn.decomposition import NMF
 from sklearn.cluster import KMeans, AffinityPropagation
 from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+from sklearn.metrics.pairwise import cosine_similarity, cosine_distances
+
 
 def clustering_affinity(X_r):
     """
@@ -289,3 +293,46 @@ def closest_pixels_cosine(image1, image2):
     indices_abs_diff = [i for i in range(len(indices))]
     indices_abs_diff.sort(key=lambda x:abs_diff[x], reverse=False)
     return indices[indices_abs_diff]
+
+def cosine_neighborhood(image1, image2, r):
+    size = (2*r+1)**2
+    shape = np.prod(image1.shape[:-1])*size
+    image1_neighborhood = np.zeros((image1.shape[-1], shape))
+    image2_neighborhood = np.zeros((1, shape))
+    for k in range(image1.shape[-1]):
+        for index in np.ndindex(image1.shape[:-1]):
+            image1_index = index + (k,)
+            values_im1 = np.array([image1[image1_index]] * size)
+
+            flat_index = np.ravel_multi_index(index, image1.shape[:-1])
+            flat_index *= size
+            image1_neighborhood[k, flat_index:flat_index+size] = values_im1
+            if k == 0:
+                values_im2 = image2[index[0]-r:index[0]+r+1, index[1]-r:index[1]+r+1].copy().flatten()
+                if not values_im2.any():
+                    values_im2 = np.zeros((size,))
+                image2_neighborhood[k, flat_index:flat_index+size] = values_im2
+
+    sim = cosine_similarity(image1_neighborhood, image2_neighborhood)
+    return sim
+
+
+
+def closest_reconstruction(image, image1, image2, image_eigenvectors):
+    w_2 = image2 / np.sum(image2)
+    reconstructed_image2 = reconstruct_image_from_components(image_eigenvectors, w_2.T)
+    reconstructed_image2 = imzmlio.normalize(reconstructed_image2)
+    diff = np.zeros((image1.shape[0],))
+    for index in range(image1.shape[0]):
+        w = image1[index, ...] / np.sum(image1[index, ...])
+        reconstructed_image = reconstruct_image_from_components(image_eigenvectors, w.T)
+        reconstructed_image = imzmlio.normalize(reconstructed_image)
+        diff[index] = np.mean(np.abs(reconstructed_image2 - reconstructed_image))
+        # fig, ax = plt.subplots(1,3)
+        # print(np.mean(np.abs(image[..., index].T - reconstructed_image)), diff[index], w)
+        # ax[0].imshow(image[..., index].T)
+        # ax[1].imshow(reconstructed_image2)
+        # ax[2].imshow(reconstructed_image)
+        # plt.show()
+
+    return diff

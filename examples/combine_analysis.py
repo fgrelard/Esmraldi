@@ -13,6 +13,7 @@ import cv2 as cv
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+import SimpleITK as sitk
 
 from xlsxwriter.utility import xl_rowcol_to_cell, xl_col_to_name
 from PIL import Image
@@ -177,14 +178,13 @@ def write_mass_list(worksheet, column_names, annotation, mzs, spectra_mzs, mean_
             col+=1
 
         if not is_ratio:
-            mzs_compare = [float(column.split("/")[0]) for column in mzs for mzs in mzs_float]
-            indices = np.abs(np.array(mzs_compare, dtype=float) - spectra_mzs[:, None]).argmin(axis=0)
+            indices = np.abs(np.array(mzs_float[i, :, 0], dtype=float) - spectra_mzs[:, None]).argmin(axis=0)
             for j in range(data.shape[1]):
-                col_letter = xl_col_to_name(indices[j]+1)
+                col_letter = xl_col_to_name(indices[j]+2)
                 worksheet.write_url(1+j+i*data.shape[1], 2, "internal:'Images'!"+col_letter+":"+col_letter, string=str(mzs_float[i, j, 0]))
         else:
             for j in range(data.shape[1]):
-                col_letter = xl_col_to_name(spectra_mzs.shape[0]+j+i*data.shape[1]+1)
+                col_letter = xl_col_to_name(spectra_mzs.shape[0]+j+i*data.shape[1]+2)
                 worksheet.write_url(1+j+i*data.shape[1], 2, "internal:'Images'!"+col_letter+":"+col_letter, string=str(mzs_float[i, j, 0]))
 
 
@@ -218,14 +218,14 @@ def insertable_image(image, size):
     BytesIO
         insertable image
     """
-    image_i = ((image - image.min()) * (1/(image.max() - image.min() + 1) * 255)).astype('uint8')
+    image_i = np.uint8(cv.normalize(image, None, 0, 255, cv.NORM_MINMAX))
     new_im = np.array(Image.fromarray(image_i).resize(size))
     im, a_numpy = cv.imencode(".png", new_im)
     a = a_numpy.tostring()
     image_data = BytesIO(a)
     return image_data
 
-def add_images(worksheet, column_names, mzs, image):
+def add_images(worksheet, column_names, reference_image, mzs, image):
     """
     Add images in spreadsheet
 
@@ -235,27 +235,40 @@ def add_images(worksheet, column_names, mzs, image):
         spreadsheet
     column_names: list
         column header names
-    masses: np.ndarray
+    reference_image: np.ndarray
+        reference image (frozen panes)
+    mzs: np.ndarray
         data: mz
     image: np.ndarray
         MALDI image datacube
     """
-    for i in range(image.shape[-1]):
-        image_i = image[..., i].T
-        if len(image.shape) > 2:
+
+    cell_format = workbook.add_format({'bold': True,
+                                       'align': 'center',
+                                       'valign': 'vcenter',
+                                       'fg_color': '#D6E6FF',
+                                       'border': 1})
+
+    worksheet.write_row(0, 1, ["MRI"], cell_format=cell_format)
+    worksheet.write_row(0, 2, mzs, cell_format=left_format)
+    worksheet.write_column(0, 0, [], cell_format=cell_format)
+
+    new_image = np.concatenate([reference_image.reshape(reference_image.shape + (1,)), image], axis=-1)
+    for i in range(new_image.shape[-1]):
+        image_i = new_image[..., i].T
+        if len(new_image.shape) > 2:
             for j in range(image_i.shape[0]):
                 image_current = image_i[j, ...]
                 start_row = image_i.shape[1]//20
                 image_data = insertable_image(image_current, (image_current.shape[0],image_current.shape[1]))
                 worksheet.insert_image(j*start_row+1, i+1, "", {'image_data': image_data, 'object_position': 4})
 
-
     headers = ["m/z"] + column_names
     for i in range(len(headers)):
         worksheet.write(0, 0, headers[i], header_format)
-    worksheet.freeze_panes(1, 0)
 
-    worksheet.write_row(0, 1, mzs, cell_format=left_format)
+
+    worksheet.freeze_panes(1, 2)
 
     widths = get_col_widths(np.array([mzs]))
     width_headers = get_col_widths(np.array([headers]))
@@ -316,20 +329,39 @@ def read_mzs(mzs_name):
 def compute_ratio_images(mzs, spectra_mzs, image, top):
     mzs_array = np.array(mzs).reshape((-1, image.shape[2]))
     mzs_array = mzs_array[:top, :].T.flatten()
-    ratio_images, ratio_mzs = np.zeros(image.shape[:-1] + (image.shape[2]*top,)), []
+    ratio_images = np.zeros(image.shape[:-1] + (image.shape[2]*top,))
+    ratio_mzs = []
     for index, m in enumerate(mzs_array):
-        mz_one, mz_second = [float(e) for e in m.split("/")]
-        i = np.abs(mz_one - spectra_mzs).argmin()
-        j = np.abs(mz_second - spectra_mzs).argmin()
-        first_image = image[..., i]
-        second_image = image[..., j]
-        divided = np.zeros_like(first_image, dtype=np.float64)
-        np.divide(first_image, second_image, out=divided, where=second_image!=0)
-        divided = np.uint8(cv.normalize(divided, None, 0, 255, cv.NORM_MINMAX))
-        current_ratio = str(spectra_mzs[i]) + "/" + str(spectra_mzs[j])
-        ratio_images[..., index] = divided
-        ratio_mzs.append(current_ratio)
+        L = [float(e) for e in m.split("/")]
+        if len(L) == 1:
+            mz_one = L[0]
+            i = np.abs(mz_one - spectra_mzs).argmin()
+            first_image = image[..., i]
+            current_ratio = str(spectra_mzs[i])
+            ratio_images[..., index] = first_image
+            ratio_mzs.append(current_ratio)
+        else:
+            mz_one, mz_second = L
+            i = np.abs(mz_one - spectra_mzs).argmin()
+            j = np.abs(mz_second - spectra_mzs).argmin()
+            first_image = image[..., i]
+            second_image = image[..., j]
+            divided = np.zeros_like(first_image, dtype=np.float64)
+            np.divide(first_image, second_image, out=divided, where=second_image!=0)
+            divided = np.uint8(cv.normalize(divided, None, 0, 255, cv.NORM_MINMAX))
+            current_ratio = str(spectra_mzs[i]) + "/" + str(spectra_mzs[j])
+            ratio_images[..., index] = divided
+            ratio_mzs.append(current_ratio)
     return ratio_images, ratio_mzs
+
+def normalize(image):
+    image_normalized = image.copy()
+    for index in np.ndindex(image.shape[:-1]):
+        spectrum = image[index]
+        norm = np.linalg.norm(spectrum)
+        if norm > 0:
+            image_normalized[index] = spectrum / norm
+    return image_normalized
 
 
 parser = argparse.ArgumentParser()
@@ -338,10 +370,12 @@ parser.add_argument("-i", "--input", help="MALDI image (imzML)")
 parser.add_argument("-a", "--annotation", help="Annotation files (csv files)", nargs="+", type=str)
 parser.add_argument("-m", "--mzs", help="Associated files containing m/z ratios (csv files)", nargs="+", type=str)
 parser.add_argument("-o", "--output", help="Output .xlsx file")
+parser.add_argument("--mri_image", help="MRI image")
 parser.add_argument("--skip", help="Skip every nth column of the annotation file.", default=0)
 parser.add_argument("--memmap", help="Memory mapped file for imzML", action="store_true")
 parser.add_argument("--top", help="Retains only top number of molecules", default=100)
 parser.add_argument("--names", help="Excel sheet names", nargs="+", type=str, default=["File"])
+parser.add_argument("--normalize", help="Normalize", action="store_true")
 
 args = parser.parse_args()
 
@@ -349,12 +383,13 @@ annotation_names = args.annotation
 input_name = args.input
 mzs_names = args.mzs
 output_name = args.output
+mri_image_name = args.mri_image
 skip = int(args.skip)
 is_memmap = args.memmap
 top = int(args.top)
 sheetnames = args.names
-
-
+is_normalize = args.normalize
+print(is_normalize)
 memmap_dir = os.path.dirname(input_name) + os.path.sep + "mmap" + os.path.sep
 memmap_basename = os.path.splitext(os.path.basename(input_name))[0]
 memmap_image_filename = memmap_dir + memmap_basename + ".npy"
@@ -381,9 +416,15 @@ else:
         np.save(memmap_image_filename, image)
         np.save(memmap_spectra_filename, spectra)
 
+
+if is_normalize:
+    image = normalize(image)
+
 spectra_mzs = spectra[0, 0]
 
 mean_spectrum = sp.spectra_mean(spectra)
+
+mri_image = sitk.GetArrayFromImage(sitk.ReadImage(mri_image_name)).T
 
 
 workbook = xlsxwriter.Workbook(output_name, {'strings_to_urls': False})
@@ -418,7 +459,7 @@ worksheet2 = workbook.add_worksheet("Images")
 
 
 
-add_images(worksheet2, [], spectra_mzs, image)
+add_images(worksheet2, [], mri_image, spectra_mzs, image)
 
 
 workbook.close()
