@@ -49,6 +49,7 @@ class MainWindow(Qt.QMainWindow):
         self.spectrum = np.array([self.mz, self.mean_spectra])
         self.spectrum = (self.spectrum.T / [self.spectrum[0].max(), self.spectrum[1].max()]).T
         self.current_mz = self.mz.min()
+        self.current_mz_denom = -1
         self.current_intensity = 0
         self.is_text_editing = False
 
@@ -97,8 +98,17 @@ class MainWindow(Qt.QMainWindow):
         self.edit_mz.setValidator(QtGui.QDoubleValidator(self.mz.min(), self.mz.max(), 4))
         self.edit_mz.setText(str(round(self.current_mz, 4)))
         self.edit_mz.setMaximumWidth(100)
+
+        self.edit_mz_denom = QtWidgets.QLineEdit()
+        self.edit_mz_denom.setValidator(QtGui.QDoubleValidator(-1, self.mz.max(), 4))
+        self.edit_mz_denom.setText(str(-1))
+        self.edit_mz_denom.setMaximumWidth(100)
+
         self.edit_mz.textEdited.connect(self.changeMzValue)
         self.edit_mz.returnPressed.connect(self.updateMzValue)
+
+        self.edit_mz_denom.textEdited.connect(lambda text:self.changeMzValue(text, True))
+        self.edit_mz_denom.returnPressed.connect(self.updateMzValue)
 
         self.label_tol = QtWidgets.QLabel()
         self.label_tol.setText("+/-")
@@ -115,6 +125,7 @@ class MainWindow(Qt.QMainWindow):
         self.hboxLayout.addStretch()
         self.hboxLayout.addWidget(self.label_mz)
         self.hboxLayout.addWidget(self.edit_mz)
+        self.hboxLayout.addWidget(self.edit_mz_denom)
         self.hboxLayout.addWidget(self.label_tol)
         self.hboxLayout.addWidget(self.edit_tol)
 
@@ -139,11 +150,14 @@ class MainWindow(Qt.QMainWindow):
             QVTKRenderWindowInteractor.keyPressEvent(self.vtkWidget, event)
 
 
-    def changeMzValue(self, text):
+    def changeMzValue(self, text, denominator=False):
         self.is_text_editing = True
         number, is_converted = self.locale.toDouble(text)
         if is_converted:
-            self.current_mz = number
+            if denominator:
+                self.current_mz_denom = number
+            else:
+                self.current_mz = number
             self.get_points_on_spectrum()
 
     def updateMzValue(self):
@@ -158,8 +172,17 @@ class MainWindow(Qt.QMainWindow):
             self.tol = number
             self.get_points_on_spectrum()
 
-    def get_points_on_spectrum(self):
-        x1 = self.current_mz - self.tol/2
+
+    def mz_to_indices(self, denom=False):
+        current_mz = self.current_mz
+        point = self.point_red
+        rect = self.rect_red
+        if denom:
+            current_mz = self.current_mz_denom
+            point = self.point_blue
+            rect = self.rect_blue
+
+        x1 = current_mz - self.tol/2
         x2 = x1 + self.tol
 
         y1 = 0
@@ -169,14 +192,14 @@ class MainWindow(Qt.QMainWindow):
                (self.mean_spectra > min(y1,y2)) & (self.mean_spectra < max(y1,y2))
         no_intersection = not mask.any()
         if no_intersection:
-            mask_index = min(bisect.bisect_left(self.mz, self.current_mz), len(self.mz)-1)
+            mask_index = min(bisect.bisect_left(self.mz, current_mz), len(self.mz)-1)
             if mask_index > 0 and \
-               abs(self.mz[mask_index-1]-self.current_mz) < \
-               abs(self.mz[mask_index]-self.current_mz):
+               abs(self.mz[mask_index-1]-current_mz) < \
+               abs(self.mz[mask_index]-current_mz):
                 mask_index = mask_index-1
             if mask_index < len(self.mz) - 1 and \
-               abs(self.mz[mask_index+1]-self.current_mz) < \
-               abs(self.mz[mask_index]-self.current_mz):
+               abs(self.mz[mask_index+1]-current_mz) < \
+               abs(self.mz[mask_index]-current_mz):
                 mask_index = mask_index+1
             mask[mask_index] = True
 
@@ -184,29 +207,48 @@ class MainWindow(Qt.QMainWindow):
         ymasked = self.mean_spectra[mask]
         indices = np.argwhere(mask == True)
 
-        if indices.any():
-            vol = vedo.Volume(np.mean(image[..., indices.flatten()], axis=-1))
-            vol.spacing([1, 1, spacing])
-            vol.interpolation(1)
-            self.vp.update(vol)
 
         if len(xmasked) > 0:
             xmax = xmasked
             ymax = ymasked
-            self.point.set_data([xmax],[ymax])
-            self.rect.set_width(x2 - x1)
-            self.rect.set_height(y2 - y1)
+            point.set_data([xmax],[ymax])
+            rect.set_width(x2 - x1)
+            rect.set_height(y2 - y1)
 
             if no_intersection:
-                self.current_mz = np.median(xmax)
-                self.rect.set_xy((self.current_mz-self.tol/2, 0))
+                current_mz = np.median(xmax)
+                rect.set_xy((current_mz-self.tol/2, 0))
             else:
-                self.rect.set_xy((x1, 0))
+                rect.set_xy((x1, 0))
 
-            if not self.is_text_editing:
-                self.edit_mz.setText(str(round(self.current_mz, 4)))
+            if denom:
+                self.current_mz_denom = current_mz
+            else:
+                self.current_mz = current_mz
 
             self.figure.canvas.draw_idle()
+
+        return indices
+
+    def get_points_on_spectrum(self):
+        indices = self.mz_to_indices()
+        indices_denom = self.mz_to_indices(True)
+        if indices.any():
+            num = np.mean(image[..., indices.flatten()], axis=-1)
+            if indices_denom.any():
+                denom = np.mean(image[..., indices_denom.flatten()], axis=-1)
+                divided = np.zeros_like(num, dtype=np.float64)
+                np.divide(num, denom, out=divided, where=denom!=0)
+                num = divided
+            vol = vedo.Volume(num)
+            vol.spacing([1, 1, spacing])
+            vol.interpolation(1)
+            self.vp.update(vol)
+
+        if not self.is_text_editing:
+            self.edit_mz.setText(str(round(self.current_mz, 4)))
+            self.edit_mz_denom.setText(str(round(self.current_mz_denom, 4)))
+
 
 
     def plot(self):
@@ -232,17 +274,23 @@ class MainWindow(Qt.QMainWindow):
         self.figure.patch.set_alpha(0.7)
         self.ax.patch.set_facecolor('#E0E0E0')
         self.ax.patch.set_alpha(0)
-        self.point, = self.ax.plot([],[], marker="o", color="crimson")
+        self.point_red, = self.ax.plot([],[], marker="o", color="crimson")
+        self.point_blue, = self.ax.plot([],[], marker="o", color="blue")
 
 
         def line_select_callback(event):
             if self.toolbar._actions['zoom'].isChecked() or self.toolbar._actions['pan'].isChecked() or not event.xdata:
                 return
             self.is_text_editing = False
-            self.current_mz = event.xdata
             self.current_intensity = event.ydata
-            self.edit_mz.setText(str(round(self.current_mz, 4)))
+            if self.iren.GetControlKey():
+                self.current_mz_denom = event.xdata
+                self.edit_mz_denom.setText(str(round(self.current_mz_denom, 4)))
+            else:
+                self.current_mz = event.xdata
+                self.edit_mz.setText(str(round(self.current_mz, 4)))
             self.get_points_on_spectrum()
+
 
         def arrow_callback(iren, event):
             key = iren.GetKeySym()
@@ -253,12 +301,15 @@ class MainWindow(Qt.QMainWindow):
                 new_index = current_index + 1 if current_index < len(self.mz) - 1 else 0
             elif key == 'Left':
                 new_index = current_index - 1 if current_index > 0 else len(self.mz) - 1
+
             self.current_mz = self.mz[new_index]
             self.edit_mz.setText(str(round(self.current_mz, 4)))
             self.get_points_on_spectrum()
 
-        self.rect = Rectangle((0,0), 0, 0, alpha=0.1, fc='r')
-        self.ax.add_patch(self.rect)
+        self.rect_red = Rectangle((0,0), 0, 0, alpha=0.1, fc='r')
+        self.rect_blue = Rectangle((0,0), 0, 0, alpha=0.1, fc='b')
+        self.ax.add_patch(self.rect_red)
+        self.ax.add_patch(self.rect_blue)
         self.ax.figure.canvas.mpl_connect('button_press_event', line_select_callback)
         self.vp.interactor.AddObserver("KeyPressEvent", arrow_callback)
 
