@@ -283,6 +283,7 @@ class MainWindow(Qt.QMainWindow):
                 return
             self.is_text_editing = False
             self.current_intensity = event.ydata
+            print(self.iren.GetControlKey())
             if self.iren.GetControlKey():
                 self.current_mz_denom = event.xdata
                 self.edit_mz_denom.setText(str(round(self.current_mz_denom, 4)))

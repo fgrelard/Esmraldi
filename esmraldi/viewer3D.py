@@ -55,9 +55,12 @@ class Slicer(Plotter):
                          verbose=verbose)
         ################################
         self.volume = volume
+        self.volume_copy = volume.clone()
         self.cmap_slicer = cmaps[0]
+        print(self.cmap_slicer)
         self.alpha = alpha
         self.showing_mesh = False
+        self.map2cells = map2cells
 
         dims = volume.dimensions()
         self.rmin, self.rmax = volume.imagedata().GetScalarRange()
@@ -93,6 +96,7 @@ class Slicer(Plotter):
         self.scalar_msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
         self.scalar_msh.SetVisibility(False)
         self.scalar_msh.scalarbar = addScalarBar(self.scalar_msh, pos=(0.04,0.0), horizontal=True, titleFontSize=0)
+
         self.add(self.scalar_msh)
 
         self.msh = self.scalar_msh.clone()
@@ -146,7 +150,7 @@ class Slicer(Plotter):
         self.addSlider2D(sliderfunc_z, 0, dims[2]+1, title='Z', titleSize=0.6,
                          value=self.pos_slider[2],
                          pos=[(0.8,0.04), (0.95,0.04)], showValue=False, c=cz)
-
+        self.scalar_thresh = self.addSlider2D(self.sliderThreshold, 0, 100, value=100, pos=[(0.04, 0.1), (0.2, 0.1)], showValue=True, title="")
 
 
 
@@ -171,6 +175,7 @@ class Slicer(Plotter):
                 else:
                     self.remove(self.volume)
 
+
         def buttonfunc(iren, event):
             clickPos = iren.GetEventPosition()
 
@@ -180,21 +185,7 @@ class Slicer(Plotter):
                 return
             bu.switch()
             self.cmap_slicer = bu.status()
-            for mesh in self.visibles:
-                if mesh:
-                    mesh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
-                    if map2cells:
-                        mesh.mapPointsToCells()
-            self.volume.mode(1).color(self.cmap_slicer).jittering(True)
-
-            self.scalar_msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
-            self.renderer.RemoveActor(self.scalar_msh.scalarbar)
-
-            self.scalar_msh.scalarbar = addScalarBar(self.scalar_msh,
-                                          pos=(0.04,0.0),
-                                          horizontal=True,
-                                          titleFontSize=0)
-            self.renderer.AddActor(self.scalar_msh.scalarbar)
+            self.refresh()
             # self.add(self.scalar_msh)
 
 
@@ -218,6 +209,7 @@ class Slicer(Plotter):
         if verbose:
             printc("Press button to cycle through color maps,", c="m")
             printc("Use sliders to select the slicing planes.", c="m")
+
     def display_all_slices(self, axis):
         la, ld = 0.7, 0.3 #ambient, diffuse
         if len(self.all_slices[axis]) > 0:
@@ -251,6 +243,37 @@ class Slicer(Plotter):
         opacity_function.AddPoint(self.rmin + (self.rmax - self.rmin) * 0.5, 0.7)
         opacity_function.AddPoint(self.rmin + (self.rmax - self.rmin) * 1.0, 1.0)
 
+
+    def sliderThreshold(self, widget, event):
+        value = widget.GetRepresentation().GetValue()
+        pmin, pmax = self.volume.GetProperty().GetScalarOpacity().GetRange()
+        self.rmax = self.rmin + pmax*value*0.01
+        self.refresh()
+
+    def refresh(self):
+        for mesh in self.visibles:
+            if mesh:
+                mesh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
+                if self.map2cells:
+                    mesh.mapPointsToCells()
+
+        self.volume.mode(1).color(self.cmap_slicer).jittering(True)
+        img = self.volume_copy.imagedata()
+        self.volume._update(img)
+        self.volume.threshold(above=self.rmax, replaceWith=self.rmax)
+
+        self.scalar_msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
+        self.renderer.RemoveActor(self.scalar_msh.scalarbar)
+
+
+        self.scalar_msh.scalarbar = addScalarBar(self.scalar_msh,
+                                      pos=(0.04,0.0),
+                                      horizontal=True,
+                                      titleFontSize=0)
+
+        self.renderer.AddActor(self.scalar_msh.scalarbar)
+
+
     def update(self, vol):
         la, ld = 0.7, 0.3 #ambient, diffuse
         dims = vol.dimensions()
@@ -258,7 +281,11 @@ class Slicer(Plotter):
         self.remove([self.volume, self.box, self.msh])
 
         self.volume = vol
+        self.volume_copy = vol.clone()
         self.volume.mode(1).color(self.cmap_slicer).jittering(False)
+
+        self.scalar_thresh.GetSliderRepresentation().SetValue(100)
+
         self.setOTF()
         self.box = vol.box().wireframe().alpha(0)
         self.add(self.box, render=False)
@@ -299,3 +326,4 @@ class Slicer(Plotter):
         if self.showing_mesh:
             self.add(self.volume)
             self.interactive=True
+
