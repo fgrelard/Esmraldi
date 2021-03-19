@@ -13,6 +13,8 @@ import esmraldi.viewer3D as viewer3D
 import matplotlib.pyplot as plt
 import bisect
 
+from pynput.keyboard import Key, Listener
+
 import vedo
 
 import sys
@@ -52,6 +54,16 @@ class MainWindow(Qt.QMainWindow):
         self.current_mz_denom = -1
         self.current_intensity = 0
         self.is_text_editing = False
+        self.is_ctrl = False
+
+        def is_pressed(key):
+            self.is_ctrl = (key == Key.ctrl)
+
+        def is_released(key):
+            self.is_ctrl = False
+
+        self.listen = Listener(on_press = is_pressed, on_release=is_released)
+        self.listen.start()
 
         self.frame = Qt.QFrame()
         self.vl = Qt.QGridLayout()
@@ -283,10 +295,11 @@ class MainWindow(Qt.QMainWindow):
         def line_select_callback(event):
             if self.toolbar._actions['zoom'].isChecked() or self.toolbar._actions['pan'].isChecked() or not event.xdata:
                 return
+
             self.is_text_editing = False
             self.current_intensity = event.ydata
 
-            if self.iren.GetControlKey():
+            if self.is_ctrl:
                 self.current_mz_denom = event.xdata
                 self.edit_mz_denom.setText(str(round(self.current_mz_denom, 4)))
             else:
