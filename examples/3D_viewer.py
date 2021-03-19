@@ -232,7 +232,9 @@ class MainWindow(Qt.QMainWindow):
 
     def get_points_on_spectrum(self):
         indices = self.mz_to_indices()
-        indices_denom = self.mz_to_indices(True)
+        indices_denom = np.empty((0))
+        if self.current_mz_denom > 0:
+            indices_denom = self.mz_to_indices(True)
         if indices.any():
             num = np.mean(image[..., indices.flatten()], axis=-1)
             if indices_denom.any():
@@ -283,7 +285,7 @@ class MainWindow(Qt.QMainWindow):
                 return
             self.is_text_editing = False
             self.current_intensity = event.ydata
-            print(self.iren.GetControlKey())
+
             if self.iren.GetControlKey():
                 self.current_mz_denom = event.xdata
                 self.edit_mz_denom.setText(str(round(self.current_mz_denom, 4)))
