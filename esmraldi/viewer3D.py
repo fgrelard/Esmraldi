@@ -57,8 +57,8 @@ class Slicer(Plotter):
         self.volume = volume
         self.volume_copy = volume.clone()
         self.cmap_slicer = cmaps[0]
-        print(self.cmap_slicer)
         self.alpha = alpha
+        self.alphas = [1 for i in range(100)]
         self.showing_mesh = False
         self.map2cells = map2cells
 
@@ -93,7 +93,7 @@ class Slicer(Plotter):
         self.all_slices = [[], [], []]
         self.scalar_msh = volume.zSlice(self.pos_slider[2])
         self.scalar_msh.alpha(self.alpha).lighting('', la, ld, 0)
-        self.scalar_msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
+        self.scalar_msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax, alpha=self.alphas)
         self.scalar_msh.SetVisibility(False)
         self.scalar_msh.scalarbar = addScalarBar(self.scalar_msh, pos=(0.04,0.0), horizontal=True, titleFontSize=0)
 
@@ -108,7 +108,7 @@ class Slicer(Plotter):
             i = int(widget.GetRepresentation().GetValue())
             self.pos_slider[0] = i
             self.msh = self.volume.xSlice(i).alpha(self.alpha).lighting('', la, ld, 0)
-            self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
+            self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax, alpha=self.alphas)
             if map2cells: self.msh.mapPointsToCells()
             self.renderer.RemoveActor(self.visibles[0])
             if i<dims[0]: self.renderer.AddActor(self.msh)
@@ -118,7 +118,7 @@ class Slicer(Plotter):
             i = int(widget.GetRepresentation().GetValue())
             self.pos_slider[1] = i
             self.msh = self.volume.ySlice(i).alpha(self.alpha).lighting('', la, ld, 0)
-            self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
+            self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax, alpha=self.alphas)
             if map2cells: self.msh.mapPointsToCells()
             self.renderer.RemoveActor(self.visibles[1])
             if i<dims[1]: self.renderer.AddActor(self.msh)
@@ -129,7 +129,7 @@ class Slicer(Plotter):
             self.pos_slider[2] = i
             self.comment.SetText(4, "z="+str(self.pos_slider[2]))
             self.msh = self.volume.zSlice(i).alpha(self.alpha).lighting('', la, ld, 0)
-            self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
+            self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax, alpha=self.alphas)
             if map2cells: self.msh.mapPointsToCells()
             self.renderer.RemoveActor(self.visibles[2])
             if i<dims[2]: self.renderer.AddActor(self.msh)
@@ -150,7 +150,9 @@ class Slicer(Plotter):
         self.addSlider2D(sliderfunc_z, 0, dims[2]+1, title='Z', titleSize=0.6,
                          value=self.pos_slider[2],
                          pos=[(0.8,0.04), (0.95,0.04)], showValue=False, c=cz)
-        self.scalar_thresh = self.addSlider2D(self.sliderThreshold, 0, 100, value=100, pos=[(0.04, 0.1), (0.2, 0.1)], showValue=True, title="")
+        self.scalar_thresh = self.addSlider2D(self.sliderThreshold, 0, 100, value=100, pos=[(0.04, 0.1), (0.2, 0.1)], showValue=True, title="Scalar")
+
+        self.opacity_thresh = self.addSlider2D(self.sliderOpacityThreshold, 0, 100, value=0, pos=[(0.04, 0.2), (0.2, 0.2)], showValue=True, title="Opacity")
 
 
 
@@ -230,7 +232,7 @@ class Slicer(Plotter):
                 elif axis == 2:
                     msh = self.volume.zSlice(i).lighting('', la, ld, 0)
                 msh.alpha(self.alpha).lighting('', la, ld, 0)
-                msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
+                msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax, alpha=self.alphas)
                 self.all_slices[axis].append(msh)
                 self.add(msh)
 
@@ -250,10 +252,15 @@ class Slicer(Plotter):
         self.rmax = self.rmin + pmax*value*0.01
         self.refresh()
 
+    def sliderOpacityThreshold(self, widget, event):
+        value = int(widget.GetRepresentation().GetValue())
+        self.alphas = [0 for i in range(value)] + [1 for i in range(100-value)]
+        self.refresh()
+
     def refresh(self):
         for mesh in self.visibles:
             if mesh:
-                mesh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
+                mesh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax, alpha=self.alphas)
                 if self.map2cells:
                     mesh.mapPointsToCells()
 
@@ -311,7 +318,7 @@ class Slicer(Plotter):
             elif i == 2:
                 self.msh = self.volume.zSlice(self.pos_slider[2]).alpha(self.alpha).lighting('', la, ld, 0)
             self.msh.alpha(self.alpha).lighting('', la, ld, 0)
-            self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax)
+            self.msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax, alpha=self.alphas)
             if previous_visibles[i]:
                 self.visibles[i] = self.msh
                 self.add(self.msh)
