@@ -95,7 +95,7 @@ def annotation_ratio(observed, theoretical, tolerance=0.1):
     for o in observed:
         if isinstance(o, numbers.Number):
             O += [o]
-        else:
+        elif o is not None:
             OT |= {i for i in o}
     annotated = annotation(O, theoretical, tolerance)
     annotated_tuples = annotation(list(OT), theoretical, tolerance)
