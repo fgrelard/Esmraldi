@@ -31,6 +31,8 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from skimage.filters import threshold_otsu
 from esmraldi.sliceviewer import SliceViewer
 
+from skimage.filters import sobel
+from scipy.ndimage import uniform_filter, median_filter, gaussian_filter
 
 def plot_clustering(X, labels, mri):
     n_clusters = len(np.unique(labels))
@@ -66,11 +68,23 @@ def visualize_scatter_with_images(X_all, images_maldi, images_mri,figsize=(45,45
     ax.autoscale()
     plt.show()
 
-def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_process, is_memmap):
+def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_process, is_norm, is_denoise, is_memmap):
+
+    if is_denoise:
+        size = (5, 5, 1)
+        if len(image.shape) == 4:
+            size += (1,)
+        image = median_filter(image, size=size)
+
+    image[image_mri == 0] = 0
+
     if is_ratio:
         ratio_images, ratio_mzs = fusion.extract_ratio_images(image, mzs)
         image = np.concatenate((image, ratio_images), axis=-1)
         mzs = np.concatenate((mzs, ratio_mzs))
+        indices_delete = fusion.remove_indices(image)
+        image = np.delete(image, indices_delete, axis=-1)
+        mzs = np.delete(mzs, indices_delete)
 
     memmap_dir = os.path.dirname(outname) + os.path.sep + "mmap" + os.path.sep
     memmap_basename = os.path.splitext(os.path.basename(outname))[0]
@@ -85,20 +99,29 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
         print("Reading mem-map")
         image = np.load(memmap_image_filename, mmap_mode="r")
 
-    image = imzmlio.normalize(image)
-    image_norm = fusion.flatten(image, is_spectral=True)
-
+    image_norm = imzmlio.normalize(image)
     mri_norm = imzmlio.normalize(image_mri)
+
+    if is_norm:
+        image_norm = image_norm.astype(np.float64)
+        mri_norm = mri_norm.astype(np.float64)
+
+        for index in range(image_norm.shape[-1]):
+            current_image  = image_norm[..., index]
+            norm =  np.linalg.norm(current_image)
+            if norm > 0:
+                current_image /= norm
+                image_norm[..., index] = current_image
+        mri_norm /= np.linalg.norm(mri_norm)
+    image_norm = fusion.flatten(image_norm, is_spectral=True)
     mri_norm = fusion.flatten(mri_norm)
 
-    print(mri_norm.shape)
-    print(image_norm.shape)
 
     print("Computing Dimension reduction")
 
     # fit_red = fusion.nmf(image_norm, n)
     # print(mri_norm.T.shape)
-    nmf = NMF(n_components=n, init='nndsvda', solver='mu', random_state=0)
+    nmf = NMF(n_components=n, init='nndsvda', solver='mu', random_state=0, max_iter=1000)
     # fit_red = nmf.fit(image_norm.T)
     # eigenvectors = fit_red.components_ #H
     # image_eigenvectors = nmf.transform(image_norm.T); #W
@@ -147,11 +170,11 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
         if len(image.shape) == 3:
             images_maldi = [cv2.resize(i, size) for i in image.T]
             image_mri = cv2.resize(image_mri.T, size)
-            visualize_scatter_with_images(pca_all,
-                                         images_maldi,
-                                         image_mri,
-                                         figsize=size,
-                                         image_zoom=0.7)
+            # visualize_scatter_with_images(pca_all,
+            #                              images_maldi,
+            #                              image_mri,
+            #                              figsize=size,
+            #                              image_zoom=0.7)
         elif len(image.shape) == 4:
             images_maldi = [cv2.resize(i[..., i.shape[-1]//2], size) for i in np.transpose(image, (3, 0, 1, 2))]
             thumbnail_mri = image_mri.copy()
@@ -181,18 +204,19 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     diff = fusion.closest_reconstruction(image, X_r, point, image_eigenvectors)
     print(mzs.shape)
     print(similar_mzs[:10], mzs[diff.argsort()][:10])
-    for i in range(3):
-        indices = diff.argsort()
-        current_index = indices[i]
-        rec_im = image[..., current_index]
-        nmf_im = similar_images[..., i]
-        fig, ax = plt.subplots(1,3)
-        ax[0].imshow(rec_im)
-        ax[1].imshow(nmf_im)
-        ax[2].imshow(image_mri)
-        plt.show()
+    # for i in range(3):
+    #     indices = diff.argsort()
+    #     current_index = indices[i]
+    #     rec_im = image[..., current_index]
+    #     nmf_im = similar_images[..., i]
+    #     fig, ax = plt.subplots(1,3)
+    #     ax[0].imshow(rec_im)
+    #     ax[1].imshow(nmf_im)
+    #     ax[2].imshow(image_mri)
+    #     plt.show()
 
     similar_images = similar_images[..., 0:100]
+    similar_images = imzmlio.normalize(similar_images)
 
     index = np.where(mzs == similar_mzs[0])[0]
     w = X_r[index, ...] / np.sum(X_r[index, ...])
@@ -333,6 +357,6 @@ if is_split and len(image.shape) == 4 and len(image_mri.shape) == 3:
             current_image_mri = image_mri[..., k]
             current_name = outroot + "_" + str(k) + outext
             print(current_image.shape, current_image_mri.shape, current_name)
-            statistical_analysis(current_name, current_image, current_image_mri, mzs, n, is_ratio, top, post_process, is_memmap)
+            statistical_analysis(current_name, current_image, current_image_mri, mzs, n, is_ratio, top, post_process, is_norm=True, is_denoise=True, is_memmap=is_memmap)
 else:
-    statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_process, is_memmap)
+    statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_process, is_norm=True, is_denoise=True, is_memmap=is_memmap)

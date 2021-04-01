@@ -75,12 +75,12 @@ def flatten(image_maldi, is_spectral=False):
 
     if is_spectral:
         flatten_first_dims = np.prod(shape[:-1])
-        norm_img = np.zeros(shape=(flatten_first_dims, shape[-1]), dtype=np.uint8)
+        norm_img = np.zeros(shape=(flatten_first_dims, shape[-1]), dtype=image_maldi.dtype)
         for index in range(image_maldi.shape[-1]):
             norm_img[..., index] = image_maldi[..., index].flatten()
     else:
         flatten_first_dims = np.prod(shape)
-        norm_img = np.zeros(shape=(flatten_first_dims, 1), dtype=np.uint8)
+        norm_img = np.zeros(shape=(flatten_first_dims, 1), dtype=image_maldi.dtype)
         norm_img[..., 0] = image_maldi.flatten()
 
     norm_img = norm_img.transpose()
@@ -242,11 +242,13 @@ def extract_ratio_images(image, mzs):
     ratio_images = np.zeros(image.shape[:-1] + ((z**2-z)//2, ), dtype=np.uint8)
     for i in range(z-1, 0, -1):
         for j in range(i):
-            first_image = image[..., i]
-            second_image = image[..., j]
+            first_image = image[..., i].astype(np.float64)
+            second_image = image[..., j].astype(np.float64)
             divided = np.zeros_like(first_image, dtype=np.float64)
             np.divide(first_image, second_image, out=divided, where=second_image!=0)
             divided = np.uint8(cv.normalize(divided, None, 0, 255, cv.NORM_MINMAX))
+            if np.all((divided == divided.min()) | (divided == divided.max())):
+                continue
             ratio_images[..., c] = divided
             current_ratio = mzs[i] + "/" + mzs[j]
             new_mzs[c] = current_ratio
@@ -336,3 +338,12 @@ def closest_reconstruction(image, image1, image2, image_eigenvectors):
         # plt.show()
 
     return diff
+
+def remove_indices(image):
+    to_remove = []
+    for i in range(image.shape[-1]):
+        current_image = image[..., i]
+        obj_image = current_image[current_image > 0]
+        if not obj_image.any() or np.median(obj_image) == current_image.max():
+            to_remove.append(i)
+    return to_remove
