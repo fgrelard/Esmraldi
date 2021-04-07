@@ -5,19 +5,21 @@ import esmraldi.imzmlio as imzmlio
 import SimpleITK as sitk
 import matplotlib.pyplot as plt
 from esmraldi.sliceviewer import SliceViewer
+import esmraldi.fusion as fusion
 
-from sklearn.cluster import KMeans, AgglomerativeClustering
-
+from sklearn.cluster import KMeans, AgglomerativeClustering, SpectralClustering
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input MALDI image (imzML or nii)")
 parser.add_argument("-o", "--output", help="Output image (imzML)")
 parser.add_argument("-k", "--number_classes", help="Number of classes for k-means algorithm", default=0)
+parser.add_argument("-n", "--number_components", help="Number of components for NMF")
 args = parser.parse_args()
 
 inputname = args.input
 outname = args.output
 k = int(args.number_classes)
+n = int(args.number_components)
 
 if inputname.lower().endswith(".imzml"):
     imzml = imzmlio.open_imzml(inputname)
@@ -32,15 +34,33 @@ else:
     mzs = [i for i in range(image.shape[2])]
     mzs = np.asarray(mzs)
 
-shape = image.shape
-new_shape = (np.prod(shape[:-1]), shape[-1])
+# shape = image.shape
+# new_shape = (np.prod(shape[:-1]), shape[-1])
 
-image_flat = np.reshape(image, new_shape)
+# image_flat = np.reshape(image, new_shape)
+ind =  (np.abs(mzs - 701.2809)).argmin()
+print(ind)
+for i in range(n):
+    current_image = image[..., i, :]
+    current_image_pos = np.where(current_image > 0, 1, 0)
+    shape = current_image.shape
+    new_shape = (np.prod(shape[:-1]), shape[-1])
+    image_flat = np.reshape(current_image, new_shape)
+    # kmeans = KMeans(k, random_state=0).fit(image_flat)
+    # labels = kmeans.labels_
+    cluster = AgglomerativeClustering(n_clusters=k, affinity='euclidean', linkage='ward').fit(image_flat)
+    labels = cluster.labels_
+    image_labels = labels.reshape(shape[:-1])
+    fig, ax = plt.subplots(1,2)
+    ax[0].imshow(image_labels)
+    ax[1].imshow(current_image[..., ind])
+    plt.show()
 
-kmeans = KMeans(k, random_state=0).fit(image_flat)
-cluster = AgglomerativeClustering(n_clusters=k, affinity='euclidean', linkage='ward').fit(image_flat)
+print("Clustering", new_shape)
+kmeans = KMeans(k, random_state=0).fit(image_nmf)
 labels = kmeans.labels_
-labels = cluster.labels_
+# cluster = AgglomerativeClustering(n_clusters=k, affinity='euclidean', linkage='ward').fit(image_flat)
+# labels = cluster.labels_
 print(labels.shape)
 image_labels = labels.reshape(shape[:-1])
 print(image_labels.shape)

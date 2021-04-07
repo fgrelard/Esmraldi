@@ -105,8 +105,16 @@ mzs = mzs.astype(str)
 nb_peaks = image.shape[-1]
 print("Number of peaks=", nb_peaks)
 
-image_labels = spatially_aware_clustering(image, k, n, radius)
+shape = image.shape
 
+if len(shape) == 4:
+    for i in range(shape[-2]):
+        current_image = image[..., i, :]
+        image_labels = spatially_aware_clustering(current_image, k, n, radius)
+        plt.imshow(image_labels)
+        plt.show()
+else:
+    image_labels = spatially_aware_clustering(image, k, n, radius)
 
 image = imzmlio.normalize(image)
 outname_csv = os.path.splitext(outname)[0] + ".csv"
