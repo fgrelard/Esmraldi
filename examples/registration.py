@@ -283,6 +283,7 @@ parser.add_argument("--relaxation_factor", help="Relaxation factor", default=0.9
 parser.add_argument("--sampling_percentage", help="Sampling percentage", default=0.1)
 parser.add_argument("--min_step", help="Minimum step for gradient descent", default=0.001)
 parser.add_argument("--step_realign", help="Step to realign mzs for 3D volumes", default=0.05)
+parser.add_argument("--apply_mask", help="Apply mask from segmentation (0 valued-pixels in the segmentation)", action="store_true")
 args = parser.parse_args()
 
 fixedname = args.fixed
@@ -301,7 +302,7 @@ min_step = float(args.min_step)
 pattern = args.pattern
 level = int(args.level)
 step_realign = float(args.step_realign)
-
+apply_mask = args.apply_mask
 
 fixed = sitk.ReadImage(fixedname, sitk.sitkFloat32)
 moving = sitk.ReadImage(movingname, sitk.sitkFloat32)
@@ -402,6 +403,15 @@ if registername:
         if is_resize:
             new_size = (moving.GetSize()[0], moving.GetSize()[1]) + ((register.GetSize()[2],) if register.GetDimension() > 2 else ())
             register = utils.resize(register, new_size)
+
+        if apply_mask:
+            array_register = sitk.GetArrayFromImage(register)
+            if is_imzml:
+                mask = array_moving[i, ...]
+                array_register[:, mask == 0] = 0
+            else:
+                array_register[array_moving == 0] = 0
+            register = sitk.GetImageFromArray(array_register)
 
         if is_imzml:
             registration_imzml(register, fixed, best_resampler, flip, mz, i)
