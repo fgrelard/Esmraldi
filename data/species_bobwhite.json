@@ -1,0 +1,55 @@
+{
+    "rules": [
+        {
+            "name": "AX",
+            "category": "Ion",
+            "mz": 132.0423,
+            "begin": 2,
+            "end_mz": 3000,
+            "naming_fn": "AX DP,i"
+        },
+        {
+            "name": "BG",
+            "category": "Ion",
+            "mz": 162.0528,
+            "begin": 2,
+            "end_mz": 3000,
+            "naming_fn": "BG DP,i"
+        },
+        {
+            "name": "H2O",
+            "category": "Adduct",
+            "mz": 18.0106,
+            "count": 1,
+            "naming_fn": "",
+            "family_number": 1
+        },
+        {
+            "name": "Na+",
+            "category": "Adduct",
+            "mz": 22.9898,
+            "count": 1,
+            "naming_fn": "Na+",
+            "family_number": 2
+        },
+        {
+            "name": "Fe",
+            "category": "Modification",
+            "mz": 176.072,
+            "count": 2,
+            "naming_fn": "i,Fe",
+            "family_number": 3,
+            "adduct_fn": "AX.*"
+        },
+        {
+            "name": "Ac",
+            "category": "Modification",
+            "mz": 42.0105,
+            "count": 8,
+            "count_per_mol":2,
+            "naming_fn": "i,Ac",
+            "family_number": 3,
+            "adduct_fn": ".*"
+        }
+    ]
+}
