@@ -8,7 +8,6 @@ import SimpleITK as sitk
 import matplotlib.pyplot as plt
 import esmraldi.segmentation as seg
 import esmraldi.imageutils as utils
-from esmraldi.registration_metrics import DTMeanSquares
 from scipy.ndimage.morphology import distance_transform_edt
 
 import scipy.optimize as optimizer
@@ -288,8 +287,6 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
         fixed_DT = utils.compute_DT(fixed)
         moving_DT = utils.compute_DT(moving)
 
-        metric = DTMeanSquares(fixed_DT, moving_DT)
-
         R.SetMetricAsMeanSquares()
 
         R.SetOptimizerAsExhaustive(numberOfSteps=[9,32,0,0,0,0], stepLength=0.1)
@@ -299,16 +296,13 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
         x = [0, 0]
         ranges = (slice(0.1, 2.0, 0.1), slice(-3.2, 3.2, 0.1))
         x0 = optimizer.brute(lambda x=x: find_best_transformation(x, tx, fixed_DT, moving_DT), ranges=ranges, finish=None)
-        print(x0)
 
-        R.AddCommand(sitk.sitkIterationEvent, lambda R=R:show_optimizer_parameters(R))
-        R.SetInitialTransform(tx, inPlace=True)
-        outTx = R.Execute(fixed_DT, moving_DT)
-        parameters = list(outTx.GetParameters())
+
+        parameters = list(tx.GetParameters())
         parameters[0] = x0[0]
         parameters[1] = x0[1]
-        outTx.SetParameters(parameters)
-        transform = sitk.Similarity2DTransform(outTx)
+        tx.SetParameters(parameters)
+        transform = sitk.Similarity2DTransform(tx)
 
     R.SetMetricAsMattesMutualInformation(number_of_bins)
     R.SetMetricSamplingPercentage(sampling_percentage, seed)
