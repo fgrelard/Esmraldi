@@ -8,7 +8,10 @@ import SimpleITK as sitk
 import matplotlib.pyplot as plt
 import esmraldi.segmentation as seg
 import esmraldi.imageutils as utils
+from esmraldi.registration_metrics import DTMeanSquares
 from scipy.ndimage.morphology import distance_transform_edt
+
+import scipy.optimize as optimizer
 
 def precision(im1, im2):
     """
@@ -205,19 +208,36 @@ def best_fit(fixed, array_moving, number_of_bins, sampling_percentage, find_best
                 best_resampler = resampler
     return best_resampler, index
 
-def update_dt_values(registration_method, fixed, moving):
-    global moving_DT
-    tx = registration_method.GetInitialTransform()
+
+def dt_mse(fixed, moving):
+    moving_dt = utils.compute_DT(moving)
+    fixed_array = sitk.GetArrayFromImage(fixed)
+    moving_dt_array = sitk.GetArrayFromImage(moving_dt)
+    diff_sq = (moving_dt_array - fixed_array) ** 2
+    return np.mean(diff_sq)
+
+
+def find_best_transformation(scale_and_rotation, initial_transform, fixed, moving):
+    #Transform with current scale and rotation parameters
+    tx = sitk.Transform(initial_transform)
+    scale = scale_and_rotation[0]
+    rotation = scale_and_rotation[1]
+    parameters = list(tx.GetParameters())
+    parameters[0] = scale
+    parameters[1] = rotation
+    tx.SetParameters(parameters)
+
+    #Apply transform
     resampler = sitk.ResampleImageFilter()
     resampler.SetReferenceImage(fixed)
     resampler.SetInterpolator(sitk.sitkNearestNeighbor)
     resampler.SetDefaultPixelValue(0)
     resampler.SetTransform(tx)
     deformed = resampler.Execute(moving)
-    deformed_updated = utils.compute_DT(deformed)
-    moving_DT = deformed_updated
 
-
+    #Compute metric
+    metric = dt_mse(fixed, deformed)
+    return metric
 
 
 def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotation=False, seed=sitk.sitkWallClock, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
@@ -259,9 +279,6 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
 
     """
     R = sitk.ImageRegistrationMethod()
-
-
-
     transform = sitk.Similarity2DTransform()
 
     if fixed.GetDimension()==3:
@@ -271,14 +288,26 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
         fixed_DT = utils.compute_DT(fixed)
         moving_DT = utils.compute_DT(moving)
 
+        metric = DTMeanSquares(fixed_DT, moving_DT)
+
         R.SetMetricAsMeanSquares()
 
         R.SetOptimizerAsExhaustive(numberOfSteps=[9,32,0,0,0,0], stepLength=0.1)
 
         tx = sitk.CenteredTransformInitializer(fixed_DT, moving_DT, transform, sitk.CenteredTransformInitializerFilter.MOMENTS)
-        R.AddCommand(sitk.sitkIterationEvent, lambda: update_dt_values(R, fixed_DT, moving_DT))
+
+        x = [0, 0]
+        ranges = (slice(0.1, 2.0, 0.1), slice(-3.2, 3.2, 0.1))
+        x0 = optimizer.brute(lambda x=x: find_best_transformation(x, tx, fixed_DT, moving_DT), ranges=ranges, finish=None)
+        print(x0)
+
+        R.AddCommand(sitk.sitkIterationEvent, lambda R=R:show_optimizer_parameters(R))
         R.SetInitialTransform(tx, inPlace=True)
         outTx = R.Execute(fixed_DT, moving_DT)
+        parameters = list(outTx.GetParameters())
+        parameters[0] = x0[0]
+        parameters[1] = x0[1]
+        outTx.SetParameters(parameters)
         transform = sitk.Similarity2DTransform(outTx)
 
     R.SetMetricAsMattesMutualInformation(number_of_bins)
@@ -292,11 +321,12 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
         gradientMagnitudeTolerance = 1e-5,
         maximumStepSizeInPhysicalUnits = 0.0)
 
-    transform = sitk.CenteredTransformInitializer(
-        fixed,
-        moving,
-        transform,
-        sitk.CenteredTransformInitializerFilter.MOMENTS)
+    if not find_best_rotation:
+        transform = sitk.CenteredTransformInitializer(
+            fixed,
+            moving,
+            transform,
+            sitk.CenteredTransformInitializerFilter.MOMENTS)
 
     R.SetInitialTransform(transform)
 

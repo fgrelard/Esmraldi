@@ -373,8 +373,7 @@ if out != None:
         fig, ax = plt.subplots(1, 1)
         tracker = SliceViewer(ax, sitk.GetArrayFromImage(cimg))
         fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
-    #     plt.show()
-    plt.show()
+    # plt.show()
 
 #Apply transformation to registration image
 if registername:
