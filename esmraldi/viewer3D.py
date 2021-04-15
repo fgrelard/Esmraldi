@@ -9,6 +9,8 @@ from vedo.shapes import Text2D
 from vedo.mesh import Mesh
 from vedo import settings
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 
 class Slicer(Plotter):
@@ -161,6 +163,15 @@ class Slicer(Plotter):
             if not iren.GetKeyCode():
                 return
             key = iren.GetKeySym()
+            if key=='s':
+                array = self.volume.getDataArray()
+                index = self.pos_slider[2]
+                if index < array.shape[2]:
+                    image = self.volume.getDataArray()[..., index].T
+                    fig, ax = plt.subplots(1,1)
+                    ax.axis("off")
+                    ax.imshow(image, cmap="gray")
+                    plt.savefig("saved_fig.png", bbox_inches="tight", pad_inches=0)
             if key=='x':
                 self.display_all_slices(0)
             if key=='y':
