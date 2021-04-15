@@ -287,14 +287,10 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
         fixed_DT = utils.compute_DT(fixed)
         moving_DT = utils.compute_DT(moving)
 
-        R.SetMetricAsMeanSquares()
-
-        R.SetOptimizerAsExhaustive(numberOfSteps=[9,32,0,0,0,0], stepLength=0.1)
-
         tx = sitk.CenteredTransformInitializer(fixed_DT, moving_DT, transform, sitk.CenteredTransformInitializerFilter.MOMENTS)
 
         x = [0, 0]
-        ranges = (slice(0.1, 2.0, 0.1), slice(-3.2, 3.2, 0.1))
+        ranges = (slice(0.1, 2.0, 0.1), slice(-3.2, 3.2, 0.05))
         x0 = optimizer.brute(lambda x=x: find_best_transformation(x, tx, fixed_DT, moving_DT), ranges=ranges, finish=None)
 
 
