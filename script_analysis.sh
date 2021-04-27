@@ -72,6 +72,7 @@ do
     peaks=$dir/$OUTPUT_NAME.csv
     outdir=$OUTPUT_DIR/$name
     outname=$outdir/$OUTPUT_NAME.csv
+
     mkdir -p $outdir
     if [[ ${name#0} -lt $START_DIR ]];
     then

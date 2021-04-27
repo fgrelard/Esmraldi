@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import esmraldi.segmentation as seg
 import esmraldi.imzmlio as imzmlio
 import esmraldi.fusion as fusion
+import esmraldi.registration as reg
 import argparse
 import nibabel as nib
 import SimpleITK as sitk
@@ -33,6 +34,8 @@ from esmraldi.sliceviewer import SliceViewer
 
 from skimage.filters import sobel
 from scipy.ndimage import uniform_filter, median_filter, gaussian_filter
+
+from wNMF import wNMF
 
 def plot_clustering(X, labels, mri):
     n_clusters = len(np.unique(labels))
@@ -68,6 +71,8 @@ def visualize_scatter_with_images(X_all, images_maldi, images_mri,figsize=(45,45
     ax.autoscale()
     plt.show()
 
+
+
 def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_process, is_norm, is_denoise, is_memmap):
 
     if is_denoise:
@@ -76,7 +81,7 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
             size += (1,)
         image = median_filter(image, size=size)
 
-    image[image_mri == 0] = 0
+    # image[image_mri == 0] = 0
 
     if is_ratio:
         ratio_images, ratio_mzs = fusion.extract_ratio_images(image, mzs)
@@ -102,6 +107,23 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     image_norm = imzmlio.normalize(image)
     mri_norm = imzmlio.normalize(image_mri)
 
+
+    print(image_norm.shape)
+    # W = 1+image_mri.flatten()
+    W = np.ones_like(image_mri)
+    W[image_mri>0] = 0.1
+    W = W.reshape((1, -1))
+    W = np.repeat(W, image_norm.shape[-1], axis=0)
+    print(W.shape)
+
+
+    delta = 5
+    image_mean = uniform_filter(image_norm.astype(float), (delta,delta,1))
+    image_mean_sq = uniform_filter(image_norm.astype(float)**2, (delta,delta,1))
+    image_var = image_mean_sq - image_mean**2
+    image_var[image_var<0] = 0
+    image_stddev =  np.sqrt(image_var)
+
     if is_norm:
         image_norm = image_norm.astype(np.float64)
         mri_norm = mri_norm.astype(np.float64)
@@ -116,11 +138,15 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     image_norm = fusion.flatten(image_norm, is_spectral=True)
     mri_norm = fusion.flatten(mri_norm)
 
+    image_mean_flatten = fusion.flatten(image_stddev, is_spectral=True)
+    image_mean_flatten[image_mean_flatten==0] = 1.0
+    W = 1.0/image_mean_flatten
+
+
+
 
     print("Computing Dimension reduction")
 
-    # fit_red = fusion.nmf(image_norm, n)
-    # print(mri_norm.T.shape)
     nmf = NMF(n_components=n, init='nndsvda', solver='mu', random_state=0, max_iter=1000)
     # fit_red = nmf.fit(image_norm.T)
     # eigenvectors = fit_red.components_ #H
@@ -131,21 +157,24 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     # mri_eigenvectors = mri_eigenvectors.reshape(shape_mri)
 
 
-
     fit_red = nmf.fit(image_norm)
-    point = fit_red.transform(mri_norm)
+    W = fit_red.transform(image_norm)
+    H = fit_red.components_
 
+    image_eigenvectors = H.T
+    new_shape = image.shape[:-1] + (image_eigenvectors.shape[-1],)
+    image_eigenvectors = image_eigenvectors.reshape(new_shape)
+
+    image_eigenvectors = reg.register_component_images(image_mri, image_eigenvectors, 3)
+    H = image_eigenvectors.reshape(H.T.shape).T
+
+    # fit_red.components_ = H
+    point = fit_red.transform(mri_norm)
     X_r = fit_red.transform(image_norm)
-    image_eigenvectors = fit_red.components_
 
     centers = X_r
     point_mri = point
 
-    image_eigenvectors = image_eigenvectors.T
-    new_shape = image.shape[:-1] + (image_eigenvectors.shape[-1],)
-    image_eigenvectors = image_eigenvectors.reshape(new_shape)
-
-    print(image_eigenvectors.shape)
 
     print("Explained variance ratio=", fusion.get_score(fit_red, image_norm))
 

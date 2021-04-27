@@ -207,6 +207,11 @@ def best_fit(fixed, array_moving, number_of_bins, sampling_percentage, find_best
                 best_resampler = resampler
     return best_resampler, index
 
+def mse(fixed, moving):
+    fixed_array = sitk.GetArrayFromImage(fixed)
+    moving_array = sitk.GetArrayFromImage(moving)
+    diff_sq = (moving_array - fixed_array) ** 2
+    return np.mean(diff_sq)
 
 def dt_mse(fixed, moving):
     moving_dt = utils.compute_DT(moving)
@@ -215,6 +220,13 @@ def dt_mse(fixed, moving):
     diff_sq = (moving_dt_array - fixed_array) ** 2
     return np.mean(diff_sq)
 
+def initialize_resampler(fixed, tx):
+    resampler = sitk.ResampleImageFilter()
+    resampler.SetReferenceImage(fixed)
+    resampler.SetInterpolator(sitk.sitkNearestNeighbor)
+    resampler.SetDefaultPixelValue(0)
+    resampler.SetTransform(tx)
+    return resampler
 
 def find_best_transformation(scale_and_rotation, initial_transform, fixed, moving):
     #Transform with current scale and rotation parameters
@@ -227,16 +239,52 @@ def find_best_transformation(scale_and_rotation, initial_transform, fixed, movin
     tx.SetParameters(parameters)
 
     #Apply transform
-    resampler = sitk.ResampleImageFilter()
-    resampler.SetReferenceImage(fixed)
-    resampler.SetInterpolator(sitk.sitkNearestNeighbor)
-    resampler.SetDefaultPixelValue(0)
-    resampler.SetTransform(tx)
+    resampler = initialize_resampler(fixed, tx)
     deformed = resampler.Execute(moving)
 
     #Compute metric
     metric = dt_mse(fixed, deformed)
     return metric
+
+def find_best_translation(translation_vector, initial_transform, fixed, moving):
+    #Transform with current scale and rotation parameters
+    transform = sitk.Transform(initial_transform)
+    parameters = list(transform.GetParameters())
+    for i, value in enumerate(translation_vector):
+        parameters[i] = value
+    transform.SetParameters(parameters)
+
+    #Apply transform
+    resampler = initialize_resampler(fixed, transform)
+    deformed = resampler.Execute(moving)
+
+    #Compute metric
+    metric = mse(fixed, deformed)
+    return metric
+
+def register_component_images(fixed_array, component_images_array, translation_range=1):
+    translated_component_images = component_images_array.copy()
+    fixed_itk = sitk.GetImageFromArray(fixed_array)
+    dim = fixed_itk.GetDimension()
+    for i in range(component_images_array.shape[-1]):
+        transform = sitk.TranslationTransform(dim)
+        component_image = component_images_array[..., i]
+        component_image_itk = sitk.GetImageFromArray(component_image)
+        x = [0] * dim
+        ranges = (slice(-translation_range, translation_range+1, 1.0),) * dim
+        x0 = optimizer.brute(lambda x=x: find_best_translation(x, transform, fixed_itk, component_image_itk), ranges=ranges, finish=None)
+        parameters = list(transform.GetParameters())
+        print("End,", parameters, x0)
+        parameters[0] = x0[0]
+        parameters[1] = x0[1]
+        transform.SetParameters(parameters)
+
+        resampler = initialize_resampler(fixed_itk, transform)
+        deformed_itk = resampler.Execute(component_image_itk)
+        deformed_array = sitk.GetArrayFromImage(deformed_itk)
+        translated_component_images[..., i] = deformed_array
+    return translated_component_images
+
 
 
 def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotation=False, seed=sitk.sitkWallClock, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
@@ -325,10 +373,6 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
     except Exception as e:
         print(e)
     else:
-        resampler = sitk.ResampleImageFilter()
-        resampler.SetReferenceImage(fixed)
-        resampler.SetInterpolator(sitk.sitkNearestNeighbor)
-        resampler.SetDefaultPixelValue(0)
-        resampler.SetTransform(outTx)
+        resampler = initialize_resampler(fixed, outTx)
         return resampler
     return None
