@@ -242,7 +242,7 @@ class Slicer(Plotter):
                         msh = self.volume.ySlice(i).alpha(self.alpha).lighting('', la, ld, 0)
                 elif axis == 2:
                     msh = self.volume.zSlice(i).lighting('', la, ld, 0)
-                msh.alpha(self.alpha).lighting('', la, ld, 0)
+                msh.alpha(self.alpha).lighting('', la, ld, 0).reverse(False,True)
                 msh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax, alpha=self.alphas)
                 self.all_slices[axis].append(msh)
                 self.add(msh)
