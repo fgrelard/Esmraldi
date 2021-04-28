@@ -107,7 +107,6 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     image_norm = imzmlio.normalize(image)
     mri_norm = imzmlio.normalize(image_mri)
 
-
     print(image_norm.shape)
     # W = 1+image_mri.flatten()
     W = np.ones_like(image_mri)
@@ -138,16 +137,16 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     image_norm = fusion.flatten(image_norm, is_spectral=True)
     mri_norm = fusion.flatten(mri_norm)
 
+    print("Computing Dimension reduction")
+
+    nmf_weighted = wNMF(n_components=n, init="random", random_state=0, max_iter=1000)
+    nmf = NMF(n_components=n, init='custom', solver='mu', random_state=0, max_iter=1000)
+
+    # nmf = NMF(n_components=n, init='nndsvda', solver='mu', random_state=0, max_iter=1000)
     image_mean_flatten = fusion.flatten(image_stddev, is_spectral=True)
     image_mean_flatten[image_mean_flatten==0] = 1.0
     W = 1.0/image_mean_flatten
 
-
-
-
-    print("Computing Dimension reduction")
-
-    nmf = NMF(n_components=n, init='nndsvda', solver='mu', random_state=0, max_iter=1000)
     # fit_red = nmf.fit(image_norm.T)
     # eigenvectors = fit_red.components_ #H
     # image_eigenvectors = nmf.transform(image_norm.T); #W
@@ -157,23 +156,45 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     # mri_eigenvectors = mri_eigenvectors.reshape(shape_mri)
 
 
-    fit_red = nmf.fit(image_norm)
-    W = fit_red.transform(image_norm)
+    fit_weighted = nmf_weighted.fit(image_norm, W=W)
+    U = fit_weighted.U
+    V = fit_weighted.V
+
+    fit_red = nmf.fit(image_norm, W=U, H=V)
+    X_r = fit_red.transform(image_norm)
+    point = fit_red.transform(mri_norm)
+
+    # W = fit_red.transform(image_norm)
     H = fit_red.components_
 
     image_eigenvectors = H.T
     new_shape = image.shape[:-1] + (image_eigenvectors.shape[-1],)
     image_eigenvectors = image_eigenvectors.reshape(new_shape)
 
-    image_eigenvectors = reg.register_component_images(image_mri, image_eigenvectors, 3)
-    H = image_eigenvectors.reshape(H.T.shape).T
+    image_eigenvectors_translated = image_eigenvectors
+
+    # image_eigenvectors_translated = reg.register_component_images(image_mri, image_eigenvectors, 3)
+    # H_translated = image_eigenvectors_translated.reshape(H.T.shape).T
+
+    # # We use translated components ONLY for MRI reconstruction
+    # fit_red.components_ = H_translated
+    # point = fit_red.transform(mri_norm)
 
     # fit_red.components_ = H
-    point = fit_red.transform(mri_norm)
-    X_r = fit_red.transform(image_norm)
+    # X_r = fit_red.transform(image_norm)
+
+
 
     centers = X_r
     point_mri = point
+
+    for i in range(image_eigenvectors.shape[-1]):
+        current_name = os.path.splitext(outname)[0] + "_eigenvectors_" + str(i) + ".tif"
+        current_image = image_eigenvectors[..., i].T
+        itk_image = sitk.GetImageFromArray(current_image)
+        if itk_image.GetPixelID() >= sitk.sitkFloat32:
+            itk_image = sitk.Cast(itk_image, sitk.sitkFloat32)
+        sitk.WriteImage(itk_image, current_name + ".tif")
 
 
     print("Explained variance ratio=", fusion.get_score(fit_red, image_norm))
@@ -230,7 +251,7 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     similar_images, similar_mzs, distances = fusion.select_images(image,point_mri, centers, weights,  mzs, labels, None)
 
     print("Selecting images end")
-    diff = fusion.closest_reconstruction(image, X_r, point, image_eigenvectors)
+    diff = fusion.closest_reconstruction(image, X_r, point, image_eigenvectors, image_eigenvectors_translated)
     print(mzs.shape)
     print(similar_mzs[:10], mzs[diff.argsort()][:10])
     # for i in range(3):
@@ -248,19 +269,38 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     similar_images = imzmlio.normalize(similar_images)
 
     index = np.where(mzs == similar_mzs[0])[0]
+
+    # w = X_r[index, ...].flatten()
+    # w_mri = point.flatten()
+    # print(w, w_mri)
+
+    # diff_w = np.abs(w - w_mri)/w
+    # sorted_index = diff_w.argsort()
+    # fig, ax = plt.subplots(1,7)
+    # ax[0].imshow(similar_images[..., 0])
+    # ax[1].imshow(image_mri)
+    # for i in range(5):
+    #     ax[2+i].imshow(image_eigenvectors[..., sorted_index[i]])
+    # plt.show()
+
     w = X_r[index, ...] / np.sum(X_r[index, ...])
+
     image_closest = fusion.reconstruct_image_from_components(image_eigenvectors, w.T)
     image_closest = image_closest.T
     image_closest = imzmlio.normalize(image_closest)
 
     w_mri = point / np.sum(point)
-    mri_reconstructed = fusion.reconstruct_image_from_components(image_eigenvectors, w_mri.T)
+    mri_reconstructed = fusion.reconstruct_image_from_components(image_eigenvectors_translated, w_mri.T)
     mri_reconstructed = mri_reconstructed.T
     i = np.where((mri_reconstructed>0))
     img_tmp = np.reshape(mri_norm, image_mri.shape)
     mri_reconstructed = imzmlio.normalize(mri_reconstructed)
-    diff_reconstruction = np.mean(np.abs(mri_reconstructed[i] - img_tmp[i]))/np.max(img_tmp)
+    mri_reconstructed_diff = mri_reconstructed.copy().astype(float)
+    if is_norm:
+        mri_reconstructed_diff /= np.linalg.norm(mri_reconstructed_diff)
+    diff_reconstruction = np.mean(np.abs(mri_reconstructed_diff[i] - img_tmp[i]))/np.max(img_tmp)
     print("Average diff NMF reconstruction (percentage)=", "{:.5f}".format(diff_reconstruction))
+
 
     if len(similar_images.shape) == 3:
         fig, ax = plt.subplots(1, 4)
