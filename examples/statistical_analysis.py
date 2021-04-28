@@ -34,6 +34,7 @@ from esmraldi.sliceviewer import SliceViewer
 
 from skimage.filters import sobel
 from scipy.ndimage import uniform_filter, median_filter, gaussian_filter
+from scipy.ndimage.morphology import grey_dilation
 
 from wNMF import wNMF
 
@@ -110,7 +111,10 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     print(image_norm.shape)
     # W = 1+image_mri.flatten()
     W = np.ones_like(image_mri)
-    W[image_mri>0] = 0.1
+
+    max_array = np.maximum(image_mri, image[..., 0])
+    condition = (np.abs(image_mri-image[..., 0]) == max_array) & (max_array > 0)
+    W = np.where(condition, 1/max_array, 1.0)
     W = W.reshape((1, -1))
     W = np.repeat(W, image_norm.shape[-1], axis=0)
     print(W.shape)
@@ -122,6 +126,8 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     image_var = image_mean_sq - image_mean**2
     image_var[image_var<0] = 0
     image_stddev =  np.sqrt(image_var)
+    dil_stddev = grey_dilation(image_var, size=(delta,delta,1))
+
 
     if is_norm:
         image_norm = image_norm.astype(np.float64)
@@ -143,7 +149,7 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     nmf = NMF(n_components=n, init='custom', solver='mu', random_state=0, max_iter=1000)
 
     # nmf = NMF(n_components=n, init='nndsvda', solver='mu', random_state=0, max_iter=1000)
-    image_mean_flatten = fusion.flatten(image_stddev, is_spectral=True)
+    image_mean_flatten = fusion.flatten(dil_stddev, is_spectral=True)
     image_mean_flatten[image_mean_flatten==0] = 1.0
     W = 1.0/image_mean_flatten
 
