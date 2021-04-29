@@ -109,25 +109,6 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     mri_norm = imzmlio.normalize(image_mri)
 
     print(image_norm.shape)
-    # W = 1+image_mri.flatten()
-    W = np.ones_like(image_mri)
-
-    max_array = np.maximum(image_mri, image[..., 0])
-    condition = (np.abs(image_mri-image[..., 0]) == max_array) & (max_array > 0)
-    W = np.where(condition, 1/max_array, 1.0)
-    W = W.reshape((1, -1))
-    W = np.repeat(W, image_norm.shape[-1], axis=0)
-    print(W.shape)
-
-
-    delta = 5
-    image_mean = uniform_filter(image_norm.astype(float), (delta,delta,1))
-    image_mean_sq = uniform_filter(image_norm.astype(float)**2, (delta,delta,1))
-    image_var = image_mean_sq - image_mean**2
-    image_var[image_var<0] = 0
-    image_stddev =  np.sqrt(image_var)
-    dil_stddev = grey_dilation(image_var, size=(delta,delta,1))
-
 
     if is_norm:
         image_norm = image_norm.astype(np.float64)
@@ -145,13 +126,7 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
 
     print("Computing Dimension reduction")
 
-    nmf_weighted = wNMF(n_components=n, init="random", random_state=0, max_iter=1000)
-    nmf = NMF(n_components=n, init='custom', solver='mu', random_state=0, max_iter=1000)
-
-    # nmf = NMF(n_components=n, init='nndsvda', solver='mu', random_state=0, max_iter=1000)
-    image_mean_flatten = fusion.flatten(dil_stddev, is_spectral=True)
-    image_mean_flatten[image_mean_flatten==0] = 1.0
-    W = 1.0/image_mean_flatten
+    nmf = NMF(n_components=n, init='nndsvda', solver='mu', random_state=0, max_iter=1000)
 
     # fit_red = nmf.fit(image_norm.T)
     # eigenvectors = fit_red.components_ #H
@@ -162,41 +137,33 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     # mri_eigenvectors = mri_eigenvectors.reshape(shape_mri)
 
 
-    fit_weighted = nmf_weighted.fit(image_norm, W=W)
-    U = fit_weighted.U
-    V = fit_weighted.V
+    fit_red = nmf.fit(image_norm)
 
-    fit_red = nmf.fit(image_norm, W=U, H=V)
-    X_r = fit_red.transform(image_norm)
-    point = fit_red.transform(mri_norm)
-
-    # W = fit_red.transform(image_norm)
+    W = fit_red.transform(image_norm)
     H = fit_red.components_
 
     image_eigenvectors = H.T
     new_shape = image.shape[:-1] + (image_eigenvectors.shape[-1],)
     image_eigenvectors = image_eigenvectors.reshape(new_shape)
 
-    image_eigenvectors_translated = image_eigenvectors
 
-    # image_eigenvectors_translated = reg.register_component_images(image_mri, image_eigenvectors, 3)
-    # H_translated = image_eigenvectors_translated.reshape(H.T.shape).T
+    image_eigenvectors_translated = reg.register_component_images(image_mri, image_eigenvectors, 3)
+    H_translated = image_eigenvectors_translated.reshape(H.T.shape).T
+    # We use translated components ONLY for MRI reconstruction
+    fit_red.components_ = H_translated
+    point = fit_red.transform(mri_norm)
 
-    # # We use translated components ONLY for MRI reconstruction
-    # fit_red.components_ = H_translated
-    # point = fit_red.transform(mri_norm)
-
-    # fit_red.components_ = H
-    # X_r = fit_red.transform(image_norm)
+    fit_red.components_ = H
+    X_r = fit_red.transform(image_norm)
 
 
 
     centers = X_r
     point_mri = point
 
-    for i in range(image_eigenvectors.shape[-1]):
+    for i in range(image_eigenvectors_translated.shape[-1]):
         current_name = os.path.splitext(outname)[0] + "_eigenvectors_" + str(i) + ".tif"
-        current_image = image_eigenvectors[..., i].T
+        current_image = image_eigenvectors_translated[..., i].T
         itk_image = sitk.GetImageFromArray(current_image)
         if itk_image.GetPixelID() >= sitk.sitkFloat32:
             itk_image = sitk.Cast(itk_image, sitk.sitkFloat32)

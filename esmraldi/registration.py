@@ -274,7 +274,6 @@ def register_component_images(fixed_array, component_images_array, translation_r
         ranges = (slice(-translation_range, translation_range+1, 1.0),) * dim
         x0 = optimizer.brute(lambda x=x: find_best_translation(x, transform, fixed_itk, component_image_itk), ranges=ranges, finish=None)
         parameters = list(transform.GetParameters())
-        print("End,", parameters, x0)
         parameters[0] = x0[0]
         parameters[1] = x0[1]
         transform.SetParameters(parameters)

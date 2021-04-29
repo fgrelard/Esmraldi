@@ -320,9 +320,11 @@ def cosine_neighborhood(image1, image2, r):
 
 
 
-def closest_reconstruction(image, image1, image2, image_eigenvectors):
+def closest_reconstruction(image, image1, image2, image_eigenvectors, image_eigenvectors_2=None):
+    if image_eigenvectors_2 is None:
+        image_eigenvectors_2 = image_eigenvectors
     w_2 = image2 / np.sum(image2)
-    reconstructed_image2 = reconstruct_image_from_components(image_eigenvectors, w_2.T)
+    reconstructed_image2 = reconstruct_image_from_components(image_eigenvectors_2, w_2.T)
     reconstructed_image2 = imzmlio.normalize(reconstructed_image2)
     diff = np.zeros((image1.shape[0],))
     for index in range(image1.shape[0]):
