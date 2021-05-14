@@ -14,6 +14,7 @@ import esmraldi.segmentation as seg
 import esmraldi.imzmlio as imzmlio
 import esmraldi.fusion as fusion
 import esmraldi.registration as reg
+import esmraldi.imageutils as utils
 import argparse
 import nibabel as nib
 import SimpleITK as sitk
@@ -34,9 +35,6 @@ from esmraldi.sliceviewer import SliceViewer
 
 from skimage.filters import sobel
 from scipy.ndimage import uniform_filter, median_filter, gaussian_filter
-from scipy.ndimage.morphology import grey_dilation
-
-from wNMF import wNMF
 
 def plot_clustering(X, labels, mri):
     n_clusters = len(np.unique(labels))
@@ -156,18 +154,8 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     fit_red.components_ = H
     X_r = fit_red.transform(image_norm)
 
-
-
     centers = X_r
     point_mri = point
-
-    for i in range(image_eigenvectors_translated.shape[-1]):
-        current_name = os.path.splitext(outname)[0] + "_eigenvectors_" + str(i) + ".tif"
-        current_image = image_eigenvectors_translated[..., i].T
-        itk_image = sitk.GetImageFromArray(current_image)
-        if itk_image.GetPixelID() >= sitk.sitkFloat32:
-            itk_image = sitk.Cast(itk_image, sitk.sitkFloat32)
-        sitk.WriteImage(itk_image, current_name + ".tif")
 
 
     print("Explained variance ratio=", fusion.get_score(fit_red, image_norm))
@@ -227,34 +215,24 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     diff = fusion.closest_reconstruction(image, X_r, point, image_eigenvectors, image_eigenvectors_translated)
     print(mzs.shape)
     print(similar_mzs[:10], mzs[diff.argsort()][:10])
-    # for i in range(3):
-    #     indices = diff.argsort()
-    #     current_index = indices[i]
-    #     rec_im = image[..., current_index]
-    #     nmf_im = similar_images[..., i]
-    #     fig, ax = plt.subplots(1,3)
-    #     ax[0].imshow(rec_im)
-    #     ax[1].imshow(nmf_im)
-    #     ax[2].imshow(image_mri)
-    #     plt.show()
 
     similar_images = similar_images[..., 0:100]
     similar_images = imzmlio.normalize(similar_images)
 
-    index = np.where(mzs == similar_mzs[0])[0]
+    index_closest = np.where(mzs == similar_mzs[0])
+    index = index_closest[0]
 
-    # w = X_r[index, ...].flatten()
-    # w_mri = point.flatten()
-    # print(w, w_mri)
+    for i in range(1):
+        ind = index_closest[i]
+        current_image = similar_images[..., i]
+        w = X_r[ind, ...].flatten()/np.sum(X_r[ind, ...])
+        w_mri = point.flatten()/np.sum(point)
+        explaining_eigenvector = fusion.explaining_eigenvector(image_eigenvectors, w, w_mri)
+        overlay_name = os.path.splitext(outname)[0] + "_overlay.png"
+        explaining_name = os.path.splitext(outname)[0] + "_explaining.png"
+        utils.export_figure_matplotlib(overlay_name, similar_images[..., 0].T, explaining_eigenvector.T, dpi=111)
+        utils.export_figure_matplotlib(explaining_name, explaining_eigenvector.T, dpi=111)
 
-    # diff_w = np.abs(w - w_mri)/w
-    # sorted_index = diff_w.argsort()
-    # fig, ax = plt.subplots(1,7)
-    # ax[0].imshow(similar_images[..., 0])
-    # ax[1].imshow(image_mri)
-    # for i in range(5):
-    #     ax[2+i].imshow(image_eigenvectors[..., sorted_index[i]])
-    # plt.show()
 
     w = X_r[index, ...] / np.sum(X_r[index, ...])
 

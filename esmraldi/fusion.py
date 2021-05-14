@@ -319,6 +319,23 @@ def cosine_neighborhood(image1, image2, r):
     return sim
 
 
+def explaining_eigenvector(image_eigenvectors, weights_target, weights_reference):
+    diff_w = np.abs(weights_target - weights_reference)/np.minimum(weights_target, weights_reference)
+    sorted_index = diff_w.argsort()
+    reconstruction = np.zeros_like(image_eigenvectors[..., 0])
+    previous_variance = np.inf
+    for i in range(image_eigenvectors.shape[-1]):
+        index = sorted_index[i]
+        current_image = weights_target[index] * image_eigenvectors[..., index]
+        reconstruction += current_image
+        reconstruction_pos = reconstruction[reconstruction>0]
+        variance = np.var(reconstruction_pos)/np.mean(reconstruction_pos)
+        if variance > previous_variance:
+            return current_image
+        elif i > image_eigenvectors.shape[-1]//2:
+            return image_eigenvectors[..., sorted_index[0]]
+        previous_variance = variance
+    return image_eigenvectors[..., sorted_index[0]]
 
 def closest_reconstruction(image, image1, image2, image_eigenvectors, image_eigenvectors_2=None):
     if image_eigenvectors_2 is None:

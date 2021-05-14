@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import skimage.transform as transform
 
 from scipy.ndimage.morphology import distance_transform_edt
-from scipy.ndimage import gaussian_filter1d
+from scipy.ndimage import uniform_filter, gaussian_filter1d
 from dtw import *
 
 
@@ -140,3 +140,61 @@ def estimate_noise(I):
     sigma = np.sum(np.sum(np.absolute(signal.convolve2d(I, M))))
     sigma = sigma * math.sqrt(0.5 * math.pi) / (6 * (W-2) * (H-2))
     return sigma
+
+
+def variance_image(image, size=3):
+    image_mean = uniform_filter(image.astype(float), (size,size))
+    image_mean_sq = uniform_filter(image.astype(float)**2, (size,size))
+    image_var = image_mean_sq - image_mean**2
+    image_var[image_var<0] = 0
+    return image_var
+
+def stddev_image(image, size=3):
+    image_var = variance_image(image, size)
+    return np.sqrt(image_var)
+
+def mse_numpy(fixed_array, moving_array):
+    diff_sq = (moving_array - fixed_array) ** 2
+    return np.mean(diff_sq)
+
+def mse(fixed, moving):
+    fixed_array = sitk.GetArrayFromImage(fixed)
+    moving_array = sitk.GetArrayFromImage(moving)
+    return mse_numpy(fixed_array, moving_array)
+
+def dt_mse(fixed, moving):
+    moving_dt = compute_DT(moving)
+    fixed_array = sitk.GetArrayFromImage(fixed)
+    moving_dt_array = sitk.GetArrayFromImage(moving_dt)
+    return mse_numpy(fixed_array, moving_dt_array)
+
+def mse_stddev(fixed, moving):
+    fixed_array = sitk.GetArrayFromImage(fixed)
+    moving_array = sitk.GetArrayFromImage(moving)
+    fixed_stddev = stddev_image(fixed_array)
+    moving_stddev = stddev_image(moving_array)
+    return mse_numpy(fixed_stddev, moving_stddev)
+
+
+def export_figure_matplotlib(f_name, arr, arr2=None, dpi=200, resize_fact=1, plt_show=False):
+    """
+    Export array as figure in original resolution
+    :param arr: array of image to save in original resolution
+    :param f_name: name of file where to save figure
+    :param resize_fact: resize facter wrt shape of arr, in (0, np.infty)
+    :param dpi: dpi of your screen
+    :param plt_show: show plot or not
+    """
+    fig = plt.figure(frameon=False)
+    fig.set_size_inches(arr.shape[1]/dpi, arr.shape[0]/dpi)
+    ax = plt.Axes(fig, [0., 0., 1., 1.])
+    ax.set_axis_off()
+    fig.add_axes(ax)
+    ax.imshow(arr, cmap="gray")
+    if arr2 is not None:
+        ax.imshow(arr2, cmap="Reds", alpha=0.5)
+    plt.savefig(f_name, dpi=(dpi * resize_fact))
+    if plt_show:
+        plt.show()
+    else:
+        plt.close()

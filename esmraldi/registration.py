@@ -207,19 +207,6 @@ def best_fit(fixed, array_moving, number_of_bins, sampling_percentage, find_best
                 best_resampler = resampler
     return best_resampler, index
 
-def mse(fixed, moving):
-    fixed_array = sitk.GetArrayFromImage(fixed)
-    moving_array = sitk.GetArrayFromImage(moving)
-    diff_sq = (moving_array - fixed_array) ** 2
-    return np.mean(diff_sq)
-
-def dt_mse(fixed, moving):
-    moving_dt = utils.compute_DT(moving)
-    fixed_array = sitk.GetArrayFromImage(fixed)
-    moving_dt_array = sitk.GetArrayFromImage(moving_dt)
-    diff_sq = (moving_dt_array - fixed_array) ** 2
-    return np.mean(diff_sq)
-
 def initialize_resampler(fixed, tx):
     resampler = sitk.ResampleImageFilter()
     resampler.SetReferenceImage(fixed)
@@ -243,7 +230,7 @@ def find_best_transformation(scale_and_rotation, initial_transform, fixed, movin
     deformed = resampler.Execute(moving)
 
     #Compute metric
-    metric = dt_mse(fixed, deformed)
+    metric = utils.dt_mse(fixed, deformed)
     return metric
 
 def find_best_translation(translation_vector, initial_transform, fixed, moving):
@@ -259,7 +246,7 @@ def find_best_translation(translation_vector, initial_transform, fixed, moving):
     deformed = resampler.Execute(moving)
 
     #Compute metric
-    metric = mse(fixed, deformed)
+    metric = utils.mse(fixed, deformed)
     return metric
 
 def register_component_images(fixed_array, component_images_array, translation_range=1):
@@ -276,6 +263,7 @@ def register_component_images(fixed_array, component_images_array, translation_r
         parameters = list(transform.GetParameters())
         parameters[0] = x0[0]
         parameters[1] = x0[1]
+        print(x0)
         transform.SetParameters(parameters)
 
         resampler = initialize_resampler(fixed_itk, transform)
