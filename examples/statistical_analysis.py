@@ -222,17 +222,6 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     index_closest = np.where(mzs == similar_mzs[0])
     index = index_closest[0]
 
-    for i in range(1):
-        ind = index_closest[i]
-        current_image = similar_images[..., i]
-        w = X_r[ind, ...].flatten()/np.sum(X_r[ind, ...])
-        w_mri = point.flatten()/np.sum(point)
-        explaining_eigenvector = fusion.explaining_eigenvector(image_eigenvectors, w, w_mri)
-        overlay_name = os.path.splitext(outname)[0] + "_overlay.png"
-        explaining_name = os.path.splitext(outname)[0] + "_explaining.png"
-        utils.export_figure_matplotlib(overlay_name, similar_images[..., 0].T, explaining_eigenvector.T, dpi=111)
-        utils.export_figure_matplotlib(explaining_name, explaining_eigenvector.T, dpi=111)
-
 
     w = X_r[index, ...] / np.sum(X_r[index, ...])
 

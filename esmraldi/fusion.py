@@ -13,7 +13,7 @@ from sklearn.cluster import KMeans, AffinityPropagation
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity, cosine_distances
-
+from sklearn.preprocessing import StandardScaler
 
 def clustering_affinity(X_r):
     """
@@ -203,13 +203,14 @@ def select_images(images, point_mri, centers, weights, mzs, labels, top=1):
     Returns
     ----------
     np.ndarray
-        sorted MALDI images based on proximity to MRI
+        sorted MALDI images based on proximity to RI
     np.ndarray
         sorted mzs based on proximity to MRI
     np.ndarray
         metric values used to sort MALDI
     """
-    distances = np.array([weighted_distance(center-point_mri, weights) for center in centers])
+    diff_norm = np.array([np.abs(center-point_mri)/point_mri for center in centers])
+    distances = np.array([weighted_distance(d, weights) for d in diff_norm])
     indices = [i for i in range(len(distances))]
     indices.sort(key=lambda x: distances[x])
     if top is None:
