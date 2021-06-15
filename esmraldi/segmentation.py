@@ -19,7 +19,7 @@ from skimage.filters import threshold_otsu, rank, sobel
 from skimage.transform import hough_circle, hough_circle_peaks
 from skimage.feature import canny
 from skimage import data, color
-from skimage.draw import circle
+from skimage.draw import disk as drawdisk
 from skimage.morphology import binary_erosion, closing, disk
 
 def max_variance_sort(image_maldi):
@@ -367,7 +367,7 @@ def fill_circle(center_x, center_y, radius, image, color=0):
     """
     image2 = np.copy(image)
     dim = len(image2.shape)
-    rr, cc = circle(int(center_y), int(center_x), int(radius), image2.shape[dim-2:])
+    rr, cc = drawdisk((int(center_y), int(center_x)), int(radius), shape=image2.shape[dim-2:])
     if dim == 2:
         image2[rr, cc] = color
     if dim == 3:
