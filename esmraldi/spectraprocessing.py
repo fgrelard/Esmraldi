@@ -438,7 +438,7 @@ def normalization_sic(spectra, indices_peaks, width_peak=10):
     spectra_normalized = spectra.copy()
     for i, (x, y) in enumerate(spectra):
         indices = indices_peaks[i]
-        indices = np.unique(np.array([int(max(0, min(ind+i, y.shape[0]-1))) for ind in indices for i in range(-width_peak//2, width_peak//2)], dtype=np.int64))
+        indices = np.unique(np.array([int(max(0, min(ind+i, y.shape[0]-1))) for ind in indices for i in range(-width_peak//2, width_peak//2+1)], dtype=np.int64))
         mask = np.zeros(y.shape, dtype=bool)
         mask[indices] = True
         y_without_indices = y[~mask]

@@ -10,14 +10,12 @@ def onclick(event):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--input", help="Input 3D ITK image or imzML file")
-parser.add_argument("-s", "--spacing", help="Space between each slice", default=1)
+parser.add_argument("-i", "--input", help="Input ITK image or imzML file")
 parser.add_argument("--memmap", help="Create and read a memmap file", action="store_true")
 
 args = parser.parse_args()
 
 inputname = args.input
-spacing = int(args.spacing)
 is_memmap = args.memmap
 
 

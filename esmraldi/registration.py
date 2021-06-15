@@ -258,7 +258,7 @@ def register_component_images(fixed_array, component_images_array, translation_r
         component_image = component_images_array[..., i]
         component_image_itk = sitk.GetImageFromArray(component_image)
         x = [0] * dim
-        ranges = (slice(-translation_range, translation_range+1, 1.0),) * dim
+        ranges = (slice(0, 1.0, 1.0),) * (dim-2) + (slice(-translation_range, translation_range+1, 1.0),) * 2
         x0 = optimizer.brute(lambda x=x: find_best_translation(x, transform, fixed_itk, component_image_itk), ranges=ranges, finish=None)
         parameters = list(transform.GetParameters())
         parameters[0] = x0[0]
