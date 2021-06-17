@@ -158,6 +158,10 @@ def mutual_information(imRef, imRegistered, bins=20):
     return np.sum(pxy[nzs] * np.log(pxy[nzs] / px_py[nzs]))
 
 
+def dt_mutual_information(imRef, imRegistered, bins=20):
+    imRegistered_DT = utils.compute_DT(imRegistered)
+    return mutual_information(imRef, imRegistered_DT)
+
 def best_fit(fixed, array_moving, number_of_bins, sampling_percentage, find_best_rotation=False, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
     """
     Finds the best fit between variations of the same image
@@ -215,7 +219,7 @@ def initialize_resampler(fixed, tx):
     resampler.SetTransform(tx)
     return resampler
 
-def find_best_transformation(scale_and_rotation, initial_transform, fixed, moving):
+def find_best_transformation(scale_and_rotation, initial_transform, fixed, moving, update_DT=True):
     #Transform with current scale and rotation parameters
     tx = sitk.Transform(initial_transform)
     scale = scale_and_rotation[0]
@@ -230,7 +234,12 @@ def find_best_transformation(scale_and_rotation, initial_transform, fixed, movin
     deformed = resampler.Execute(moving)
 
     #Compute metric
-    metric = utils.dt_mse(fixed, deformed)
+    if update_DT:
+        # metric = dt_mutual_information(fixed, deformed)
+        metric = utils.dt_mse(fixed, deformed)
+    else:
+        # metric = mutual_information(fixed, deformed)
+        metric = utils.mse(fixed, deformed)
     return metric
 
 def find_best_translation(translation_vector, initial_transform, fixed, moving):
@@ -263,7 +272,6 @@ def register_component_images(fixed_array, component_images_array, translation_r
         parameters = list(transform.GetParameters())
         parameters[0] = x0[0]
         parameters[1] = x0[1]
-        print(x0)
         transform.SetParameters(parameters)
 
         resampler = initialize_resampler(fixed_itk, transform)
@@ -274,7 +282,7 @@ def register_component_images(fixed_array, component_images_array, translation_r
 
 
 
-def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotation=False, seed=sitk.sitkWallClock, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
+def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotation=False, update_DT=False, seed=sitk.sitkWallClock, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
     """
     Registration between reference (fixed)
     and deformable (moving) images.
@@ -326,14 +334,15 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
 
         x = [0, 0]
         ranges = (slice(0.1, 2.0, 0.1), slice(-3.2, 3.2, 0.05))
-        x0 = optimizer.brute(lambda x=x: find_best_transformation(x, tx, fixed_DT, moving_DT), ranges=ranges, finish=None)
-
+        x0 = optimizer.brute(lambda x=x: find_best_transformation(x, tx, fixed_DT, moving_DT, update_DT), ranges=ranges, finish=None)
 
         parameters = list(tx.GetParameters())
         parameters[0] = x0[0]
         parameters[1] = x0[1]
         tx.SetParameters(parameters)
         transform = sitk.Similarity2DTransform(tx)
+
+
 
     R.SetMetricAsMattesMutualInformation(number_of_bins)
     R.SetMetricSamplingPercentage(sampling_percentage, seed)

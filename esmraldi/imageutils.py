@@ -8,7 +8,8 @@ import skimage.transform as transform
 from scipy.ndimage.morphology import distance_transform_edt
 from scipy.ndimage import uniform_filter, gaussian_filter1d
 from dtw import *
-
+from scipy.stats.stats import pearsonr
+import skimage.draw as draw
 
 def center_images(images, size):
 
@@ -162,6 +163,7 @@ def mse(fixed, moving):
     moving_array = sitk.GetArrayFromImage(moving)
     return mse_numpy(fixed_array, moving_array)
 
+
 def dt_mse(fixed, moving):
     moving_dt = compute_DT(moving)
     fixed_array = sitk.GetArrayFromImage(fixed)
@@ -175,6 +177,26 @@ def mse_stddev(fixed, moving):
     moving_stddev = stddev_image(moving_array)
     return mse_numpy(fixed_stddev, moving_stddev)
 
+def set_maximal_balls(image):
+    dt_image = compute_DT(image)
+    dt_array = sitk.GetArrayFromImage(dt_image)
+    sorted_ind = np.argsort(dt_array, axis=None)
+    xy_indices = np.column_stack(np.unravel_index(sorted_ind[::-1], dt_array.shape))
+    local_max_dt = np.zeros_like(dt_array)
+    for ind in xy_indices:
+        x,y = ind
+        current_value = dt_array[x, y]
+        if not dt_array.any():
+            break
+        elif not current_value:
+            continue
+        rr, cc = draw.disk(ind, dt_array[x, y], shape=dt_array.shape)
+        dt_array[rr, cc] = 0
+        image_disk = np.zeros_like(dt_array)
+        image_disk[rr, cc] = 1
+        current_disk = np.where((local_max_dt == 0) & (image_disk == 1))
+        local_max_dt[current_disk] = current_value
+    return local_max_dt
 
 def export_figure_matplotlib(f_name, arr, arr2=None, dpi=200, resize_fact=1, plt_show=False):
     """
