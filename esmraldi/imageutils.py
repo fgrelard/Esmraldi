@@ -4,6 +4,7 @@ import esmraldi.segmentation as seg
 import scipy.signal as signal
 import matplotlib.pyplot as plt
 import skimage.transform as transform
+import skimage.feature as feature
 
 from scipy.ndimage.morphology import distance_transform_edt
 from scipy.ndimage import uniform_filter, gaussian_filter1d
@@ -177,7 +178,7 @@ def mse_stddev(fixed, moving):
     moving_stddev = stddev_image(moving_array)
     return mse_numpy(fixed_stddev, moving_stddev)
 
-def set_maximal_balls(image):
+def radius_maximal_balls(image):
     dt_image = compute_DT(image)
     dt_array = sitk.GetArrayFromImage(dt_image)
     sorted_ind = np.argsort(dt_array, axis=None)
@@ -190,13 +191,33 @@ def set_maximal_balls(image):
             break
         elif not current_value:
             continue
-        rr, cc = draw.disk(ind, dt_array[x, y], shape=dt_array.shape)
+        rr, cc = draw.disk(ind, current_value, shape=dt_array.shape)
         dt_array[rr, cc] = 0
         image_disk = np.zeros_like(dt_array)
         image_disk[rr, cc] = 1
         current_disk = np.where((local_max_dt == 0) & (image_disk == 1))
         local_max_dt[current_disk] = current_value
     return local_max_dt
+
+
+def local_max_dt(image):
+    dt_image = compute_DT(image)
+    dt_array = sitk.GetArrayFromImage(dt_image)
+    indices = feature.peak_local_max(dt_array, 1)
+    x, y = indices.T
+    local_max = np.zeros_like(dt_array)
+    local_max[x, y] = 1
+    local_max_itk = sitk.GetImageFromArray(local_max)
+    return local_max_itk
+
+def normalized_dt(image):
+    dt_image = compute_DT(image)
+    local_max_dt = radius_maximal_balls(image)
+    image_array = sitk.GetArrayFromImage(image)
+    normalized_dt_image = np.zeros_like(image_array)
+    np.divide(sitk.GetArrayFromImage(dt_image), local_max_dt, out=normalized_dt_image, where=local_max_dt!=0)
+    normalized_dt_itk = sitk.GetImageFromArray(normalized_dt_image**2)
+    return normalized_dt_itk
 
 def export_figure_matplotlib(f_name, arr, arr2=None, dpi=200, resize_fact=1, plt_show=False):
     """

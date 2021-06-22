@@ -240,6 +240,17 @@ def find_best_transformation(scale_and_rotation, initial_transform, fixed, movin
     else:
         # metric = mutual_information(fixed, deformed)
         metric = utils.mse(fixed, deformed)
+
+    # def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+    #         return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+    # if isclose(scale, 1) and isclose(rotation, 0):
+    #     fixed_array = sitk.GetArrayFromImage(fixed)
+
+    #     deformed_array = sitk.GetArrayFromImage(deformed)
+    #     fig, ax = plt.subplots(1,2)
+    #     ax[0].imshow(fixed_array)
+    #     ax[1].imshow(deformed_array)
+    #     plt.show()
     return metric
 
 def find_best_translation(translation_vector, initial_transform, fixed, moving):
@@ -282,7 +293,7 @@ def register_component_images(fixed_array, component_images_array, translation_r
 
 
 
-def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotation=False, update_DT=False, seed=sitk.sitkWallClock, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
+def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotation=False, update_DT=False, normalize_DT=True, seed=sitk.sitkWallClock, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
     """
     Registration between reference (fixed)
     and deformable (moving) images.
@@ -330,18 +341,36 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
         fixed_DT = utils.compute_DT(fixed)
         moving_DT = utils.compute_DT(moving)
 
+        if normalize_DT:
+            fixed_DT = utils.normalized_dt(fixed)
+            moving_DT = utils.normalized_dt(moving)
+
+
+        # fig, ax = plt.subplots(1,2)
+        # ax[0].imshow(sitk.GetArrayFromImage(fixed_DT))
+        # ax[1].imshow(sitk.GetArrayFromImage(moving_DT))
+        # plt.show()
         tx = sitk.CenteredTransformInitializer(fixed_DT, moving_DT, transform, sitk.CenteredTransformInitializerFilter.MOMENTS)
+
+        tx2 = sitk.CenteredTransformInitializer(fixed_DT, moving_DT, transform, sitk.CenteredTransformInitializerFilter.GEOMETRY)
 
         x = [0, 0]
         ranges = (slice(0.1, 2.0, 0.1), slice(-3.2, 3.2, 0.05))
-        x0 = optimizer.brute(lambda x=x: find_best_transformation(x, tx, fixed_DT, moving_DT, update_DT), ranges=ranges, finish=None)
+        x1, metric1, _, _ = optimizer.brute(lambda x=x: find_best_transformation(x, tx, fixed_DT, moving_DT, update_DT), ranges=ranges, finish=None, full_output=True)
+
+        x2, metric2, _, _ = optimizer.brute(lambda x=x: find_best_transformation(x, tx2, fixed_DT, moving_DT, update_DT), ranges=ranges, finish=None, full_output=True)
+        print(metric1, metric2)
+        x0 = x1
+        if metric2 < metric1:
+            x0 = x2
+            tx = tx2
 
         parameters = list(tx.GetParameters())
         parameters[0] = x0[0]
         parameters[1] = x0[1]
         tx.SetParameters(parameters)
         transform = sitk.Similarity2DTransform(tx)
-
+        print(parameters)
 
 
     R.SetMetricAsMattesMutualInformation(number_of_bins)

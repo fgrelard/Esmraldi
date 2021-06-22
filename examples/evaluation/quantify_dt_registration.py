@@ -6,7 +6,7 @@ import SimpleITK as sitk
 import esmraldi.imageutils as utils
 import esmraldi.registration as reg
 import skimage.transform as transform
-
+import cv2 as cv
 
 def create_data():
     img = np.zeros((100, 100))
@@ -44,21 +44,23 @@ rfunc = [m - (1.0/(nb_points//(2*m)))*np.abs(nb_points//2 - float(i)) for i in r
 rfunc = [(i//50) * (m - (1.0/(nb_points//(2*m)))*float(i)) for i in range(nb_points)]
 reference = create_u(7, r)
 target = create_u(7, r, rfunc)
-# fig, ax = plt.subplots(1, 2)
-# ax[1].imshow(target)
-# ax[0].imshow(reference)
-# plt.show()
 
-# reference = create_data()
-reference = transform.rotate(reference, 90)
+reference = transform.rotate(reference, 180)
 reference = transform.resize(reference, (50, 50), order=0)
 reference = np.pad(reference, 25)
 
 reference_itk = sitk.GetImageFromArray(reference)
 target_itk = sitk.GetImageFromArray(target)
 
-reference_local_max = utils.set_maximal_balls(reference_itk)
-target_local_max = utils.set_maximal_balls(target_itk)
+reference_local_max = utils.radius_maximal_balls(reference_itk)
+target_local_max = utils.radius_maximal_balls(target_itk)
+
+
+
+# fig, ax = plt.subplots(1, 2)
+# ax[1].imshow(target)
+# ax[0].imshow(reference)
+# plt.show()
 
 
 dt_reference = utils.compute_DT(reference_itk)
@@ -70,15 +72,34 @@ np.divide(sitk.GetArrayFromImage(dt_reference), reference_local_max, out=normali
 normalized_dt_target = np.zeros_like(target)
 np.divide(sitk.GetArrayFromImage(dt_target), target_local_max, out=normalized_dt_target, where=target_local_max!=0)
 
+normalized_dt_reference = normalized_dt_reference**10
+normalized_dt_target = normalized_dt_target**10
 
 normalized_dt_reference_itk = sitk.GetImageFromArray(normalized_dt_reference)
 normalized_dt_target_itk = sitk.GetImageFromArray(normalized_dt_target)
 
-R = reg.register(reference_itk, target_itk, 15, 0.1, find_best_rotation=True, learning_rate=0.01, update_DT=False)
+normalized_dt_reference_itk = utils.local_max_dt(reference_itk)
+normalized_dt_target_itk = utils.local_max_dt(target_itk)
+
+
+
+# fig, ax = plt.subplots(1, 2)
+# ax[0].imshow(normalized_dt_reference)
+# ax[1].imshow(normalized_dt_target)
+# plt.show()
+
+
+R = reg.register(reference_itk, target_itk, 15, 0.1, find_best_rotation=True, learning_rate=0.00001, update_DT=False, normalize_DT=False)
 out = R.Execute(dt_target)
 
-R_update = reg.register(normalized_dt_reference_itk, normalized_dt_target_itk, 15, 0.1, find_best_rotation=False, learning_rate=0.01, update_DT=True)
+R_update = reg.register(normalized_dt_reference_itk, normalized_dt_target_itk, 15, 0.1, find_best_rotation=True, learning_rate=0.00001, update_DT=False, normalize_DT=True)
+out_norm = R_update.Execute(normalized_dt_target_itk)
 out_update = R_update.Execute(dt_target)
+
+mse_original = utils.mse(normalized_dt_reference_itk, normalized_dt_target_itk)
+mse_after = utils.mse(normalized_dt_reference_itk, out_norm)
+print("original=", mse_original, "after=", mse_after)
+
 
 diff = sitk.GetArrayFromImage(out) - sitk.GetArrayFromImage(out_update)
 R_parameters = R.GetTransform().GetParameters()
