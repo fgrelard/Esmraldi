@@ -11,6 +11,8 @@ from scipy.ndimage import uniform_filter, gaussian_filter1d
 from dtw import *
 from scipy.stats.stats import pearsonr
 import skimage.draw as draw
+import bresenham as bresenham
+import math
 
 def center_images(images, size):
 
@@ -241,3 +243,96 @@ def export_figure_matplotlib(f_name, arr, arr2=None, dpi=200, resize_fact=1, plt
         plt.show()
     else:
         plt.close()
+
+
+def voronoi_diagram(points, shape):
+    width, height = shape
+    centers_x, centers_y = points[:, 0], points[:, 1]
+    # Create grid containing all pixel locations in image
+    x, y = np.meshgrid(np.arange(width), np.arange(height))
+
+
+    # Find squared distance of each pixel location from each center: the (i, j, k)th
+    # entry in this array is the squared distance from pixel (i, j) to the kth center.
+    squared_dist = (x[:, :, np.newaxis] - centers_x[np.newaxis, np.newaxis, :]) ** 2 + \
+                   (y[:, :, np.newaxis] - centers_y[np.newaxis, np.newaxis, :]) ** 2
+
+    # Find closest center to each pixel location
+    indices = np.argmin(squared_dist, axis=2)  # Array containing index of closest center
+
+    return indices.T
+
+def simple_vcm(voronoi, point, r):
+    #Find cells in disk of radius r
+    sites, cells = voronoi
+    rr, cc = draw.disk(point, r, shape=cells.shape)
+    cell_indices = np.unique(cells[rr, cc])
+    cell_intersection = np.isin(cells, cell_indices)
+    cell_intersection_xy = np.argwhere(cell_intersection > 0)
+
+    cell_vectors = []
+    for cell_index in cell_indices:
+        site = sites[cell_index]
+        cell = np.argwhere(np.isin(cells, cell_index) > 0)
+        current_cell_vectors = (cell - site).tolist()
+        cell_vectors += current_cell_vectors
+    cell_vectors = np.array(cell_vectors)
+
+
+    dist = (cell_vectors**2).sum(axis=-1)
+    cov = np.cov(cell_vectors.T)
+    eigvals, eigvecs = np.linalg.eig(cov)
+    sortedeigen  = np.array(sorted(zip(eigvals,eigvecs.T),\
+                                    key=lambda x: x[0].real, reverse=True))
+    eigvals, eigvecs = sortedeigen[:, 0], sortedeigen[:, 1]
+    #Farthest point
+    d_max = np.sqrt(dist.max())
+    return eigvecs, d_max
+
+
+def estimate_plane(obj, voronoi, point, max_r=np.inf):
+    sites, cells = voronoi
+    eigvecs, d_max = simple_vcm(voronoi, point, 2.0)
+    d_max = min(d_max, max_r)
+    eigvecs, _ = simple_vcm(voronoi, point, d_max)
+    eigvec_0 = eigvecs[0]
+    end = [math.ceil(point[i] + eigvec_0[i]*d_max) for i in range(len(point))]
+    end2 = [math.ceil(point[i] - eigvec_0[i]*d_max) for i in range(len(point))]
+    plane_xy = list(bresenham.bresenham(point[0], point[1], end[0], end[1]))
+    plane_xy += list(bresenham.bresenham(point[0], point[1], end2[0], end2[1]))
+    plane_xy = np.array(plane_xy)
+
+    set_obj = set((tuple(i) for i in obj))
+    set_plane_xy = set((tuple(i) for i in plane_xy))
+
+    set_intersection = set_obj.intersection(set_plane_xy)
+    set_intersection.add(tuple(point))
+    plane_xy = np.array(list(set_intersection))
+
+    d_max = np.sqrt(((plane_xy - point)**2).max())
+    plane = np.zeros_like(cells)
+    plane[plane_xy[:, 0], plane_xy[:, 1]] = 1
+    return plane, d_max
+
+def local_radius(image):
+    edges = feature.canny(image)
+    obj = np.argwhere(image > 0)
+    sites = np.argwhere(edges > 0)
+    cells = voronoi_diagram(sites, edges.shape)
+    cells_restricted = np.where(image > 0, cells, 0)
+
+    voronoi = [sites, cells]
+    dt_itk = compute_DT(sitk.GetImageFromArray(image))
+    dt_array = sitk.GetArrayFromImage(dt_itk)
+    sorted_ind = np.argsort(dt_array, axis=None)
+    xy_indices = np.column_stack(np.unravel_index(sorted_ind[::-1], dt_array.shape))
+    local_radius_map = np.zeros_like(image)
+    for ind in xy_indices:
+        x, y = ind
+        if dt_array[x, y] == 0:
+            break
+        if local_radius_map[x,y] > 0:
+            continue
+        plane, d_max = estimate_plane(obj, voronoi, ind, dt_array.max())
+        local_radius_map[plane > 0] = d_max
+    return local_radius_map

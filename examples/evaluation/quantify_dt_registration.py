@@ -45,6 +45,11 @@ rfunc = [(i//50) * (m - (1.0/(nb_points//(2*m)))*float(i)) for i in range(nb_poi
 reference = create_u(7, r)
 target = create_u(7, r, rfunc)
 
+
+points = np.array([[50, 12], [51, 13], [52, 12], [80, 12]])
+
+local_radius = utils.local_radius(target)
+
 reference = transform.rotate(reference, 180)
 reference = transform.resize(reference, (50, 50), order=0)
 reference = np.pad(reference, 25)
