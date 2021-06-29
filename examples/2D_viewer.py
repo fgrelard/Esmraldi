@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import esmraldi.imzmlio as imzmlio
 from esmraldi.spectralviewer import SpectralViewer
 
 def onclick(event):
@@ -49,6 +50,7 @@ if inputname.endswith(".imzML"):
 if len(image.shape) == 4:
     image = image[0, ...]
 
+image = image.transpose((1, 0, 2))
 print(spectra.shape)
 fig, ax = plt.subplots(3, 1)
 tracker = SpectralViewer(ax, image, spectra)
