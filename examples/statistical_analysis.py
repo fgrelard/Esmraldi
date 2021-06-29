@@ -72,7 +72,7 @@ def visualize_scatter_with_images(X_all, images_maldi, images_mri,figsize=(45,45
 
 
 
-def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_process, is_norm, is_denoise, is_memmap):
+def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_process, is_norm, is_denoise, is_memmap, translate_components):
 
     if is_denoise:
         size = (5, 5, 1)
@@ -144,13 +144,19 @@ def statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_
     new_shape = image.shape[:-1] + (image_eigenvectors.shape[-1],)
     image_eigenvectors = image_eigenvectors.reshape(new_shape)
 
+    image_eigenvectors_translated = image_eigenvectors
 
-    image_eigenvectors_translated = reg.register_component_images(image_mri, image_eigenvectors, 3)
-    H_translated = image_eigenvectors_translated.reshape(H.T.shape).T
+    H_translated = H
+    if translate_components:
+        image_eigenvectors_translated, translated_image = reg.register_component_images(image_mri, image, image_eigenvectors, 3)
+
+        H_translated = image_eigenvectors_translated.reshape(H.T.shape).T
+
     # We use translated components ONLY for MRI reconstruction
     fit_red.components_ = H_translated
     point = fit_red.transform(mri_norm)
 
+    #Normal components for MS images
     fit_red.components_ = H
     X_r = fit_red.transform(image_norm)
 
@@ -298,6 +304,7 @@ parser.add_argument("--post_process", help="Post process with tSNE (optional)", 
 parser.add_argument("--split", help="For 3D volumes, process each 2D slice independently.", action="store_true")
 parser.add_argument("--number_slice", help="Number of the slice to process", default=-1)
 parser.add_argument("--memmap", help="Whether to store to memory map files.", action="store_true")
+parser.add_argument("--no_translation", help="Whether to remove translation of NMF component images to match MR image", action="store_true")
 
 args = parser.parse_args()
 
@@ -314,6 +321,8 @@ post_process = args.post_process
 is_split = args.split
 number_slice = int(args.number_slice)
 is_memmap = args.memmap
+no_translation = args.no_translation
+translate_components = not no_translation
 
 if top <= 0:
     top = None
@@ -366,6 +375,6 @@ if is_split and len(image.shape) == 4 and len(image_mri.shape) == 3:
             current_image_mri = image_mri[..., k]
             current_name = outroot + "_" + str(k) + outext
             print(current_image.shape, current_image_mri.shape, current_name)
-            statistical_analysis(current_name, current_image, current_image_mri, mzs, n, is_ratio, top, post_process, is_norm=True, is_denoise=True, is_memmap=is_memmap)
+            statistical_analysis(current_name, current_image, current_image_mri, mzs, n, is_ratio, top, post_process, is_norm=True, is_denoise=True, is_memmap=is_memmap, translate_components=translate_components)
 else:
-    statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_process, is_norm=True, is_denoise=True, is_memmap=is_memmap)
+    statistical_analysis(outname, image, image_mri, mzs, n, is_ratio, top, post_process, is_norm=True, is_denoise=True, is_memmap=is_memmap, translate_components=translate_components)

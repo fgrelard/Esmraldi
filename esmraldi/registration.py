@@ -12,6 +12,9 @@ from scipy.ndimage.morphology import distance_transform_edt
 
 import scipy.optimize as optimizer
 
+from esmraldi.sliceviewer import SliceViewer
+import esmraldi.imzmlio as imzmlio
+
 def precision(im1, im2):
     """
     Precision between two images
@@ -241,16 +244,6 @@ def find_best_transformation(scale_and_rotation, initial_transform, fixed, movin
         # metric = mutual_information(fixed, deformed)
         metric = utils.mse(fixed, deformed)
 
-    # def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
-    #         return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
-    # if isclose(scale, 1) and isclose(rotation, 0):
-    #     fixed_array = sitk.GetArrayFromImage(fixed)
-
-    #     deformed_array = sitk.GetArrayFromImage(deformed)
-    #     fig, ax = plt.subplots(1,2)
-    #     ax[0].imshow(fixed_array)
-    #     ax[1].imshow(deformed_array)
-    #     plt.show()
     return metric
 
 def find_best_translation(translation_vector, initial_transform, fixed, moving):
@@ -269,10 +262,12 @@ def find_best_translation(translation_vector, initial_transform, fixed, moving):
     metric = utils.mse(fixed, deformed)
     return metric
 
-def register_component_images(fixed_array, component_images_array, translation_range=1):
-    translated_component_images = component_images_array.copy()
+def register_component_images(fixed_array, moving_array, component_images_array, translation_range=1):
     fixed_itk = sitk.GetImageFromArray(fixed_array)
     dim = fixed_itk.GetDimension()
+    translated_component_images = component_images_array.copy()
+    translation_array = np.zeros(component_images_array.shape[:-1] + (dim,))
+
     for i in range(component_images_array.shape[-1]):
         transform = sitk.TranslationTransform(dim)
         component_image = component_images_array[..., i]
@@ -285,15 +280,58 @@ def register_component_images(fixed_array, component_images_array, translation_r
         parameters[1] = x0[1]
         transform.SetParameters(parameters)
 
+
         resampler = initialize_resampler(fixed_itk, transform)
         deformed_itk = resampler.Execute(component_image_itk)
         deformed_array = sitk.GetArrayFromImage(deformed_itk)
         translated_component_images[..., i] = deformed_array
-    return translated_component_images
+
+        threshold_filter = sitk.OtsuThresholdImageFilter()
+        threshold_filter.SetInsideValue(0)
+        threshold_filter.SetOutsideValue(1)
+        deformed_thresholded = threshold_filter.Execute(component_image_itk)
+        deformed_thresholded_array = sitk.GetArrayFromImage(deformed_thresholded)
+        xy = np.argwhere(deformed_thresholded_array > 0)
+        new_xy = np.array(parameters)
+        current_xy = translation_array[xy[:, 0], xy[:, 1]]
+        translation_array[xy[:, 0], xy[:, 1]] = np.sign(new_xy) * np.maximum(current_xy, np.abs(new_xy))
+
+    translated_moving_array = moving_array.copy()
+    sorted_indices = np.argsort(np.linalg.norm(translation_array, axis=-1), axis=None)[::-1]
+    for i, ind in enumerate(sorted_indices):
+        xy = np.unravel_index(ind, component_images_array.shape[:-1])
+        t = translation_array[xy][::-1]
+        if not t.any():
+            break
+        upper_bound = np.array(component_images_array.shape[:-1])-1
+        old_xy = (np.minimum(np.maximum(xy + t, [0, 0]), upper_bound)).astype(np.int)
+        new_xy = (np.minimum(np.maximum(xy - t, [0, 0]), upper_bound)).astype(np.int)
+        x, y = xy
+        translated_moving_array[new_xy[0], new_xy[1], ...] = moving_array[x, y, ...]
+        translated_moving_array[x, y, ...] = moving_array[old_xy[0], old_xy[1], ...]
+
+    # simg1 = sitk.Cast(sitk.RescaleIntensity(component_image_itk), sitk.sitkUInt8)
+    # simg2 = sitk.Cast(sitk.RescaleIntensity(deformed_itk), sitk.sitkUInt8)
+
+    # cimg = sitk.Compose(simg1, simg2, simg1//3.+simg2//1.5)
+    # fig, ax = plt.subplots(1, 2)
+    # translated_moving_array = imzmlio.normalize(translated_moving_array).T
+    # moving_array = imzmlio.normalize(moving_array).T
+
+    # tracker = SliceViewer(ax, moving_array, translated_moving_array)
+    # fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
+    # ax[0].imshow(sitk.GetArrayFromImage(cimg))
+    # ax[1].imshow(deformed_thresholded_array)
+    # ax[2].imshow(moving_array[..., 10])
+    # ax[3].imshow(translated_moving_array[..., 10])
+    # plt.show()
+
+
+    return translated_component_images, translated_moving_array
 
 
 
-def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotation=False, update_DT=False, normalize_DT=True, seed=sitk.sitkWallClock, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
+def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotation=False, update_DT=False, normalize_DT=False, seed=sitk.sitkWallClock, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
     """
     Registration between reference (fixed)
     and deformable (moving) images.
