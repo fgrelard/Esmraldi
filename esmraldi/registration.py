@@ -91,6 +91,10 @@ def quality_registration(imRef, imRegistered, threshold=-1):
     threshold_filter.SetOutsideValue(1)
     imRef_bin = threshold_filter.Execute(imRef)
     imRegistered_bin = threshold_filter.Execute(imRegistered)
+    fig, ax = plt.subplots(1,2)
+    ax[0].imshow(sitk.GetArrayFromImage(imRef_bin))
+    ax[1].imshow(sitk.GetArrayFromImage(imRegistered_bin))
+    plt.show()
 
     p, r = [], []
     if imRef_bin.GetDimension() > 2:
