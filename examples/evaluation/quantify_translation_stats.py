@@ -11,7 +11,8 @@ import cv2 as cv
 import esmraldi.sliceviewer as slicev
 import esmraldi.imzmlio as imzmlio
 from sklearn.decomposition import NMF, PCA
-
+from scipy.stats import pearsonr
+from scipy.spatial import distance
 
 def create_data(deformation=False):
     if deformation:
@@ -151,11 +152,6 @@ H_translated = image_eigenvectors_translated.reshape(H.T.shape).T
 fit_red.components_ = H
 point = fit_red.transform(reference_norm)
 
-fig, ax = plt.subplots(1,2)
-tracker = slicev.SliceViewer(ax, image_eigenvectors.T, image_eigenvectors_translated.T, vmax=500)
-fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
-plt.show()
-
 
 # We use translated components ONLY for MRI reconstruction
 fit_red.components_ = H_translated
@@ -175,8 +171,14 @@ similar_images, similar_mzs, distances = fusion.select_images(target, point, cen
 
 similar_images_translated, similar_mzs_translated, distances_translated = fusion.select_images(target, point_translated, centers, weights,  np.array([i for i in range(target.shape[-1])]), labels, None)
 
-print(similar_mzs, similar_mzs_translated)
-print(point, point_translated)
+_, idx = np.unique(similar_mzs % 10, return_index=True)
+_, idx_translated = np.unique(similar_mzs_translated % 10, return_index=True)
+
+mzs_order = similar_mzs[np.sort(idx)]
+mzs_translated_order = similar_mzs_translated[np.sort(idx_translated)]
+
+print(mzs_order, mzs_translated_order)
+
 w_reference = point / np.sum(point)
 reference_reconstructed = fusion.reconstruct_image_from_components(image_eigenvectors, w_reference.T)
 reference_reconstructed = reference_reconstructed.T
@@ -187,8 +189,26 @@ reference_reconstructed_translated = fusion.reconstruct_image_from_components(im
 reference_reconstructed_translated = reference_reconstructed_translated.T
 reference_reconstructed_translated = imzmlio.normalize(reference_reconstructed_translated)
 
-fig, ax = plt.subplots(1, 3)
-ax[0].imshow(reference)
-ax[1].imshow(reference_reconstructed)
-ax[2].imshow(reference_reconstructed_translated)
-plt.show()
+reference_norm = imzmlio.normalize(reference)
+reference_reconstructed_norm = imzmlio.normalize(reference_reconstructed)
+reference_reconstructed_norm_translated = imzmlio.normalize(reference_reconstructed_translated)
+
+i = np.where((reference_reconstructed_norm>0))
+diff_reconstruction = np.mean(np.abs(reference_reconstructed[i] - reference[i]))/np.max(reference_reconstructed)
+diff_reconstruction_translated = np.mean(np.abs(reference_reconstructed_translated[i] - reference[i]))/np.max(reference_reconstructed_translated)
+
+p_r, _ = pearsonr(reference_norm.flatten(), reference_reconstructed_norm.flatten())
+p_r_translated, _ = pearsonr(reference_norm.flatten(), reference_reconstructed_norm_translated.flatten())
+
+cosine_r = distance.cosine(reference_norm.flatten(), reference_reconstructed_norm.flatten())
+cosine_r_translated = distance.cosine(reference_norm.flatten(), reference_reconstructed_norm_translated.flatten())
+print("Average diff NMF reconstruction (percentage)=", "{:.5f}".format(diff_reconstruction),  "{:.5f}".format(diff_reconstruction_translated), "pearson", "{:.5f}".format(p_r),  "{:.5f}".format(p_r_translated), "cosine", "{:.5f}".format(1-cosine_r),  "{:.5f}".format(1-cosine_r_translated))
+
+utils.export_figure_matplotlib("stats_reference.png", reference)
+utils.export_figure_matplotlib("stats_target_0.png", target[..., 0])
+utils.export_figure_matplotlib("stats_target_6.png", target[..., 6])
+utils.export_figure_matplotlib("stats_target_7.png", target[..., 7])
+utils.export_figure_matplotlib("stats_target_8.png", target[..., 8])
+utils.export_figure_matplotlib("stats_target_9.png", target[..., 9])
+utils.export_figure_matplotlib("stats_reconstructed.png", reference_reconstructed)
+utils.export_figure_matplotlib("stats_reconstructed_translated.png", reference_reconstructed_translated)
