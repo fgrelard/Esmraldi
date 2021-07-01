@@ -280,7 +280,7 @@ def register_component_images(fixed_array, moving_array, component_images_array,
         parameters[1] = x0[1]
         transform.SetParameters(parameters)
 
-
+        print(parameters)
         resampler = initialize_resampler(fixed_itk, transform)
         deformed_itk = resampler.Execute(component_image_itk)
         deformed_array = sitk.GetArrayFromImage(deformed_itk)
@@ -310,28 +310,13 @@ def register_component_images(fixed_array, moving_array, component_images_array,
         translated_moving_array[new_xy[0], new_xy[1], ...] = moving_array[x, y, ...]
         translated_moving_array[x, y, ...] = moving_array[old_xy[0], old_xy[1], ...]
 
-    # simg1 = sitk.Cast(sitk.RescaleIntensity(component_image_itk), sitk.sitkUInt8)
-    # simg2 = sitk.Cast(sitk.RescaleIntensity(deformed_itk), sitk.sitkUInt8)
-
-    # cimg = sitk.Compose(simg1, simg2, simg1//3.+simg2//1.5)
-    # fig, ax = plt.subplots(1, 2)
-    # translated_moving_array = imzmlio.normalize(translated_moving_array).T
-    # moving_array = imzmlio.normalize(moving_array).T
-
-    # tracker = SliceViewer(ax, moving_array, translated_moving_array)
-    # fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
-    # ax[0].imshow(sitk.GetArrayFromImage(cimg))
-    # ax[1].imshow(deformed_thresholded_array)
-    # ax[2].imshow(moving_array[..., 10])
-    # ax[3].imshow(translated_moving_array[..., 10])
-    # plt.show()
 
 
     return translated_component_images, translated_moving_array
 
 
 
-def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotation=False, update_DT=False, normalize_DT=False, seed=sitk.sitkWallClock, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
+def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotation=False, use_DT=True, update_DT=False, normalize_DT=False, seed=sitk.sitkWallClock, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
     """
     Registration between reference (fixed)
     and deformable (moving) images.
@@ -376,8 +361,12 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
         transform = sitk.Similarity3DTransform()
 
     if find_best_rotation:
-        fixed_DT = utils.compute_DT(fixed)
-        moving_DT = utils.compute_DT(moving)
+        fixed_DT = fixed
+        moving_DT = moving
+
+        if use_DT:
+            fixed_DT = utils.compute_DT(fixed)
+            moving_DT = utils.compute_DT(moving)
 
         if normalize_DT:
             fixed_DT = utils.normalized_dt(fixed)

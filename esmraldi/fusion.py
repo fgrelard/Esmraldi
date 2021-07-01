@@ -209,7 +209,10 @@ def select_images(images, point_mri, centers, weights, mzs, labels, top=1):
     np.ndarray
         metric values used to sort MALDI
     """
-    diff_norm = np.array([np.abs(center-point_mri)/point_mri for center in centers])
+    norm_factor = point_mri.copy()
+    norm_factor[norm_factor == 0] = 1e-14
+    print(norm_factor)
+    diff_norm = np.array([np.abs(center-point_mri)/norm_factor for center in centers])
     distances = np.array([weighted_distance(d, weights) for d in diff_norm])
     indices = [i for i in range(len(distances))]
     indices.sort(key=lambda x: distances[x])
