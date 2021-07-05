@@ -163,6 +163,7 @@ parser.add_argument("-r", "--registered", help="Moving image")
 parser.add_argument("-o", "--original", help="Original before registration image")
 parser.add_argument("-b", "--bins", help="number of bins", default=20)
 parser.add_argument("-t", "--threshold", help="Threshold for binary image to compute precision and recall (-1 uses Otsu)", default=-1)
+parser.add_argument("-d", "--display", help="Display binary images", action="store_true")
 
 args = parser.parse_args()
 fixedname = args.fixed
@@ -170,6 +171,7 @@ registeredname = args.registered
 originalname = args.original
 threshold = int(args.threshold)
 bins = int(args.bins)
+display = args.display
 
 fixed = sitk.ReadImage(fixedname, sitk.sitkFloat32)
 original = sitk.ReadImage(originalname, sitk.sitkFloat32)
@@ -188,20 +190,21 @@ simg2 = sitk.Cast(sitk.RescaleIntensity(registered), sitk.sitkUInt8)
 cimg = sitk.Compose(simg1, simg2, simg1//3.+simg2//1.5)
 
 
-
-p, r = quality_registration(fixed, registered, threshold)
+p, r = quality_registration(fixed, registered, threshold, display)
 f = (2*p*r)/(p+r)
 print("Precision=", p, " recall=", r, " fmeasure=", f)
 
-print("Average precision=", np.mean(p), " recall=", np.mean(r), " fmeasure=", np.mean(f))²
+print("Average precision=", np.mean(p), " recall=", np.mean(r), " fmeasure=", np.mean(f))
+print("Stddev preision=", np.std(p), " recall=", np.std(r), " fmeasure=", np.std(f))
 
 if cimg.GetDimension() == 2:
     plt.imshow(sitk.GetArrayFromImage(cimg))
     plt.axis('off')
     plt.show()
 else:
-    plt.imshow(sitk.GetArrayFromImage(cimg[:,:,0]))
-    plt.axis('off')
+    fig, ax = plt.subplots(1,1)
+    tracker = SliceViewer(ax, sitk.GetArrayFromImage(cimg))
+    fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
     plt.show()
 
 fixed_array = sitk.GetArrayFromImage(fixed)

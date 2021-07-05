@@ -63,7 +63,11 @@ def create_data(deformation=False):
         img[inters_xy] = 250
 
 
+
         n_slice = 7
+
+        img_ref = img.copy()
+
         for i in range(img.shape[-1]):
             if i % 10 < n_slice and i % 20 != n_slice-1:
 
@@ -105,6 +109,10 @@ def create_data(deformation=False):
         sine2D = np.where(img[..., 0] == 0, 0, sine2D)
 
         img += sine2D[..., None]
+        img_ref += sine2D[..., None]
+
+        utils.export_figure_matplotlib("stats_target_all.png", img_ref[..., 0])
+
 
     return img
 

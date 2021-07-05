@@ -58,7 +58,7 @@ def recall(im1, im2):
     allr = np.count_nonzero(im1 == 1)
     return tp * 1.0 / allr
 
-def quality_registration(imRef, imRegistered, threshold=-1):
+def quality_registration(imRef, imRegistered, threshold=-1, display=False):
     """
     Evaluates registration quality.
 
@@ -91,13 +91,21 @@ def quality_registration(imRef, imRegistered, threshold=-1):
     threshold_filter.SetOutsideValue(1)
     imRef_bin = threshold_filter.Execute(imRef)
     imRegistered_bin = threshold_filter.Execute(imRegistered)
-    fig, ax = plt.subplots(1,2)
-    ax[0].imshow(sitk.GetArrayFromImage(imRef_bin))
-    ax[1].imshow(sitk.GetArrayFromImage(imRegistered_bin))
-    plt.show()
+
+    if display:
+        if imRef_bin.GetDimension() == 2:
+            fig, ax = plt.subplots(1,2)
+            ax[0].imshow(sitk.GetArrayFromImage(imRef_bin))
+            ax[1].imshow(sitk.GetArrayFromImage(imRegistered_bin))
+            plt.show()
+        else:
+            fig, ax = plt.subplots(1,2)
+            tracker = SliceViewer(ax, sitk.GetArrayFromImage(imRef_bin), sitk.GetArrayFromImage(imRegistered_bin))
+            fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
+            plt.show()
 
     p, r = [], []
-    if imRef_bin.GetDimension() > 2:
+    if imRef_bin.GetDimension() > 3:
         for i in range(imRef_bin.GetSize()[-1]):
             p.append(precision(imRef_bin[:,:,i], imRegistered_bin[:,:,i]))
             r.append(recall(imRef_bin[:,:,i], imRegistered_bin[:,:,i]))

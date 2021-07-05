@@ -35,6 +35,7 @@ input_mri = sitk.GetImageFromArray(input_mri_array)
 reconstructed_mri_array = sitk.GetArrayFromImage(reconstructed_mri)
 reconstructed_mri_array = imzmlio.normalize(reconstructed_mri_array)
 reconstructed_mri = sitk.GetImageFromArray(reconstructed_mri_array)
+print(reconstructed_mri_array.shape, input_mri_array.shape)
 
 mse_stddev = utils.mse_stddev(input_mri, reconstructed_mri)
-print("MSE from std images=", mse_stddev)
+print("MSE from std images=", np.sqrt(mse_stddev))

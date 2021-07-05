@@ -50,9 +50,9 @@ points = np.array([[50, 12], [51, 13], [52, 12], [80, 12]])
 
 local_radius = utils.local_radius(target)
 
-reference = transform.rotate(reference, 180)
-reference = transform.resize(reference, (50, 50), order=0)
-reference = np.pad(reference, 25)
+# reference = transform.rotate(reference, 180)
+reference = transform.resize(reference, (74, 74), order=0)
+reference = np.pad(reference, 13)
 
 reference_itk = sitk.GetImageFromArray(reference)
 target_itk = sitk.GetImageFromArray(target)
@@ -77,8 +77,8 @@ np.divide(sitk.GetArrayFromImage(dt_reference), reference_local_max, out=normali
 normalized_dt_target = np.zeros_like(target)
 np.divide(sitk.GetArrayFromImage(dt_target), target_local_max, out=normalized_dt_target, where=target_local_max!=0)
 
-normalized_dt_reference = normalized_dt_reference**10
-normalized_dt_target = normalized_dt_target**10
+# normalized_dt_reference = normalized_dt_reference**10
+# normalized_dt_target = normalized_dt_target**10
 
 normalized_dt_reference_itk = sitk.GetImageFromArray(normalized_dt_reference)
 normalized_dt_target_itk = sitk.GetImageFromArray(normalized_dt_target)
@@ -120,3 +120,10 @@ ax[2].imshow(sitk.GetArrayFromImage(out))
 ax[3].imshow(sitk.GetArrayFromImage(out_update))
 ax[4].imshow(diff)
 plt.show()
+
+
+utils.export_figure_matplotlib("prospect_reference.png", sitk.GetArrayFromImage(dt_reference))
+utils.export_figure_matplotlib("prospect_target.png", sitk.GetArrayFromImage(dt_target))
+utils.export_figure_matplotlib("prospect_registered_target.png", sitk.GetArrayFromImage(out))
+utils.export_figure_matplotlib("prospect_normalized_dt.png", normalized_dt_target)
+utils.export_figure_matplotlib("prospect_registered_target_normalized.png", sitk.GetArrayFromImage(out_update))
