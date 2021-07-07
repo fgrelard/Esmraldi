@@ -1,3 +1,9 @@
+"""
+Statistical analysis
+With various measures (UIQ ~~ SSIM, cosine)
+And adaptable denoising conditions
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import esmraldi.imzmlio as imzmlio

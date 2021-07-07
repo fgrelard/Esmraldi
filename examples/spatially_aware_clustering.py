@@ -1,3 +1,8 @@
+"""
+Implementation of "Spatially aware clustering"
+By Alexandrov et al. (2011)
+"""
+
 import os
 import argparse
 

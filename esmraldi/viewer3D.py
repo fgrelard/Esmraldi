@@ -1,3 +1,7 @@
+"""
+3D viewer for MS images
+Based on vedo (inherits Plotter)
+"""
 from __future__ import division, print_function
 import vtk
 from vedo.addons import addScalarBar
@@ -107,6 +111,9 @@ class Slicer(Plotter):
         self.visibles[2] = self.msh
 
         def sliderfunc_x(widget, event):
+            """
+            Event on change slider x
+            """
             i = int(widget.GetRepresentation().GetValue())
             self.pos_slider[0] = i
             self.msh = self.volume.xSlice(i).alpha(self.alpha).lighting('', la, ld, 0)
@@ -117,6 +124,9 @@ class Slicer(Plotter):
             self.visibles[0] = self.msh
 
         def sliderfunc_y(widget, event):
+            """
+            Event on change slider y
+            """
             i = int(widget.GetRepresentation().GetValue())
             self.pos_slider[1] = i
             self.msh = self.volume.ySlice(i).alpha(self.alpha).lighting('', la, ld, 0)
@@ -127,6 +137,9 @@ class Slicer(Plotter):
             self.visibles[1] = self.msh
 
         def sliderfunc_z(widget, event):
+            """
+            Event on change slider z
+            """
             i = int(widget.GetRepresentation().GetValue())
             self.pos_slider[2] = i
             self.comment.SetText(4, "z="+str(self.pos_slider[2]))
@@ -160,6 +173,14 @@ class Slicer(Plotter):
 
         #################
         def keyfunc(iren, event):
+            """
+            Keyboard events on the viewer
+            s : save image
+            x : display all slice on x axis
+            y : display all slice on y axis
+            z : display all slice on z axis
+            v : display volume rendering
+            """
             if not iren.GetKeyCode():
                 return
             key = iren.GetKeySym()
@@ -190,6 +211,10 @@ class Slicer(Plotter):
 
 
         def buttonfunc(iren, event):
+            """
+            Mouse event
+            Allows to change color map
+            """
             clickPos = iren.GetEventPosition()
 
             picker = vtk.vtkPropPicker()
@@ -224,6 +249,9 @@ class Slicer(Plotter):
             printc("Use sliders to select the slicing planes.", c="m")
 
     def display_all_slices(self, axis):
+        """
+        Display all 2D slices in the 3D volume
+        """
         la, ld = 0.7, 0.3 #ambient, diffuse
         if len(self.all_slices[axis]) > 0:
             for elem in self.all_slices[axis]:
@@ -248,6 +276,10 @@ class Slicer(Plotter):
                 self.add(msh)
 
     def setOTF(self):
+        """
+        Function to initialize transfer function.
+        Useful for volume rendering
+        """
         opacity_function = self.volume.GetProperty().GetScalarOpacity()
         opacity_function.RemoveAllPoints()
         opacity_function.AddPoint(self.rmin, 0.0)
@@ -258,17 +290,27 @@ class Slicer(Plotter):
 
 
     def sliderThreshold(self, widget, event):
+        """
+        Action on intensity changes
+        """
         value = widget.GetRepresentation().GetValue()
         pmin, pmax = self.volume.GetProperty().GetScalarOpacity().GetRange()
         self.rmax = self.rmin + pmax*value*0.01
         self.refresh()
 
     def sliderOpacityThreshold(self, widget, event):
+        """
+        Action on opacity changes
+        """
         value = int(widget.GetRepresentation().GetValue())
         self.alphas = [0 for i in range(value)] + [1 for i in range(100-value)]
         self.refresh()
 
     def refresh(self):
+        """
+        Refresh view on internal events
+
+        """
         for mesh in self.visibles:
             if mesh:
                 mesh.pointColors(cmap=self.cmap_slicer, vmin=self.rmin, vmax=self.rmax, alpha=self.alphas)
@@ -293,6 +335,21 @@ class Slicer(Plotter):
 
 
     def update(self, vol):
+        """
+        Update the volume on external events
+        (key or mouse events), which happen on
+        other elements in the Application (e.g. matplotlib plot).
+
+        Example: selection of a new m/z image on the
+        spectrum
+
+        Parameters
+        ----------
+        self: type
+            description
+        vol: Volume
+            Volume
+        """
         la, ld = 0.7, 0.3 #ambient, diffuse
         dims = vol.dimensions()
         self.rmin, self.rmax = vol.imagedata().GetScalarRange()

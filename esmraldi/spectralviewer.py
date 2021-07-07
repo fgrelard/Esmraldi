@@ -1,13 +1,29 @@
+"""
+Simple 2D viewer for MS images
+"""
+
 import numpy as np
 import esmraldi.spectraprocessing as sp
 import matplotlib.pyplot as plt
 
 
-
-
 class SpectralViewer(object):
     def __init__(self, ax, X, spectra, **kwargs):
+        """
+        Parameters
+        ----------
+        self: type
+            description
+        ax: matplotlib.Axes
+            axes where to show the MS image
+        X: np.ndarray
+            the MS image
+        spectra: np.ndarray
+            the associated full spectra
+        kwargs: dict
+            arguments passed onto the plt.imshow function
 
+        """
         self.ax = ax
 
         self.X = X
@@ -31,6 +47,22 @@ class SpectralViewer(object):
         self.update()
 
     def onclick(self, event):
+        """
+        On click event.
+
+        Either:
+         - Show the spectrum associated to the picked position on
+           the image
+         - Or change m/z image associated to the picked position on
+           the mean spectrum
+
+        Parameters
+        ----------
+        self: type
+            description
+        event: matplotlib.MouseEvent
+            the mouse event
+        """
         x, y = event.xdata, event.ydata
         if event.inaxes == self.im.axes:
             x, y = int(x), int(y)
@@ -47,6 +79,14 @@ class SpectralViewer(object):
         self.update()
 
     def update(self):
+        """
+        Update the image after event.
+
+        Parameters
+        ----------
+        self: type
+            description
+        """
         self.im.set_data(self.X[..., self.ind])
         self.im.axes.get_xaxis().set_visible(False)
         self.im.axes.get_yaxis().set_visible(False)

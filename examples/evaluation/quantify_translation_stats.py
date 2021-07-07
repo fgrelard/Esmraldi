@@ -1,3 +1,8 @@
+"""
+Evaluation of translation of component images
+from NMF
+on resulting statistical analysis
+"""
 import matplotlib.pyplot as plt
 import numpy as np
 import argparse

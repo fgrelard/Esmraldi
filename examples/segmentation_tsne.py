@@ -1,3 +1,7 @@
+"""
+t-SNE segmentation of MS images
+"""
+
 import argparse
 
 import numpy as np

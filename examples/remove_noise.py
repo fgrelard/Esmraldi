@@ -1,3 +1,7 @@
+"""
+Remove noise on MALDI images
+(deprecated)
+"""
 import argparse
 import numpy as np
 

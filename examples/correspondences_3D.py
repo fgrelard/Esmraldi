@@ -1,3 +1,9 @@
+"""
+Find correspondences between
+MR and MS images
+Using Dynamic Time Warping
+"""
+
 import esmraldi.imageutils as utils
 import argparse
 import nibabel as nib

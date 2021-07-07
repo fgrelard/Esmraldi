@@ -1,3 +1,9 @@
+"""
+Compute the distance transformation on a
+binary version of the image
+Threshold is 0 by default
+"""
+
 import argparse
 import sys
 import SimpleITK as sitk

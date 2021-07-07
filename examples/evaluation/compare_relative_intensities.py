@@ -1,3 +1,7 @@
+"""
+Find largest intensity differences between two MS images
+Useful to highlight normalization artefacts
+"""
 import argparse
 
 import numpy as np

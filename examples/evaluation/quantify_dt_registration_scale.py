@@ -1,3 +1,7 @@
+"""
+Evaluation of the registration with distance transforms
+with local scale differences
+"""
 import matplotlib.pyplot as plt
 import numpy as np
 import argparse

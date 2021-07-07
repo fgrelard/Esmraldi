@@ -1,3 +1,8 @@
+"""
+3D viewer of imzML images
+Based on vedo, vtk and pyqt5
+"""
+
 import vtk.qt
 vtk.qt.QVTKRWIBase ="QGLWidget"
 

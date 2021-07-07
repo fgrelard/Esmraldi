@@ -1,3 +1,9 @@
+"""
+Give same cluster labels to image
+based on overall point proximities
+to reference image
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import SimpleITK as sitk

@@ -1,3 +1,7 @@
+"""
+Convert several 2D imzML files from a 3D imzML file
+"""
+
 import argparse
 import random
 import esmraldi.imzmlio as io

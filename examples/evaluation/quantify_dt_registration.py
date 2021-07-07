@@ -1,3 +1,8 @@
+"""
+Evaluation of the registration
+with distance transformed images
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 import argparse

@@ -1,3 +1,8 @@
+"""
+Give a common m/z axis
+to spectra with different m/z values
+"""
+
 import esmraldi.imzmlio as io
 import esmraldi.spectraprocessing as sp
 import argparse

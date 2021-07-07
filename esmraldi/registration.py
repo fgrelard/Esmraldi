@@ -174,6 +174,23 @@ def mutual_information(imRef, imRegistered, bins=20):
 
 
 def dt_mutual_information(imRef, imRegistered, bins=20):
+    """
+    Computes the mutual information on DT
+
+    Parameters
+    ----------
+    imRef: sitk.Image
+        reference image
+    imRegistered: sitk.Image
+        target image
+    bins: int
+        number of bins for mutual information
+
+    Returns
+    ----------
+    float
+        mutual information between DT of images
+    """
     imRegistered_DT = utils.compute_DT(imRegistered)
     return mutual_information(imRef, imRegistered_DT)
 
@@ -196,6 +213,15 @@ def best_fit(fixed, array_moving, number_of_bins, sampling_percentage, find_best
         number of bins for sampling
     sampling_percentage: float
         proportion of points to consider in sampling
+    find_best_rotation: bool
+        whether to find the best rotation
+    learning_rate: float
+        learning rate for gradient descent optimization
+    min_step: float
+        min step for optimizer
+    relaxation_factor: float
+        relaxation factor for optimizer
+
 
     Returns
     ----------
@@ -227,6 +253,27 @@ def best_fit(fixed, array_moving, number_of_bins, sampling_percentage, find_best
     return best_resampler, index
 
 def initialize_resampler(fixed, tx):
+    """
+    Utility function to setup the resampler
+    i.e. the object which can apply a transform
+    onto an image.
+
+    Initialized with nearest neighbor interpolation.
+
+
+    Parameters
+    ----------
+    fixed: sitk.Image
+        reference image
+    tx: sitk.Transform
+        the transform
+
+    Returns
+    ----------
+    sitk.ResampleImageFilter
+        the resampler
+
+    """
     resampler = sitk.ResampleImageFilter()
     resampler.SetReferenceImage(fixed)
     resampler.SetInterpolator(sitk.sitkNearestNeighbor)
@@ -235,6 +282,35 @@ def initialize_resampler(fixed, tx):
     return resampler
 
 def find_best_transformation(scale_and_rotation, initial_transform, fixed, moving, update_DT=True):
+    """
+    Function returning the similarity metric value
+    between the reference image and the deformed target image.
+
+    The current transformation parameters (scale and rotation)
+    are applied to the target image before estimating the metric,
+    i.e. either regular mean squared error, or mean squared error on
+    the distance transformed images.
+
+    Parameters
+    ----------
+    scale_and_rotation: list
+        current scale and rotation parameters
+    initial_transform: sitk.Transform
+        initial transform
+    fixed: sitk.Image
+        reference image
+    moving: sitk.Image
+        target image
+    update_DT: bool
+        whether to re-compute the DT at each step (DT-MSE)
+
+
+    Returns
+    ----------
+    float
+        similarity metric value
+
+    """
     #Transform with current scale and rotation parameters
     tx = sitk.Transform(initial_transform)
     scale = scale_and_rotation[0]
@@ -259,6 +335,31 @@ def find_best_transformation(scale_and_rotation, initial_transform, fixed, movin
     return metric
 
 def find_best_translation(translation_vector, initial_transform, fixed, moving):
+    """
+    Function returning the similarity metric value
+    between the reference image and the deformed target image.
+    This function is used in the context of NMF component image registration.
+
+    The current transformation parameters (only translation)
+    are applied to the target image before estimating the metric,
+    i.e. mean squared error.
+
+    Parameters
+    ----------
+    translation_vector: list
+        translation vector in nD
+    initial_transform: sitk.Transform
+        the initial transform
+    fixed: sitk.Image
+        reference image
+    moving: sitk.Image
+        moving image
+
+    Returns
+    ----------
+    float
+        similarity metric value
+    """
     #Transform with current scale and rotation parameters
     transform = sitk.Transform(initial_transform)
     parameters = list(transform.GetParameters())
@@ -275,6 +376,28 @@ def find_best_translation(translation_vector, initial_transform, fixed, moving):
     return metric
 
 def register_component_images(fixed_array, moving_array, component_images_array, translation_range=1):
+    """
+    Function used for the registration of NMF component images.
+
+    Translation of component images to match the reference.
+
+    Parameters
+    ----------
+    fixed_array: np.ndarray
+        reference image
+    moving_array: np.ndarray
+        target image
+    component_images_array: np.ndarray
+        NMF component images: shape (w, h, number_of_components)
+    translation_range: int
+        translation search between [-t, t], default 1
+
+    Returns
+    ----------
+    tuple(np.ndarray, np.ndarray)
+        The translated NMF component images, the translation map
+
+    """
     fixed_itk = sitk.GetImageFromArray(fixed_array)
     dim = fixed_itk.GetDimension()
     translated_component_images = component_images_array.copy()
@@ -328,7 +451,7 @@ def register_component_images(fixed_array, moving_array, component_images_array,
 
 
 
-def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotation=False, use_DT=True, update_DT=False, normalize_DT=False, seed=sitk.sitkWallClock, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
+def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotation=False, use_DT=True, update_DT=False, normalize_DT=False, seed=1, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
     """
     Registration between reference (fixed)
     and deformable (moving) images.
@@ -341,6 +464,9 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
 
     Interpolation: nearest neighbor
 
+
+
+
     Parameters
     ----------
     fixed: np.ndarray
@@ -351,6 +477,14 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
         number of bins for sampling
     sampling_percentage: float
         proportion of points to consider in sampling
+    find_best_rotation: bool
+        whether to use exhaustive search to find the best scaling and rotation parameters
+    use_DT: bool
+        whether to use the distance transformations of images during exhaustive optimization (if find_best_rotation==True)
+    update_DT: bool
+        whether to update the distance transformations during exhaustive optimization (if find_best_rotation==True)
+    normalize_DT: bool
+        whether to normalize the distance transformations during exhaustive optimization ((if find_best_rotation==True)
     seed: int
         seed for metric sampling
     learning_rate: float
@@ -384,11 +518,6 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
             fixed_DT = utils.normalized_dt(fixed)
             moving_DT = utils.normalized_dt(moving)
 
-
-        # fig, ax = plt.subplots(1,2)
-        # ax[0].imshow(sitk.GetArrayFromImage(fixed_DT))
-        # ax[1].imshow(sitk.GetArrayFromImage(moving_DT))
-        # plt.show()
         tx = sitk.CenteredTransformInitializer(fixed_DT, moving_DT, transform, sitk.CenteredTransformInitializerFilter.MOMENTS)
 
         tx2 = sitk.CenteredTransformInitializer(fixed_DT, moving_DT, transform, sitk.CenteredTransformInitializerFilter.GEOMETRY)

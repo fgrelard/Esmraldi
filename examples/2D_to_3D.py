@@ -1,3 +1,10 @@
+"""
+Convert a series of 2D images
+to a 3D image
+Files are ordered by alphabetical
+order
+"""
+
 import argparse
 import os
 import re

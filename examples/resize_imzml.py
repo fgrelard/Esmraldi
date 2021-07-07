@@ -1,3 +1,8 @@
+"""
+Resize imzML image
+in spatial coordinates
+"""
+
 import esmraldi.segmentation as seg
 import esmraldi.imageutils as utils
 import esmraldi.imzmlio as io

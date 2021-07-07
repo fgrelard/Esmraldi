@@ -1,3 +1,8 @@
+"""
+Very basic 2D viewer, allowing to pick pixels
+and select m/z
+"""
+
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt

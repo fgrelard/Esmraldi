@@ -1,3 +1,6 @@
+"""
+Fast Map test
+"""
 import numpy as np
 from esmraldi.fastmap import FastMap
 from sklearn.metrics import pairwise_distances

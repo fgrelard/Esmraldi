@@ -15,7 +15,22 @@ import bresenham as bresenham
 import math
 
 def center_images(images, size):
+    """
+    Center 2D images w.r.t. to the center of the image size,
+    and superimpose them to create a 3D volume
 
+    Parameters
+    ----------
+    images: list
+        list of 2D images
+    size: tuple
+        desired image size
+
+    Returns
+    ----------
+    np.ndarray
+        superimposed 2D images
+    """
     shape_3D = size + (len(images),)
     image_3D = np.zeros(shape_3D)
     for i in range(len(images)):
@@ -51,6 +66,9 @@ def resize(image, size):
     return resized_itk
 
 def max_area_slices(image):
+    """
+    Get largest area
+    """
     max_area = 0
     for i in range(image.shape[-1]):
         im = image[..., i]
@@ -60,6 +78,9 @@ def max_area_slices(image):
     return max_area
 
 def relative_area(image):
+    """
+    Get area relative to largest area
+    """
     max_area = max_area_slices(image)
     relative_area_image = []
     for i in range(image.shape[-1]):
@@ -70,6 +91,9 @@ def relative_area(image):
     return np.array(relative_area_image)
 
 def enforce_continuity_values(sequence):
+    """
+    Enforce monotonic distribution of sequence
+    """
     continued_sequence = np.copy(sequence)
     for i in range(1,len(sequence)-1):
         previous = sequence[i-1]
@@ -81,6 +105,28 @@ def enforce_continuity_values(sequence):
     return continued_sequence
 
 def slice_correspondences(reference, target, sigma, is_reversed=False, is_continuity=True):
+    """
+    Find slice correspondences with Dynamic Time Warping
+
+    Parameters
+    ----------
+    reference: np.ndarray
+        reference image
+    target: np.ndarray
+        target
+    sigma: float
+        gaussian standard deviation
+    is_reversed: bool
+        whether the images are reversed in the z-axis
+    is_continuity: bool
+        whether to enforce continuity (slice numbers are monotonically increasing)
+
+    Returns
+    ----------
+    np.ndarray
+        correspondence indices
+
+    """
     relative_area_reference = relative_area(reference)
     relative_area_target = relative_area(target)
 
@@ -100,6 +146,33 @@ def slice_correspondences(reference, target, sigma, is_reversed=False, is_contin
     return correspondences
 
 def slice_correspondences_manual(reference, target, resolution_reference, resolution_target, slices_reference, slices_target, is_reversed=False):
+    """
+    Find slice correspondences manually
+
+    Parameters
+    ----------
+    reference: np.ndarray
+        reference image
+    target: np.ndarray
+        target
+    resolution_reference: float
+        interslice resolution reference
+    resolution_target: float
+        interslice resolution target
+    slices_reference: list
+        slice numbers reference
+    slices_target: list
+        slice numbers target
+    is_reversed: bool
+        whether the images are reversed in the z-axis
+
+
+    Returns
+    ----------
+    np.ndarray
+        correspondence indices
+
+    """
     correspondences = []
 
     physical_slice_reference = [slice*resolution_reference for slice in slices_reference]
@@ -112,6 +185,20 @@ def slice_correspondences_manual(reference, target, resolution_reference, resolu
     return np.array(correspondences)
 
 def compute_DT(image_itk):
+    """
+    Compute DT
+
+    Parameters
+    ----------
+    image_itk: sitk.Image
+        ITK Image
+
+    Returns
+    ----------
+    sitk.Image
+        DT Image
+
+    """
     image_array = sitk.GetArrayFromImage(image_itk)
     image_bin = np.where(image_array > 0, 255, 0)
     image_dt = distance_transform_edt(image_bin)
@@ -147,6 +234,22 @@ def estimate_noise(I):
 
 
 def variance_image(image, size=3):
+    """
+    Variance image
+
+    Parameters
+    ----------
+    image: np.ndarray
+        the image
+    size: int
+        neighborhood size
+
+    Returns
+    ----------
+    np.ndarray
+        variance image
+
+    """
     image_mean = uniform_filter(image.astype(float), (size,size))
     image_mean_sq = uniform_filter(image.astype(float)**2, (size,size))
     image_var = image_mean_sq - image_mean**2
@@ -154,26 +257,106 @@ def variance_image(image, size=3):
     return image_var
 
 def stddev_image(image, size=3):
+    """
+    Standard deviation image
+
+    Parameters
+    ----------
+    image: np.ndarray
+        the image
+    size: int
+        neighborhood size
+
+    Returns
+    ----------
+    np.ndarray
+        stddev image
+    """
     image_var = variance_image(image, size)
     return np.sqrt(image_var)
 
 def mse_numpy(fixed_array, moving_array):
+    """
+    Mean squared error on numpy arrays
+
+    Parameters
+    ----------
+    fixed_array: np.ndarray
+        image 1
+    moving_array: np.ndarray
+        image 2
+
+    Returns
+    ----------
+    float
+        Mean squared error between images
+    """
     diff_sq = (moving_array - fixed_array) ** 2
     return np.mean(diff_sq)
 
 def mse(fixed, moving):
+    """
+    Mean squared error on ITK Images
+
+    Parameters
+    ----------
+    fixed: sitk.Image
+        image 1
+    moving: sitk.Image
+        image 2
+
+    Returns
+    ----------
+    float
+        Mean squared error between images
+
+    """
     fixed_array = sitk.GetArrayFromImage(fixed)
     moving_array = sitk.GetArrayFromImage(moving)
     return mse_numpy(fixed_array, moving_array)
 
 
 def dt_mse(fixed, moving):
+    """
+    Mean squared error on distance transformed
+    ITK images
+
+    Parameters
+    ----------
+    fixed: sitk.Image
+        image 1
+    moving: sitk.Image
+        image 2
+
+    Returns
+    ----------
+    float
+        Mean squared error between DT images
+
+    """
     moving_dt = compute_DT(moving)
     fixed_array = sitk.GetArrayFromImage(fixed)
     moving_dt_array = sitk.GetArrayFromImage(moving_dt)
     return mse_numpy(fixed_array, moving_dt_array)
 
 def mse_stddev(fixed, moving):
+    """
+    Mean squared error on stddev
+    ITK images
+
+    Parameters
+    ----------
+    fixed: sitk.Image
+        image 1
+    moving: sitk.Image
+        image 2
+
+    Returns
+    ----------
+    float
+        Mean squared error between stddev images
+
+    """
     fixed_array = sitk.GetArrayFromImage(fixed)
     moving_array = sitk.GetArrayFromImage(moving)
     fixed_stddev = stddev_image(fixed_array)
@@ -181,6 +364,21 @@ def mse_stddev(fixed, moving):
     return mse_numpy(fixed_stddev, moving_stddev)
 
 def radius_maximal_balls(image):
+    """
+    Computes an image which maps each point to the radius of its enclosing
+    maximal ball
+
+    Parameters
+    ----------
+    image: np.ndarray
+        the image
+
+    Returns
+    ----------
+    np.ndarray
+        maximal ball radii map
+
+    """
     dt_image = compute_DT(image)
     dt_array = sitk.GetArrayFromImage(dt_image)
     sorted_ind = np.argsort(dt_array, axis=None)
@@ -201,8 +399,47 @@ def radius_maximal_balls(image):
         local_max_dt[current_disk] = current_value
     return local_max_dt
 
+def normalized_dt(image):
+    """
+    Normalized distance transformation
+    by the maximal ball radii
+
+    Parameters
+    ----------
+    image: np.ndarray
+        input image
+
+    Returns
+    ----------
+    np.ndarray
+        normalized dt
+
+    """
+    dt_image = compute_DT(image)
+    local_max_dt = radius_maximal_balls(image)
+    image_array = sitk.GetArrayFromImage(image)
+    normalized_dt_image = np.zeros_like(image_array)
+    np.divide(sitk.GetArrayFromImage(dt_image), local_max_dt, out=normalized_dt_image, where=local_max_dt!=0)
+    normalized_dt_itk = sitk.GetImageFromArray(normalized_dt_image**2)
+    return normalized_dt_itk
+
+
 
 def local_max_dt(image):
+    """
+    Identify local maxima in the distance
+    transformed ITK image
+
+    Parameters
+    ----------
+    image: sitk.Image
+        input image
+
+    Returns
+    ----------
+    np.ndarray
+        local maxima map, where local maxima = 1
+    """
     dt_image = compute_DT(image)
     dt_array = sitk.GetArrayFromImage(dt_image)
     indices = feature.peak_local_max(dt_array, 1)
@@ -212,14 +449,6 @@ def local_max_dt(image):
     local_max_itk = sitk.GetImageFromArray(local_max)
     return local_max_itk
 
-def normalized_dt(image):
-    dt_image = compute_DT(image)
-    local_max_dt = radius_maximal_balls(image)
-    image_array = sitk.GetArrayFromImage(image)
-    normalized_dt_image = np.zeros_like(image_array)
-    np.divide(sitk.GetArrayFromImage(dt_image), local_max_dt, out=normalized_dt_image, where=local_max_dt!=0)
-    normalized_dt_itk = sitk.GetImageFromArray(normalized_dt_image**2)
-    return normalized_dt_itk
 
 def export_figure_matplotlib(f_name, arr, arr2=None, dpi=200, resize_fact=1, plt_show=False):
     """
@@ -246,6 +475,23 @@ def export_figure_matplotlib(f_name, arr, arr2=None, dpi=200, resize_fact=1, plt
 
 
 def voronoi_diagram(points, shape):
+    """
+    Computes simple Voronoi diagram
+
+    Parameters
+    ----------
+    points: np.ndarray
+        sites
+    shape: tuple
+        shape of image
+
+
+    Returns
+    ----------
+    np.ndarray
+        Voronoi diagram as union of Voronoi cells
+
+    """
     width, height = shape
     centers_x, centers_y = points[:, 0], points[:, 1]
     # Create grid containing all pixel locations in image
@@ -263,6 +509,25 @@ def voronoi_diagram(points, shape):
     return indices.T
 
 def simple_vcm(voronoi, point, r):
+    """
+    Basic and Simplified Voronoi Covariance Measure
+
+    Parameters
+    ----------
+    voronoi: tuple
+        sites and associated Voronoi cells
+    point: tuple
+        point where to estimate VCM
+    r: radius
+        local radius for VCM
+
+    Returns
+    ----------
+    tuple
+        Eigenvectors associated to the Voronoi cell shape + max distance in cells
+
+    """
+
     #Find cells in disk of radius r
     sites, cells = voronoi
     rr, cc = draw.disk(point, r, shape=cells.shape)
@@ -291,6 +556,21 @@ def simple_vcm(voronoi, point, r):
 
 
 def estimate_plane(obj, voronoi, point, max_r=np.inf):
+    """
+    Normal plane estimation with VCM
+
+    Parameters
+    ----------
+    obj: np.ndarray
+        object
+    voronoi: tuple
+        sites, and associated Voronoi cells
+    point: tuple
+        point where to estimate plane
+    max_r: int
+        maximum bounding radius for Voronoi cells (big R)
+
+    """
     sites, cells = voronoi
     eigvecs, d_max = simple_vcm(voronoi, point, 2.0)
     d_max = min(d_max, max_r)
@@ -315,6 +595,19 @@ def estimate_plane(obj, voronoi, point, max_r=np.inf):
     return plane, d_max
 
 def local_radius(image):
+    """
+    Local radius from VCM plane estimation
+
+    Parameters
+    ----------
+    image: np.ndarray
+        image
+
+    Returns
+    ----------
+    np.ndarray
+        Local radius map
+    """
     edges = feature.canny(image)
     obj = np.argwhere(image > 0)
     sites = np.argwhere(edges > 0)

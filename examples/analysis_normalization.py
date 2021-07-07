@@ -1,3 +1,9 @@
+"""
+Example file to compare normalization
+methods, with median as reference
+
+"""
+
 import argparse
 import esmraldi.imzmlio as io
 import esmraldi.spectraprocessing as sp

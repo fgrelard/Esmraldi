@@ -1,3 +1,9 @@
+"""
+Quantification of the similarity
+between image and its projection
+in a reduced space (from component images)
+Uses RMSE of standard deviations
+"""
 import argparse
 import SimpleITK as sitk
 import numpy as np

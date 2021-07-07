@@ -284,15 +284,44 @@ def get_score(model, data, scorer=metrics.explained_variance_score):
 
 
 def reconstruct_image_from_components(components, weights):
+    """
+    Synthetic image from a vector and components
+    from a dimension reduction method
+
+    Parameters
+    ----------
+    components: np.ndarray
+        Component images
+    weights: np.ndarray
+        point
+
+    Returns
+    ----------
+    np.ndarray
+        synthetic image
+    """
     return np.sum([components[..., i].T * weights[i] for i in range(len(weights))], axis=0)
 
 def closest_pixels_cosine(image1, image2):
+    """
+    Find closest pixels using cosine measure
+    Spatial localization
+
+    Parameters
+    ----------
+    image1: np.ndarray
+        image 1
+    image2: np.ndarray
+        image 2
+
+    Returns
+    ----------
+    np.ndarray
+        indices of pixels ordered by similarity
+    """
     indices = np.where((image1 != 0) & (image2 != 0))[0]
     image1_positive = np.float64(image1[indices])
     image2_positive = np.float64(image2[indices])
-    print(np.linalg.norm(image1_positive.flatten()))
-    print(image1_positive.max())
-    print(image2_positive.max())
     image1_positive /= np.linalg.norm(image1_positive.flatten())
     image2_positive /= np.linalg.norm(image2_positive.flatten())
     abs_diff = np.abs(image1_positive - image2_positive)
@@ -301,6 +330,24 @@ def closest_pixels_cosine(image1, image2):
     return indices[indices_abs_diff]
 
 def cosine_neighborhood(image1, image2, r):
+    """
+    Cosine similarity taking a neighborhood into account
+
+    Parameters
+    ----------
+    image1: np.ndarray
+        image 1
+    image2: np.ndarray
+        image 2
+    r: int
+        radius of neighborhood
+
+    Returns
+    ----------
+    float
+        local cosine similarity
+
+    """
     size = (2*r+1)**2
     shape = np.prod(image1.shape[:-1])*size
     image1_neighborhood = np.zeros((image1.shape[-1], shape))
@@ -324,6 +371,24 @@ def cosine_neighborhood(image1, image2, r):
 
 
 def explaining_eigenvector(image_eigenvectors, weights_target, weights_reference):
+    """
+    Finding the most contributing eigenvector
+    (or component image) in the target
+
+    Parameters
+    ----------
+    image_eigenvectors: np.ndarray
+        component images
+    weights_target: np.ndarray
+        weight vector of target (NMF coordinates)
+    weights_reference: np.ndarray
+        weight vector of reference (NMF coordinates)
+
+    Returns
+    ----------
+    np.ndarray
+        the component image which explains target w.r.t reference
+    """
     diff_w = np.abs(weights_target - weights_reference)/np.minimum(weights_target, weights_reference)
     sorted_index = diff_w.argsort()
     reconstruction = np.zeros_like(image_eigenvectors[..., 0])
@@ -342,6 +407,27 @@ def explaining_eigenvector(image_eigenvectors, weights_target, weights_reference
     return image_eigenvectors[..., sorted_index[0]]
 
 def closest_reconstruction(image, image1, image2, image_eigenvectors, image_eigenvectors_2=None):
+    """
+    Find proximities based on the similarity between projection images.
+
+    Parameters
+    ----------
+    image: np.ndarray
+        None
+    image1: np.ndarray
+        reference image
+    image2: np.ndarray
+        target image
+    image_eigenvectors: np.ndarray
+        component images associated to image 1
+    image_eigenvectors_2: np.ndarray
+        component images associated to image 2, if different
+
+    Returns
+    ----------
+    np.ndarray
+        average differences between reconstructions for each image
+    """
     if image_eigenvectors_2 is None:
         image_eigenvectors_2 = image_eigenvectors
     w_2 = image2 / np.sum(image2)
@@ -353,16 +439,24 @@ def closest_reconstruction(image, image1, image2, image_eigenvectors, image_eige
         reconstructed_image = reconstruct_image_from_components(image_eigenvectors, w.T)
         reconstructed_image = imzmlio.normalize(reconstructed_image)
         diff[index] = np.mean(np.abs(reconstructed_image2 - reconstructed_image))
-        # fig, ax = plt.subplots(1,3)
-        # print(np.mean(np.abs(image[..., index].T - reconstructed_image)), diff[index], w)
-        # ax[0].imshow(image[..., index].T)
-        # ax[1].imshow(reconstructed_image2)
-        # ax[2].imshow(reconstructed_image)
-        # plt.show()
-
     return diff
 
 def remove_indices(image):
+    """
+    Utility function to remove images
+    with only 0 intensities of if the median value
+    is the maximum value
+
+    Parameters
+    ----------
+    image: np.ndarray
+        image
+
+    Returns
+    ----------
+    list
+        indices to remove
+    """
     to_remove = []
     for i in range(image.shape[-1]):
         current_image = image[..., i]
