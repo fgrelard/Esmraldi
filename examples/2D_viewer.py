@@ -14,7 +14,6 @@ def onclick(event):
     x,y = int(event.xdata), int(event.ydata)
 
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input ITK image or imzML file")
 parser.add_argument("--memmap", help="Create and read a memmap file", action="store_true")
@@ -25,7 +24,7 @@ inputname = args.input
 is_memmap = args.memmap
 
 
-if inputname.endswith(".imzML"):
+if inputname.lower().endswith(".imzml"):
     memmap_dir = os.path.dirname(inputname) + os.path.sep + "mmap" + os.path.sep
     memmap_basename = os.path.splitext(os.path.basename(inputname))[0]
     memmap_image_filename = memmap_dir + memmap_basename + ".npy"
@@ -52,6 +51,7 @@ if inputname.endswith(".imzML"):
             np.save(memmap_image_filename, image)
             np.save(memmap_spectra_filename, spectra)
 
+print(image)
 if len(image.shape) == 4:
     image = image[0, ...]
 
