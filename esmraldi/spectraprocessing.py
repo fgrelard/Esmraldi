@@ -50,7 +50,7 @@ def spectra_mean(spectra):
         Mean spectrum
 
     """
-    spectra_mean = [0 for i in range(len(spectra[0][0]))]
+    spectra_mean = np.array([0 for i in range(len(spectra[0][0]))])
     for x, y in spectra:
         spectra_mean = np.add(spectra_mean, y)
     spectra_mean /= len(spectra)

@@ -31,9 +31,11 @@ class SpectralViewer(object):
         self.ind = 0
 
         self.mzs = spectra[0, 0, ...]
-        self.mean_spectrum = sp.spectra_mean(spectra)
+        # self.mean_spectrum = sp.spectra_mean(spectra)
+        self.mean_spectrum = self.mzs.copy()
 
-        self.im = self.ax[0].imshow(self.X[..., 0], **kwargs)
+        current_slice = self.X[..., 0]
+        self.im = self.ax[0].imshow(current_slice, **kwargs)
         self.plot, = self.ax[1].plot(self.mzs, self.mean_spectrum)
 
         self.spectrum, = self.ax[2].plot([],[])

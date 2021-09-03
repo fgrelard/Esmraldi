@@ -10,6 +10,7 @@ import numpy as np
 import nibabel as nib
 import os
 import cv2 as cv
+from esmraldi.sparsematrix import SparseMatrix
 
 def open_imzml(filename):
     """
@@ -84,11 +85,28 @@ def get_full_spectra(imzml):
 
     full_spectra = np.zeros((max_x*max_y*max_z, 2, number_points))
     full_spectra[:,0,:] = mzs
+
+
+    spectra = get_spectra(imzml)
+    mzs = spectra[:, 0]
+    if len(spectra.shape) == 2:
+        #different dimensions
+        unique_mzs, indices_mzs = np.unique(np.hstack(mzs), return_inverse=True)
+        number_points = len(unique_mzs)
+        pixel_numbers = np.hstack([np.repeat(i, len(mzs[i])) for i in range(len(mzs))])
+        imsize = max_x*max_y*max_z
+        shape = (imsize, 2, number_points)
+        coordinates = np.array([(pixel_numbers[i], j, indices_mzs[i]) for j in range(2) for i in range(len(pixel_numbers))]).T
+        full_spectra_sparse = SparseMatrix(coordinates, np.hstack(spectra.flatten()), shape)
+        return full_spectra_sparse
+
     for i, (x, y, z) in enumerate(imzml.coordinates):
         real_index = (x-1) + (y-1) * max_x + (z-1) * max_x * max_y
         mz, ints = imzml.getspectrum(i)
         full_spectra[real_index, 0] = mz
         full_spectra[real_index, 1] = ints
+
+
     return full_spectra
 
 
@@ -218,7 +236,7 @@ def get_images_from_spectra(spectra, shape):
     new_shape = shape
     if shape[-1] == 1:
         new_shape = shape[:-1]
-    image = np.reshape(intensities, new_shape + (intensities.shape[-1],), order="F")
+        image = np.reshape(intensities, new_shape + (intensities.shape[-1],))
     return image
 
 def get_image(imzml, mz, tol=0.01):

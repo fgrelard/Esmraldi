@@ -51,12 +51,11 @@ if inputname.lower().endswith(".imzml"):
             np.save(memmap_image_filename, image)
             np.save(memmap_spectra_filename, spectra)
 
-print(image)
 if len(image.shape) == 4:
     image = image[0, ...]
 
 image = image.transpose((1, 0, 2))
-print(spectra.shape)
+# print(spectra.shape)
 fig, ax = plt.subplots(3, 1)
 tracker = SpectralViewer(ax, image, spectra)
 fig.canvas.mpl_connect('button_press_event', tracker.onclick)
