@@ -17,7 +17,6 @@ class SparseMatrix(COO):
     def __add__(self, other):
         if np.isscalar(other) or self.data.shape != other.data.shape:
             return self.todense() + other
-        print(type(self))
         return self.todense() + other.todense()
 
     def __sub__(self, other):
@@ -79,17 +78,42 @@ class SparseMatrix(COO):
         return self ** other
 
     def __getitem__(self, key):
-        print("coucou")
-        array = self.todense()
-        return array[key]
+        restricted_self = COO.__getitem__(self, key)
+        try:
+            value = restricted_self.maybe_densify(max_size=1e7)
+        except ValueError as ve:
+            value = SparseMatrix(restricted_self)
+            # value = COO.__getitem__(array, key)
+        return value
 
     def __setitem__(self, key, value):
-        array = self.todense()
-        print(key, type(array), type(self.data), type(self.todense()))
-        array[key] = value
-        self.data = array
+        try:
+            array = self.maybe_densify(max_size=1e7)
+            array[key] = value
+            newself = self.from_numpy(array)
+            self.data = newself.data
+            self.coords = newself.coords
+        except ValueError as ve:
+            array = self
+            COO.__setitem__(array, key, value)
 
     def __delitem__(self, key):
-        array = self.todense().data
-        del array[key]
-        self.from_numpy(array)
+        try:
+            array = self.maybe_densify(max_size=1e7)
+            del array[key]
+            self.from_numpy(array)
+        except ValueError as ve:
+            array = self
+            COO.__delitem__(array, key)
+
+    def transpose(self, axes=None):
+        cooT = super().transpose(axes)
+        return SparseMatrix(cooT)
+
+    def flatten(self, order="C"):
+        cooF = super().flatten(order)
+        return SparseMatrix(cooF)
+
+    def reshape(self, shape, order="C"):
+        cooR = super().reshape(shape, order)
+        return SparseMatrix(cooR)

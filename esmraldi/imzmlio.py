@@ -237,6 +237,7 @@ def get_images_from_spectra(spectra, shape):
     if shape[-1] == 1:
         new_shape = shape[:-1]
         image = np.reshape(intensities, new_shape + (intensities.shape[-1],))
+    print(type(image), type(intensities))
     return image
 
 def get_image(imzml, mz, tol=0.01):

@@ -23,7 +23,6 @@ args = parser.parse_args()
 inputname = args.input
 is_memmap = args.memmap
 
-
 if inputname.lower().endswith(".imzml"):
     memmap_dir = os.path.dirname(inputname) + os.path.sep + "mmap" + os.path.sep
     memmap_basename = os.path.splitext(os.path.basename(inputname))[0]
