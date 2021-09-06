@@ -5,10 +5,10 @@ Simple 2D viewer for MS images
 import numpy as np
 import esmraldi.spectraprocessing as sp
 import matplotlib.pyplot as plt
-
+import bisect
 
 class SpectralViewer(object):
-    def __init__(self, ax, X, spectra, **kwargs):
+    def __init__(self, ax, X, spectra, tol=0.5, **kwargs):
         """
         Parameters
         ----------
@@ -29,8 +29,11 @@ class SpectralViewer(object):
         self.X = X
         self.spectra = spectra
         self.ind = 0
+        self.tol = tol
 
-        self.mzs = spectra[0, 0, ...]
+        all_mzs = spectra[:, 0, ...]
+        self.mzs = np.unique(all_mzs[np.nonzero(all_mzs)])
+        print(np.sort(self.mzs))
         # self.mean_spectrum = sp.spectra_mean(spectra)
         self.mean_spectrum = self.mzs.copy()
 
@@ -89,7 +92,29 @@ class SpectralViewer(object):
         self: type
             description
         """
-        self.im.set_data(self.X[..., self.ind])
+        current_mz = self.mzs[self.ind]
+        current_mz = 883.534
+        min_mz = current_mz - self.tol
+        max_mz = current_mz + self.tol
+        print(len(self.mzs), self.X.shape)
+        mask = (self.mzs > min_mz) & (self.mzs < max_mz)
+        no_intersection = not mask.any()
+        if no_intersection:
+            mask_index = min(bisect.bisect_left(self.mzs, current_mz), len(self.mzs)-1)
+            if mask_index > 0 and \
+               abs(self.mzs[mask_index-1]-current_mz) < \
+               abs(self.mzs[mask_index]-current_mz):
+                mask_index = mask_index-1
+            if mask_index < len(self.mzs) - 1 and \
+               abs(self.mzs[mask_index+1]-current_mz) < \
+               abs(self.mzs[mask_index]-current_mz):
+                mask_index = mask_index+1
+            mask[mask_index] = True
+        indices = np.argwhere(mask == True)
+        print(self.X[..., indices.flatten()].shape)
+        num = np.mean(self.X[..., indices.flatten()], axis=-1)
+        self.im.set_data(num)
+        self.im.set_clim(0, num.max())
         self.im.axes.get_xaxis().set_visible(False)
         self.im.axes.get_yaxis().set_visible(False)
         self.ax[0].set_title('m/z %s' % self.mzs[self.ind])

@@ -16,12 +16,14 @@ def onclick(event):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input ITK image or imzML file")
+parser.add_argument("-t", "--tolerance", help="m/z tolerance", default=0.5)
 parser.add_argument("--memmap", help="Create and read a memmap file", action="store_true")
 
 args = parser.parse_args()
 
 inputname = args.input
 is_memmap = args.memmap
+tolerance = float(args.tolerance)
 
 if inputname.lower().endswith(".imzml"):
     memmap_dir = os.path.dirname(inputname) + os.path.sep + "mmap" + os.path.sep
@@ -54,8 +56,12 @@ if len(image.shape) == 4:
     image = image[0, ...]
 
 image = image.transpose((1, 0, 2))
+
+# im = np.mean(image[..., 4500:5000], axis=-1)
+# plt.imshow(im)
+# plt.show()
 # print(spectra.shape)
 fig, ax = plt.subplots(3, 1)
-tracker = SpectralViewer(ax, image, spectra)
+tracker = SpectralViewer(ax, image, spectra, tol=tolerance)
 fig.canvas.mpl_connect('button_press_event', tracker.onclick)
 plt.show()

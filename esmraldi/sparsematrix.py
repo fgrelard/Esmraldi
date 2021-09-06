@@ -1,5 +1,10 @@
-from sparse import COO
 import numpy as np
+
+import operator
+
+from sparse import COO
+from collections.abc import Iterable, Iterator, Sized
+from functools import reduce
 
 class SparseMatrix(COO):
 
@@ -82,8 +87,11 @@ class SparseMatrix(COO):
         try:
             value = restricted_self.maybe_densify(max_size=1e7)
         except ValueError as ve:
+            #If array
             value = SparseMatrix(restricted_self)
-            # value = COO.__getitem__(array, key)
+        except Exception as e:
+            #If Number
+            value = restricted_self
         return value
 
     def __setitem__(self, key, value):
@@ -115,5 +123,48 @@ class SparseMatrix(COO):
         return SparseMatrix(cooF)
 
     def reshape(self, shape, order="C"):
-        cooR = super().reshape(shape, order)
+        if order == "F":
+            print("F")
+            if isinstance(shape, Iterable):
+                shape = tuple(shape)
+            else:
+                shape = (shape,)
+
+            if self.shape == shape:
+                return self
+            if any(d == -1 for d in shape):
+                extra = int(self.size / np.prod([d for d in shape if d != -1]))
+                shape = tuple([d if d != -1 else extra for d in shape])
+
+            if self.size != reduce(operator.mul, shape, 1):
+                raise ValueError(
+                    "cannot reshape array of size {} into shape {}".format(self.size, shape)
+                )
+
+            if self._cache is not None:
+                for sh, value in self._cache["reshape"]:
+                    if sh == shape:
+                        return value
+
+            # TODO: this self.size enforces a 2**64 limit to array size
+            linear_loc = self.linear_loc()
+
+            idx_dtype = self.coords.dtype
+            coords = np.empty((len(shape), self.nnz), dtype=idx_dtype)
+            strides = 1
+            for i, d in enumerate(shape):
+                coords[i, :] = (linear_loc // strides) % d
+                strides *= d
+
+            cooR = COO(
+                coords,
+                self.data,
+                shape,
+                has_duplicates=False,
+                sorted=True,
+                cache=self._cache is not None,
+                fill_value=self.fill_value,
+            )
+        else:
+            cooR = super().reshape(shape, order)
         return SparseMatrix(cooR)

@@ -10,6 +10,7 @@ import numpy as np
 import nibabel as nib
 import os
 import cv2 as cv
+import warnings
 from esmraldi.sparsematrix import SparseMatrix
 
 def open_imzml(filename):
@@ -27,7 +28,9 @@ def open_imzml(filename):
         parser of file
 
     """
-    return imzmlparser.ImzMLParser(filename)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        return imzmlparser.ImzMLParser(filename)
 
 def write_imzml(mzs, intensities, coordinates, filename):
     """
@@ -97,7 +100,9 @@ def get_full_spectra(imzml):
         imsize = max_x*max_y*max_z
         shape = (imsize, 2, number_points)
         coordinates = np.array([(pixel_numbers[i], j, indices_mzs[i]) for j in range(2) for i in range(len(pixel_numbers))]).T
-        full_spectra_sparse = SparseMatrix(coordinates, np.hstack(spectra.flatten()), shape)
+        print(coordinates[-1,:29])
+        print("coucou", unique_mzs[coordinates[-1, :29]], mzs[0])
+        full_spectra_sparse = SparseMatrix(coordinates, np.hstack(spectra.T.flatten()), shape)
         return full_spectra_sparse
 
     for i, (x, y, z) in enumerate(imzml.coordinates):
@@ -234,10 +239,10 @@ def get_images_from_spectra(spectra, shape):
     """
     intensities = spectra[:, 1, :]
     new_shape = shape
+    print(shape)
     if shape[-1] == 1:
         new_shape = shape[:-1]
-        image = np.reshape(intensities, new_shape + (intensities.shape[-1],))
-    print(type(image), type(intensities))
+    image = np.reshape(intensities, new_shape + (intensities.shape[-1],), order='F')
     return image
 
 def get_image(imzml, mz, tol=0.01):

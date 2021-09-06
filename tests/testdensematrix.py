@@ -23,4 +23,13 @@ x=x+s
 # print(s.mean())
 print(type(s))
 s[..., 3]= 123
+print(type(s))
 print(s[0,0,3])
+
+array = np.arange(24)
+to_reshape = sparse.SparseMatrix.from_numpy(array)
+shape = (6,4)
+order = 'F'
+reshaped = to_reshape.reshape(shape, order=order)
+np_reshaped = array.reshape(shape, order=order)
+print(reshaped.todense(), "\n", np_reshaped)
