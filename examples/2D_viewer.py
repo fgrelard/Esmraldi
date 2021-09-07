@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import os
 import esmraldi.imzmlio as imzmlio
 from esmraldi.spectralviewer import SpectralViewer
+from esmraldi.sparsematrix import SparseMatrix
 
 def onclick(event):
     x,y = int(event.xdata), int(event.ydata)
@@ -57,10 +58,6 @@ if len(image.shape) == 4:
 
 image = image.transpose((1, 0, 2))
 
-# im = np.mean(image[..., 4500:5000], axis=-1)
-# plt.imshow(im)
-# plt.show()
-# print(spectra.shape)
 fig, ax = plt.subplots(3, 1)
 tracker = SpectralViewer(ax, image, spectra, tol=tolerance)
 fig.canvas.mpl_connect('button_press_event', tracker.onclick)

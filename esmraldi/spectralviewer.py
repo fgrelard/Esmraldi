@@ -33,9 +33,7 @@ class SpectralViewer(object):
 
         all_mzs = spectra[:, 0, ...]
         self.mzs = np.unique(all_mzs[np.nonzero(all_mzs)])
-        print(np.sort(self.mzs))
-        # self.mean_spectrum = sp.spectra_mean(spectra)
-        self.mean_spectrum = self.mzs.copy()
+        self.mean_spectrum = sp.spectra_mean(spectra)
 
         current_slice = self.X[..., 0]
         self.im = self.ax[0].imshow(current_slice, **kwargs)
@@ -93,10 +91,8 @@ class SpectralViewer(object):
             description
         """
         current_mz = self.mzs[self.ind]
-        current_mz = 883.534
         min_mz = current_mz - self.tol
         max_mz = current_mz + self.tol
-        print(len(self.mzs), self.X.shape)
         mask = (self.mzs > min_mz) & (self.mzs < max_mz)
         no_intersection = not mask.any()
         if no_intersection:
@@ -111,7 +107,7 @@ class SpectralViewer(object):
                 mask_index = mask_index+1
             mask[mask_index] = True
         indices = np.argwhere(mask == True)
-        print(self.X[..., indices.flatten()].shape)
+        reduced = self.spectra[:, :, indices.flatten()]
         num = np.mean(self.X[..., indices.flatten()], axis=-1)
         self.im.set_data(num)
         self.im.set_clim(0, num.max())

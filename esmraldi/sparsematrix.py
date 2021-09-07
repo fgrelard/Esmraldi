@@ -2,7 +2,7 @@ import numpy as np
 
 import operator
 
-from sparse import COO
+from sparse import COO, DOK
 from collections.abc import Iterable, Iterator, Sized
 from functools import reduce
 
@@ -99,20 +99,13 @@ class SparseMatrix(COO):
             array = self.maybe_densify(max_size=1e7)
             array[key] = value
             newself = self.from_numpy(array)
-            self.data = newself.data
-            self.coords = newself.coords
         except ValueError as ve:
-            array = self
-            COO.__setitem__(array, key, value)
+            array = self.asformat("dok")
+            array[key] = value
+            newself = SparseMatrix(array.asformat("coo"))
+        self.data = newself.data
+        self.coords = newself.coords
 
-    def __delitem__(self, key):
-        try:
-            array = self.maybe_densify(max_size=1e7)
-            del array[key]
-            self.from_numpy(array)
-        except ValueError as ve:
-            array = self
-            COO.__delitem__(array, key)
 
     def transpose(self, axes=None):
         cooT = super().transpose(axes)
@@ -124,7 +117,6 @@ class SparseMatrix(COO):
 
     def reshape(self, shape, order="C"):
         if order == "F":
-            print("F")
             if isinstance(shape, Iterable):
                 shape = tuple(shape)
             else:
@@ -147,7 +139,7 @@ class SparseMatrix(COO):
                         return value
 
             # TODO: this self.size enforces a 2**64 limit to array size
-            linear_loc = self.linear_loc()
+            linear_loc = np.ravel_multi_index(self.coords, self.shape, order="F")
 
             idx_dtype = self.coords.dtype
             coords = np.empty((len(shape), self.nnz), dtype=idx_dtype)
