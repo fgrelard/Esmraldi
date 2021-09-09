@@ -11,7 +11,13 @@ import nibabel as nib
 import os
 import cv2 as cv
 import warnings
+import bisect
+import matplotlib.pyplot as plt
+
+
+
 from esmraldi.sparsematrix import SparseMatrix
+from sparse import COO
 
 def open_imzml(filename):
     """
@@ -89,7 +95,6 @@ def get_full_spectra(imzml):
     full_spectra = np.zeros((max_x*max_y*max_z, 2, number_points))
     full_spectra[:,0,:] = mzs
 
-
     spectra = get_spectra(imzml)
     mzs = spectra[:, 0]
     if len(spectra.shape) == 2:
@@ -133,7 +138,9 @@ def get_spectra(imzml, pixel_numbers=[]):
         if (len(pixel_numbers) > 0 and i in pixel_numbers) or len(pixel_numbers) == 0:
             mz, ints = imzml.getspectrum(i)
             spectra.append([mz, ints])
-    return np.asarray(spectra)
+    if spectra and not all(len(l[0]) == len(spectra[0][0]) for l in spectra):
+        return np.array(spectra, dtype=object)
+    return np.array(spectra)
 
 def get_spectra_intensities(imzml, pixel_numbers=[]):
     """
@@ -180,7 +187,9 @@ def get_spectra_mzs(imzml, pixel_numbers=[]):
     return spectra
 
 
-def get_spectra_from_images(images):
+
+
+def get_spectra_from_images(images, full=False):
     """
     Extracts spectra intensities and coordinates
     from numpy array
@@ -201,11 +210,10 @@ def get_spectra_from_images(images):
     coordinates = []
     intensities = []
     index_max = shape[:-1] if len(shape)==4 else shape[:-1] + (1,)
-
     for index in np.ndindex(shape[:-1]):
         xy_index = index + (slice(None),)
         I = images[xy_index]
-        if I.any():
+        if full or I.any():
             index_3D = index if len(index) == 3 else index + (0, )
             add_tuple = (1, 1, 1)
             imzml_index = tuple(map(sum, zip(index_3D, add_tuple)))
@@ -309,6 +317,8 @@ def to_image_array_3D(image):
         image_list.append(images_along_z)
     img_array = np.transpose(np.asarray(image_list))
     return img_array
+g
+
 
 def to_nifti(image, filename):
     """

@@ -3,11 +3,13 @@ import numpy as np
 import operator
 
 from sparse import COO, DOK
+
 from collections.abc import Iterable, Iterator, Sized
 from functools import reduce
+from typing import Callable
+
 
 class SparseMatrix(COO):
-
     def __init__(self, coords,
         data=None,
         shape=None,
@@ -18,6 +20,7 @@ class SparseMatrix(COO):
         fill_value=None,
         idx_dtype=None):
         super().__init__(coords, data, shape, has_duplicates, sorted, prune, cache, fill_value, idx_dtype)
+        self.__class__.__name__ = "coo"
 
     def __add__(self, other):
         if np.isscalar(other) or self.data.shape != other.data.shape:
@@ -105,6 +108,17 @@ class SparseMatrix(COO):
             newself = SparseMatrix(array.asformat("coo"))
         self.data = newself.data
         self.coords = newself.coords
+
+    def broadcast_to(self, shape):
+        return SparseMatrix(super().broadcast_to(shape))
+
+    def __array_function__(self, func, types, args, kwargs):
+        print("array func", func.__name__)
+        array_func = super().__array_function__(func, types, args, kwargs)
+        try:
+            return SparseMatrix(array_func)
+        except ValueError as ve:
+            return array_func
 
 
     def transpose(self, axes=None):

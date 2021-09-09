@@ -10,6 +10,7 @@ import os
 import esmraldi.imzmlio as imzmlio
 from esmraldi.spectralviewer import SpectralViewer
 from esmraldi.sparsematrix import SparseMatrix
+from esmraldi.msimage import MSImage
 
 def onclick(event):
     x,y = int(event.xdata), int(event.ydata)
@@ -43,22 +44,14 @@ if inputname.lower().endswith(".imzml"):
         imzml = imzmlio.open_imzml(inputname)
         mz, I = imzml.getspectrum(0)
         spectra = imzmlio.get_full_spectra(imzml)
-        max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
-        max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
-        max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
-        image = imzmlio.get_images_from_spectra(spectra, (max_x, max_y, max_z))
+        msimage = MSImage(spectra, image=None, coordinates=imzml.coordinates, tolerance=tolerance)
 
         if is_memmap:
             os.makedirs(memmap_dir, exist_ok=True)
-            np.save(memmap_image_filename, image)
             np.save(memmap_spectra_filename, spectra)
 
-if len(image.shape) == 4:
-    image = image[0, ...]
-
-image = image.transpose((1, 0, 2))
 
 fig, ax = plt.subplots(3, 1)
-tracker = SpectralViewer(ax, image, spectra, tol=tolerance)
+tracker = SpectralViewer(ax, msimage)
 fig.canvas.mpl_connect('button_press_event', tracker.onclick)
 plt.show()
