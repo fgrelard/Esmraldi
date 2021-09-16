@@ -92,12 +92,12 @@ def sift(im1, im2):
         (m,k1,k2): common keypoints, keypoints in image 1, keypoints in image2
 
     """
-    sift = cv2.xfeatures2d.SIFT_create()
+    sift = cv2.SIFT_create(nfeatures=10000)
     keypoints1, descriptors1 = sift.detectAndCompute(im1, None)
     keypoints2, descriptors2 = sift.detectAndCompute(im2, None)
     FLANN_INDEX_KDTREE = 0
     index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-    search_params = dict(checks=50)   # or pass empty dictionary
+    search_params = dict(checks=30)   # or pass empty dictionary
 
     flann = cv2.FlannBasedMatcher(index_params,search_params)
 
@@ -111,8 +111,8 @@ def sift(im1, im2):
         if m.distance < 0.8*n.distance:
             matches.append(n)
             print(len(matches))
-            imMatches = cv2.drawMatches(im1,keypoints1,im2,keypoints2,matches,None)
-            cv2.imwrite("matches.jpg", imMatches)
+    imMatches = cv2.drawMatches(im1,keypoints1,im2,keypoints2,matches,None, flags=cv2.DrawMatchesFlags_DEFAULT)
+    cv2.imwrite("matches.jpg", imMatches)
     return matches, keypoints1, keypoints2
 
 def orb(im1, im2):
@@ -153,6 +153,7 @@ def orb(im1, im2):
 
     # Remove not so good matches
     numGoodMatches = int(len(matches))
+    numGoodMatches = 10
     matches = matches[:numGoodMatches]
 
     # Draw top matches

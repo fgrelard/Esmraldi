@@ -334,6 +334,37 @@ def find_best_transformation(scale_and_rotation, initial_transform, fixed, movin
 
     return metric
 
+
+def find_best_translation_scale(scale_and_translation, initial_transform, fixed, moving):
+    tx = sitk.Transform(initial_transform)
+    scale = scale_and_translation[0]
+    translation = scale_and_translation[2:]
+    parameters = list(tx.GetParameters())
+    parameters[0] = scale
+    parameters[1] = 0
+    parameters[2] = translation[0]
+    parameters[3] = translation[1]
+
+    tx.SetParameters(parameters)
+
+    #Apply transform
+    resampler = initialize_resampler(fixed, tx)
+    deformed = resampler.Execute(moving)
+
+    fixed_array = sitk.GetArrayFromImage(fixed)
+    deformed_array = sitk.GetArrayFromImage(deformed)
+    fixed_array[deformed_array==0] = 0
+
+    fixed = sitk.GetImageFromArray(fixed_array)
+
+
+    metric = mutual_information(fixed, deformed)
+    return -metric
+
+def registration_fiducial(first_points, second_points):
+    pass
+
+
 def find_best_translation(translation_vector, initial_transform, fixed, moving):
     """
     Function returning the similarity metric value
@@ -551,6 +582,7 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
         relaxationFactor=relaxation_factor,
         gradientMagnitudeTolerance = 1e-5,
         maximumStepSizeInPhysicalUnits = 0.0)
+
 
     if not find_best_rotation:
         transform = sitk.CenteredTransformInitializer(
