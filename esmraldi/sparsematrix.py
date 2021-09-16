@@ -1,12 +1,46 @@
-import numpy as np
-
 import operator
+import traceback
+import sys
+
+import numpy as np
 
 from sparse import COO, DOK
 
 from collections.abc import Iterable, Iterator, Sized
 from functools import reduce
 from typing import Callable
+
+def _find_start_end(mask):
+    signed_mask = np.array(mask, dtype=int)
+    signed_mask[signed_mask==False] = -1
+    changes = ((np.roll(np.sign(signed_mask), 1) - np.sign(signed_mask)) != 0).astype(int)
+    indices_changes = np.argwhere(changes==1).flatten()
+    slices = []
+    current_slice = []
+    for i in indices_changes:
+        if i == 0 and signed_mask[i]==-1:
+            continue
+        current_slice.append(i)
+        if (len(current_slice) == 2):
+            s = slice(current_slice[0], current_slice[1], 1)
+            current_slice = []
+            slices.append(s)
+    if len(current_slice) == 1:
+        s = slice(current_slice[0], len(mask), 1)
+        slices.append(s)
+    return tuple(slices)
+
+def delete(sparse, indices, axis=0):
+    N = sparse.shape[axis]
+    mask = np.ones(N, dtype=bool)
+    mask[indices] = False
+    full_indices = np.arange(N)
+    keep = full_indices[mask]
+    slices = _find_start_end(mask)
+    return np.concatenate([sparse[..., k] for k in slices], axis=-1)
+
+def count_nonzero(arr):
+    return arr.nnz
 
 
 class SparseMatrix(COO):
@@ -21,6 +55,7 @@ class SparseMatrix(COO):
         idx_dtype=None):
         super().__init__(coords, data, shape, has_duplicates, sorted, prune, cache, fill_value, idx_dtype)
         self.__class__.__name__ = "coo"
+        self.is_maybe_densify = True
 
     def __add__(self, other):
         if np.isscalar(other) or self.data.shape != other.data.shape:
@@ -87,14 +122,17 @@ class SparseMatrix(COO):
 
     def __getitem__(self, key):
         restricted_self = COO.__getitem__(self, key)
-        try:
-            value = restricted_self.maybe_densify(max_size=1e7)
-        except ValueError as ve:
-            #If array
+        if self.is_maybe_densify:
+            try:
+                value = restricted_self.maybe_densify(max_size=1e7)
+            except ValueError as ve:
+                #If array
+                value = SparseMatrix(restricted_self)
+            except Exception as e:
+                #If Number
+                value = restricted_self
+        else:
             value = SparseMatrix(restricted_self)
-        except Exception as e:
-            #If Number
-            value = restricted_self
         return value
 
     def __setitem__(self, key, value):
@@ -113,13 +151,30 @@ class SparseMatrix(COO):
         return SparseMatrix(super().broadcast_to(shape))
 
     def __array_function__(self, func, types, args, kwargs):
-        print("array func", func.__name__)
+        try:
+            sparse_func = getattr(sys.modules[__name__], func.__name__)
+        except:
+            pass
+        else:
+            return sparse_func(*args, **kwargs)
+
+
         array_func = super().__array_function__(func, types, args, kwargs)
         try:
             return SparseMatrix(array_func)
-        except ValueError as ve:
+        except Exception as ve:
             return array_func
 
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        array_ufunc = super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
+        try:
+            return SparseMatrix(array_ufunc)
+        except Exception as ve:
+            return array_ufunc
+
+
+    def view(self):
+        return self
 
     def transpose(self, axes=None):
         cooT = super().transpose(axes)

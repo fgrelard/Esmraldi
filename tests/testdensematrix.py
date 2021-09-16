@@ -39,6 +39,8 @@ spectra = np.load("data/test_spectra_sparse.npy")
 # mzs = np.unique(all_mzs[np.nonzero(all_mzs)])
 
 spectra_sparse = sparse.SparseMatrix(spectra)
+spectra_sparse.is_maybe_densify=False
+print(np.count_nonzero(spectra_sparse))
 print(spectra_sparse)
 
 intensities = spectra[:, 1, :]
@@ -52,7 +54,9 @@ reshape2 = intensities_sparse.todense().reshape((107,25) + (intensities_sparse.s
 image = io.get_images_from_spectra(spectra, (107,25))
 image_fromsparse = io.get_images_from_spectra(spectra_sparse, (107, 25))
 image_fromsparse = sparse.SparseMatrix(image_fromsparse)
-
+np.concatenate((image_fromsparse, image_fromsparse))
+deleted = np.delete(image_fromsparse, [0,2,3], axis=-1)
+print("Deleted", deleted.shape)
 print((spectra_sparse.todense() == spectra).all())
 print((image == reshape2).all())
 

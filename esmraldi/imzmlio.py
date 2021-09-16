@@ -317,7 +317,6 @@ def to_image_array_3D(image):
         image_list.append(images_along_z)
     img_array = np.transpose(np.asarray(image_list))
     return img_array
-g
 
 
 def to_nifti(image, filename):

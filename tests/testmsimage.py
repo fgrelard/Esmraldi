@@ -13,14 +13,17 @@ x[x < 0.9] = 0  # fill most of the array with zeros
 s = sparse.SparseMatrix(x)  # convert to sparse array
 mzs = np.arange(1000).reshape((5, 2, 100))
 
-# msx = msi.MSImage(x, mzs)
 
 msx = msi.MSImage(mzs, x)
 print(sparse.SparseMatrix(s))
 mss = msi.MSImage(mzs, s)
+
+msx = msx.astype(np.float32)
+mss = mss.astype(np.float32)
 print(type(mss), type(msx))
 
+print(mss.mzs)
 from_npy = msx.get_ion_image_index(10)
 from_sparse = mss.get_ion_image_index(10)
-print((from_npy == from_sparse).all())
 
+print((from_npy == from_sparse).all())
