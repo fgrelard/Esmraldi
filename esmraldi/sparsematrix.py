@@ -17,10 +17,12 @@ def _find_start_end(mask):
     indices_changes = np.argwhere(changes==1).flatten()
     slices = []
     current_slice = []
-    for i in indices_changes:
-        if i == 0 and signed_mask[i]==-1:
+    for i, index_change in enumerate(indices_changes):
+        if index_change == 0 and signed_mask[index_change]==-1:
             continue
-        current_slice.append(i)
+        if i == 0 and index_change != 0:
+            current_slice.append(0)
+        current_slice.append(index_change)
         if (len(current_slice) == 2):
             s = slice(current_slice[0], current_slice[1], 1)
             current_slice = []
@@ -37,25 +39,35 @@ def delete(sparse, indices, axis=0):
     full_indices = np.arange(N)
     keep = full_indices[mask]
     slices = _find_start_end(mask)
-    return np.concatenate([sparse[..., k] for k in slices], axis=-1)
+    L = []
+    for k in slices:
+        L.append(sparse[..., k])
+    return np.concatenate(L, axis=-1)
 
 def count_nonzero(arr):
     return arr.nnz
 
+def zeros(shape, dtype=float, order='C', *, like=None):
+    return SparseMatrix(coords=[], data=None, shape=shape)
+
+def zeros_like(a, dtype=None, order='C', subok='True', shape=None):
+    return zeros(a.shape, dtype, order)
+
 
 class SparseMatrix(COO):
     def __init__(self, coords,
-        data=None,
-        shape=None,
-        has_duplicates=True,
-        sorted=False,
-        prune=False,
-        cache=False,
-        fill_value=None,
-        idx_dtype=None):
+                 data=None,
+                 shape=None,
+                 has_duplicates=True,
+                 sorted=False,
+                 prune=False,
+                 cache=False,
+                 fill_value=None,
+                 idx_dtype=None,
+                 is_maybe_densify=True):
         super().__init__(coords, data, shape, has_duplicates, sorted, prune, cache, fill_value, idx_dtype)
         self.__class__.__name__ = "coo"
-        self.is_maybe_densify = True
+        self.is_maybe_densify = is_maybe_densify
 
     def __add__(self, other):
         if np.isscalar(other) or self.data.shape != other.data.shape:
@@ -132,14 +144,17 @@ class SparseMatrix(COO):
                 #If Number
                 value = restricted_self
         else:
-            value = SparseMatrix(restricted_self)
+            try:
+                value = SparseMatrix(restricted_self)
+            except Exception as e:
+                value = restricted_self
         return value
 
     def __setitem__(self, key, value):
         try:
             array = self.maybe_densify(max_size=1e7)
             array[key] = value
-            newself = self.from_numpy(array)
+            newself = COO.from_numpy(array)
         except ValueError as ve:
             array = self.asformat("dok")
             array[key] = value
@@ -158,14 +173,21 @@ class SparseMatrix(COO):
         else:
             return sparse_func(*args, **kwargs)
 
-
         array_func = super().__array_function__(func, types, args, kwargs)
         try:
             return SparseMatrix(array_func)
         except Exception as ve:
             return array_func
 
+
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        try:
+            sparse_func = getattr(sys.modules[__name__], ufunc.__name__)
+        except:
+            pass
+        else:
+            return sparse_func(*inputs, **kwargs)
+
         array_ufunc = super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
         try:
             return SparseMatrix(array_ufunc)
@@ -173,7 +195,7 @@ class SparseMatrix(COO):
             return array_ufunc
 
 
-    def view(self):
+    def view(self, dtype=None, type=None):
         return self
 
     def transpose(self, axes=None):
@@ -222,7 +244,7 @@ class SparseMatrix(COO):
                 self.data,
                 shape,
                 has_duplicates=False,
-                sorted=True,
+                sorted=False,
                 cache=self._cache is not None,
                 fill_value=self.fill_value,
             )

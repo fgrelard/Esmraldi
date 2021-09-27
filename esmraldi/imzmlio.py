@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from esmraldi.sparsematrix import SparseMatrix
 from sparse import COO
 
-def open_imzml(filename):
+def open_imzml(filename, only_metadata=False):
     """
     Opens an imzML file
 
@@ -36,7 +36,10 @@ def open_imzml(filename):
     """
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        return imzmlparser.ImzMLParser(filename)
+        ibd_file = None if only_metadata else imzmlparser.INFER_IBD_FROM_IMZML
+        return imzmlparser.ImzMLParser(filename, ibd_file=ibd_file)
+
+
 
 def write_imzml(mzs, intensities, coordinates, filename):
     """
