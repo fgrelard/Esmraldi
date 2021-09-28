@@ -39,6 +39,8 @@ spectra = np.load("data/test_spectra_sparse.npy")
 # mzs = np.unique(all_mzs[np.nonzero(all_mzs)])
 
 spectra_sparse = sparse.SparseMatrix(spectra)
+
+print("taking", np.take(spectra_sparse, [1,2,3], axis=-1).shape)
 conc = np.concatenate((spectra_sparse, spectra_sparse), axis=-1)
 
 spectra_sparse.is_maybe_densify=False

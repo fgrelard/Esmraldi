@@ -6,6 +6,7 @@ import sys
 
 import functools
 import inspect
+import numbers
 
 from esmraldi.sparsematrix import SparseMatrix
 from abc import ABC, abstractmethod
@@ -34,14 +35,31 @@ def concatenate(arrays, axis=0):
 
 class MSImageImplementation:
 
-    def __init__(self, spectra, image=None, mzs=None, tolerance=0, is_maybe_densify=False):
+    def __init__(self, spectra, image=None, mzs=None, tolerance=0, is_maybe_densify=False, spectral_axis=-1):
         if image is None and isinstance(spectra, MSImageImplementation):
             image = spectra.copy()
-            self.init_attributes(image.spectra, image.mzs, image.tolerance)
+            self.init_attributes(image.spectra, image.mzs, image.tolerance, image.spectral_axis)
         else:
-            self.init_attributes(spectra, mzs, tolerance)
+            self.init_attributes(spectra, mzs, tolerance, spectral_axis)
+        if image.shape:
+            self.image = image
+        else:
+            raise AttributeError("Please a provide a valid image")
 
-        self.image = image
+    def init_attributes(obj, spectra, mzs, tolerance, spectral_axis):
+        if mzs is None:
+            all_mzs = spectra[:, 0, ...]
+            obj.mzs = np.unique(all_mzs[np.nonzero(all_mzs)])
+        else:
+            obj.mzs = mzs
+        obj.spectra = spectra
+        obj.tolerance = tolerance
+        obj.spectral_axis = spectral_axis
+
+
+    @property
+    def dtype(self):
+        return self.image.dtype
 
     @property
     def nnz(self):
@@ -60,6 +78,14 @@ class MSImageImplementation:
         return self.image.shape
 
     @property
+    def ndim(self):
+        return self.image.ndim
+
+    @property
+    def size(self):
+        return self.image.size
+
+    @property
     def is_maybe_densify(self):
         try:
             return self.image.is_maybe_densify
@@ -68,28 +94,74 @@ class MSImageImplementation:
 
     @is_maybe_densify.setter
     def is_maybe_densify(self, value):
-        self.image.is_maybe_densify = value
+        try:
+            self.image.is_maybe_densify = value
+        except:
+            pass
         try:
             self.spectra.is_maybe_densify = value
         except:
             pass
 
-    def init_attributes(obj, spectra, mzs, tolerance):
-        if mzs is None:
-            all_mzs = spectra[:, 0, ...]
-            obj.mzs = np.unique(all_mzs[np.nonzero(all_mzs)])
+    def max(self, axis, out, keepdims):
+        return self.image.max(axis, out, keepdims)
+
+    def min(self):
+        return self.image.min(axis, out, keepdims)
+
+    def __array_function__(self, func, types, args, kwargs):
+        try:
+            sparse_func = getattr(sys.modules[__name__], func.__name__)
+        except:
+            pass
         else:
-            obj.mzs = mzs
-        obj.spectra = spectra
-        obj.tolerance = tolerance
+            return sparse_func(*args, **kwargs)
 
-
-    def set_densify(self, value):
-        self.image.is_maybe_densify = value
+        L = [arg.image if isinstance(arg, MSImageImplementation) else arg for arg in args]
+        t = [type(arg.image) if isinstance(arg, MSImageImplementation) else type(arg) for arg in args]
+        array_func = self.image.__array_function__(func, t, tuple(L), kwargs)
+        if isinstance(array_func, MSImageImplementation):
+            return MSImageImplementation(array_func)
         try:
-            self.spectra.is_maybe_densify = value
+            return MSImageImplementation(self.spectra, array_func, self.mzs, self.tolerance, is_maybe_densify=self.is_maybe_densify, spectral_axis=self.spectral_axis)
+        except Exception as ve:
+            return array_func
+
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        try:
+            sparse_func = getattr(sys.modules[__name__], ufunc.__name__)
         except:
             pass
+        else:
+            return sparse_func(*inputs, **kwargs)
+
+        L = [arg.image if isinstance(arg, MSImageImplementation) else arg for arg in inputs]
+        array_ufunc = self.image.__array_ufunc__(func, method, *L, **kwargs)
+        if isinstance(array_ufunc, self.__class__):
+            return MSImageImplementation(array_ufunc)
+        try:
+            return MSImageImplementation(self.spectra, array_ufunc, self.mzs, self.tolerance, is_maybe_densify=self.is_maybe_densify, spectral_axis=self.spectral_axis)
+        except Exception as ve:
+            return array_ufunc
+
+
+    def __getitem__(self, key):
+        is_array = isinstance(key, tuple) and any([isinstance(elem, (collections.abc.Iterable, slice)) for elem in key])
+        is_still_image = isinstance(key, numbers.Number)
+        if isinstance(key, tuple):
+            L = [isinstance(k, numbers.Number) for k in key]
+            i = iter(L)
+            is_still_image = any(i) and not any(i)
+        if self.tolerance > 0 and not is_array and is_still_image:
+            value = self.get_ion_image_index(key)
+        else:
+            value =  self.image[key]
+        if is_still_image and not self.is_maybe_densify:
+            spectra = self.spectra[key]
+            return MSImageImplementation(spectra, value, None, self.tolerance, is_maybe_densify=self.is_maybe_densify, spectral_axis=self.spectral_axis)
+        return value
+
 
     def get_ion_image_index(self, index):
         current_mz = self.mzs[index]
@@ -112,110 +184,25 @@ class MSImageImplementation:
                 mask_index = mask_index+1
             mask[mask_index] = True
         indices = np.argwhere(mask == True)
-        average_image = np.mean(self.image[..., indices.flatten()], axis=-1)
+        average_image = np.mean(np.take(self.image, indices.flatten(), axis=self.spectral_axis), axis=self.spectral_axis)
         return average_image
-
-
-    def __array_function__(self, func, types, args, kwargs):
-        try:
-            sparse_func = getattr(sys.modules[__name__], func.__name__)
-        except:
-            pass
-        else:
-            return sparse_func(*args, **kwargs)
-
-
-        array_func = self.image.__array_function__(func, types, args, kwargs)
-        if isinstance(array_func, MSImageImplementation):
-            return MSImageImplementation(array_func)
-        try:
-            return MSImageImplementation(self.spectra, array_func, self.mzs, self.tolerance, is_maybe_densify=self.is_maybe_densify)
-        except Exception as ve:
-            return array_func
-
-
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        try:
-            sparse_func = getattr(sys.modules[__name__], ufunc.__name__)
-        except:
-            pass
-        else:
-            return sparse_func(*inputs, **kwargs)
-
-        array_ufunc = self.image.__array_ufunc__(ufunc, method, *inputs, **kwargs)
-        if isinstance(array_ufunc, self.__class__):
-            return MSImageImplementation(array_ufunc)
-        try:
-            return MSImageImplementation(self.spectra, array_ufunc, self.mzs, self.tolerance, is_maybe_densify=self.is_maybe_densify)
-        except Exception as ve:
-            return array_ufunc
-
-
-    def __getitem__(self, key):
-        is_array = isinstance(key, tuple) and any([isinstance(elem, (collections.abc.Iterable, slice)) for elem in key])
-        is_still_image = isinstance(key, tuple) and all([(k==Ellipsis or k==slice(None)) for i, k in enumerate(key) if i < len(key)-1])
-        if self.tolerance > 0 and not is_array and is_still_image:
-            value = self.get_ion_image_index(key)
-        else:
-            value =  self.image[key]
-        if is_still_image and not self.is_maybe_densify:
-            spectra = self.spectra[key]
-            return MSImageImplementation(spectra, value, None, self.tolerance, is_maybe_densify=self.is_maybe_densify)
-        return value
 
 
     def astype(self, new_type, casting="unsafe",copy=True):
         ast = self.image.astype(new_type, casting=casting, copy=copy)
-        return MSImageImplementation(self.spectra, ast, self.mzs, self.tolerance)
+        return MSImageImplementation(self.spectra, ast, self.mzs, self.tolerance, self.is_maybe_densify, self.spectral_axis)
 
 
     def transpose(self, axes=None):
         tr = self.image.transpose(axes)
-        return MSImageImplementation(self.spectra, tr, self.mzs, self.tolerance)
+        return MSImageImplementation(self.spectra, tr, self.mzs, self.tolerance, self.is_maybe_densify, self.spectral_axis)
 
 
     def reshape(self, shape, order="C"):
         res = self.image.reshape(shape, order)
-        return MSImageImplementation(self.spectra, res, self.mzs, self.tolerance)
+        return MSImageImplementation(self.spectra, res, self.mzs, self.tolerance, self.is_maybe_densify, self.spectral_axis)
 
 
     def copy(self):
         copy = self.image.copy()
-        return MSImageImplementation(self.spectra, copy, self.mzs, self.tolerance)
-
-
-
-# class MSImageNPY(MSImageInterface, np.ndarray):
-#     def __new__(cls, spectra, image=None, mzs=None, tolerance=0, dtype=float, buffer=None, offset=0, strides=None, order=None, is_maybe_densify=False):
-#         np.warnings.filterwarnings('error', category=np.VisibleDeprecationWarning)
-#         if image is None:
-#             image = spectra.copy()
-#         try:
-#             return np.asarray(image).view(cls)
-#         except:
-#             return np.asarray(image, dtype="object").view(cls)
-
-#     def __array_finalize__(self, obj):
-#         if obj is None:
-#             return
-#         self.spectra = getattr(obj, "spectra", None)
-#         self.mzs = getattr(obj, "mzs", None)
-#         self.tolerance = getattr(obj, "tolerance", None)
-#         self.is_maybe_densify = getattr(obj, "is_maybe_densify", None)
-
-
-
-# class MSImageSparse(MSImageInterface, SparseMatrix):
-#     def __init__(self, spectra, image=None, mzs=None, tolerance=0, dtype=float, buffer=None, offset=0, strides=None, order=None, is_maybe_densify=False):
-#         if image is None:
-#             ms_image = spectra
-#             is_maybe_densify = ms_image.is_maybe_densify
-#             SparseMatrix.__init__(self, ms_image, is_maybe_densify=is_maybe_densify)
-#             try:
-#                 MSImageInterface.__init__(self, ms_image.spectra, image, ms_image.mzs, ms_image.tolerance, dtype, buffer, offset, strides, order=order)
-#             except Exception as e:
-#                 MSImageInterface.__init__(self, spectra, image, mzs, tolerance, dtype, buffer, offset, strides, order=order)
-
-#         else:
-#             SparseMatrix.__init__(self, image, is_maybe_densify=is_maybe_densify)
-#             MSImageInterface.__init__(self, spectra, image, mzs, tolerance, dtype, buffer, offset, strides, order=order)
+        return MSImageImplementation(self.spectra, copy, self.mzs, self.tolerance, self.is_maybe_densify, self.spectral_axis)

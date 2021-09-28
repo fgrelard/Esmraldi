@@ -50,7 +50,7 @@ if inputname.lower().endswith(".imzml"):
             os.makedirs(memmap_dir, exist_ok=True)
             np.save(memmap_spectra_filename, spectra)
 
-
+msimage.is_maybe_densify = True
 fig, ax = plt.subplots(3, 1)
 tracker = SpectralViewer(ax, msimage)
 fig.canvas.mpl_connect('button_press_event', tracker.onclick)

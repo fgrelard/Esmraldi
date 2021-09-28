@@ -53,6 +53,15 @@ def zeros(shape, dtype=float, order='C', *, like=None):
 def zeros_like(a, dtype=None, order='C', subok='True', shape=None):
     return zeros(a.shape, dtype, order)
 
+def take(array, indices, axis=None, **kwargs):
+    index = []
+    for dim in range(array.ndim):
+        if dim == axis or (axis==-1 and dim == array.ndim-1):
+            index.append(indices)
+        else:
+            index.append(slice(None))
+    return array[tuple(index)]
+
 
 class SparseMatrix(COO):
     def __init__(self, coords,
