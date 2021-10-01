@@ -70,14 +70,9 @@ class Ui_MainView(object):
 
         self.menuAnalyze = QtWidgets.QMenu(self.menubar)
 
-        self.menuOpen = QtWidgets.QMenu(self.menuFile)
-
-        self.actionImzML = QtWidgets.QAction(MainView)
-
+        self.actionOpen = QtWidgets.QAction(MainView)
 
         self.actionDenoising_TPC = QtWidgets.QAction(MainView)
-
-        self.actionOtherFormats = QtWidgets.QAction(MainView)
 
 
         self.menuFile = QtWidgets.QMenu(self.menubar)
@@ -112,19 +107,17 @@ class Ui_MainView(object):
 
         self.hLayoutmz = QtWidgets.QHBoxLayout()
         self.lineEdit.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Minimum)
-        self.hLayoutmz.addWidget(self.labelmz)
-        self.hLayoutmz.addWidget(self.lineEdit)
         self.hLayoutmz.addStretch()
-        self.hLayoutmz.setAlignment(QtCore.Qt.AlignLeft)
-        self.gridLayout.addLayout(self.hLayoutmz, 2, 0, 1, 1)
+        self.hLayoutmz.addWidget(self.labelmz, 0, QtCore.Qt.AlignRight)
+        self.hLayoutmz.addWidget(self.lineEdit)
+        self.gridLayout.addLayout(self.hLayoutmz, 2, 1, 1, 1)
 
         self.hLayouttol = QtWidgets.QHBoxLayout()
         self.lineEditTol.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Minimum)
-        self.hLayouttol.addWidget(self.labeltol)
-        self.hLayouttol.addWidget(self.lineEditTol)
         self.hLayouttol.addStretch()
-        self.hLayouttol.setAlignment(QtCore.Qt.AlignLeft)
-        self.gridLayout.addLayout(self.hLayouttol, 3, 0, 1, 1)
+        self.hLayouttol.addWidget(self.labeltol, 0, QtCore.Qt.AlignRight)
+        self.hLayouttol.addWidget(self.lineEditTol)
+        self.gridLayout.addLayout(self.hLayouttol, 3, 1, 1, 1)
 
         self.progressBar.setEnabled(True)
         self.progressBar.setMinimum(0)
@@ -135,13 +128,13 @@ class Ui_MainView(object):
         self.progressBar.setTextVisible(True)
         self.progressBar.setInvertedAppearance(False)
         self.progressBar.setObjectName("progressBar")
-        self.gridLayout.addWidget(self.label, 3, 0, 1, 1)
-        self.gridLayout.addWidget(self.progressBar, 4, 0, 1, 1)
+        self.gridLayout.addWidget(self.label, 4, 0, 1, 1)
+        self.gridLayout.addWidget(self.progressBar, 5, 0, 1, 1)
 
         self.stopButton.setText("Stop")
         self.stopButton.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Preferred)
 
-        self.gridLayout.addWidget(self.stopButton, 5, 0, 1, 1)
+        self.gridLayout.addWidget(self.stopButton, 6, 0, 1, 1)
 
         self.textEdit.setAcceptDrops(False)
         self.textEdit.setAutoFillBackground(True)
@@ -179,7 +172,7 @@ class Ui_MainView(object):
         self.menubar.setGeometry(QtCore.QRect(0, 0, 810, 20))
         self.menubar.setObjectName("menubar")
         self.menuFile.setObjectName("menuFile")
-        self.menuOpen.setObjectName("menuOpen")
+        self.actionOpen.setObjectName("actionOpen")
         self.menuProcess.setObjectName("menuProcess")
         self.menuSegmentation.setObjectName("menuSegmentation")
         self.menuAnalyze.setObjectName("menuAnalyze")
@@ -189,11 +182,8 @@ class Ui_MainView(object):
         MainView.setStatusBar(self.statusbar)
         self.actionSave.setObjectName("actionSave")
         self.actionExit.setObjectName("actionExit")
-        self.actionImzML.setObjectName("actionImzML")
-        self.actionOtherFormats.setObjectName("actionOtherFormats")
-        self.menuOpen.addAction(self.actionImzML)
-        self.menuOpen.addAction(self.actionOtherFormats)
-        self.menuFile.addAction(self.menuOpen.menuAction())
+
+        self.menuFile.addAction(self.actionOpen)
         self.menuFile.addAction(self.actionSave)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionExit)
@@ -207,7 +197,7 @@ class Ui_MainView(object):
 
     def retranslateUi(self, MainView):
         _translate = QtCore.QCoreApplication.translate
-        MainView.setWindowTitle(_translate("MainView", "ProcessMRI"))
+        MainView.setWindowTitle(_translate("MainView", "Esmraldi"))
 
         self.textEdit.setHtml(_translate("MainView", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
@@ -224,12 +214,11 @@ class Ui_MainView(object):
         self.lineEditTol.setText(_translate("MainView", "0.003"))
 
         self.menuFile.setTitle(_translate("MainView", "File"))
-        self.menuOpen.setTitle(_translate("MainView", "Open"))
+
         self.menuProcess.setTitle(_translate("MainView", "Process"))
         self.menuSegmentation.setTitle(_translate("MainView", "Segmentation"))
         self.menuAnalyze.setTitle(_translate("MainView", "Analyze"))
         self.menuHelp.setTitle(_translate("MainView", "Help"))
+        self.actionOpen.setText(_translate("MainView", "Open"))
         self.actionSave.setText(_translate("MainView", "Save Nifti"))
         self.actionExit.setText(_translate("MainView", "Exit"))
-        self.actionImzML.setText(_translate("MainView", "imzML"))
-        self.actionOtherFormats.setText(_translate("MainView", "Other formats"))

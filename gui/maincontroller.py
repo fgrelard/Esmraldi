@@ -8,18 +8,80 @@ import qtawesome as qta
 from PyQt5 import Qt, QtWidgets
 from PyQt5.Qt import QVBoxLayout
 from PyQt5.QtWidgets import QApplication, QTableWidget, QTableWidgetItem
-from PyQt5.QtCore import QObject, QThread, pyqtSignal
+from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 
 from collections import OrderedDict
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvas, NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 
-import esmraldi.imzmlio as io
 import SimpleITK as sitk
 
-from esmraldi.msimage import MSImage
+import esmraldi.imzmlio as io
+import esmraldi.spectraprocessing as sp
+
+
+from esmraldi.msimage import MSImage, MSImageImplementation
 from esmraldi.sparsematrix import SparseMatrix
+
+
+class WorkerOpen(QObject):
+
+    signal_start = pyqtSignal()
+    signal_end = pyqtSignal(object, str)
+    signal_progress = pyqtSignal(int)
+
+    def __init__(self, path):
+        """
+        Parameters
+        ----------
+        ive: ImageViewExtended
+            the image view
+        path: str
+            path to the filename
+        """
+        super().__init__()
+        self.path = path
+        self.is_abort = False
+
+    def open_imzML(self):
+        imzml = io.open_imzml(self.path)
+        mz, I = imzml.getspectrum(0)
+        spectra = io.get_full_spectra(imzml)
+        img_data = MSImage(spectra, image=None, coordinates=imzml.coordinates, tolerance=0.003)
+        img_data.is_maybe_densify = True
+        img_data.spectral_axis = 0
+        new_order = (2, 1, 0)
+        img_data = img_data.transpose(new_order)
+        return img_data
+
+    def open_other_formats(self):
+        im_itk = sitk.ReadImage(self.path)
+        return sitk.GetArrayFromImage(im_itk)
+
+    @pyqtSlot()
+    def work(self):
+        self.signal_start.emit()
+        if self.path.lower().endswith(".imzml"):
+            img_data = self.open_imzML()
+            img_data.compute_mean_spectra()
+        else:
+            img_data = self.open_other_formats()
+        self.signal_end.emit(img_data, self.path)
+
+    def abort(self):
+        self.is_abort = True
+
+class Signal(QObject):
+    """
+    Class wrapping a PyQt5 signal
+
+    Attributes
+    ----------
+    signal: pyqtSignal
+        the signal
+    """
+    signal = pyqtSignal()
 
 class MainController:
     """
@@ -55,17 +117,18 @@ class MainController:
         self.mainview.parent = mainview
         self.app = app
 
+        self.sig_abort_workers = Signal()
+
         self.mainview.actionExit.triggered.connect(self.exit_app)
-        self.mainview.actionImzML.triggered.connect(self.open_imzML)
-        self.mainview.actionOtherFormats.triggered.connect(self.open_other_formats)
+        self.mainview.actionOpen.triggered.connect(self.open)
         self.mainview.actionSave.triggered.connect(self.save)
 
 
-        self.mainview.lineEdit.textEdited.connect(self.changeMzValue)
-        self.mainview.lineEdit.returnPressed.connect(self.updateMzValue)
+        self.mainview.lineEdit.textEdited.connect(self.change_mz_value)
+        self.mainview.lineEdit.returnPressed.connect(self.update_mz_value)
 
-        self.mainview.lineEditTol.textEdited.connect(self.changeTolerance)
-        self.mainview.lineEditTol.returnPressed.connect(self.updateTolerance)
+        self.mainview.lineEditTol.textEdited.connect(self.change_tolerance)
+        self.mainview.lineEditTol.returnPressed.connect(self.update_tolerance)
 
         self.mainview.stopButton.clicked.connect(self.abort_computation)
         self.mainview.combobox.activated[str].connect(self.choose_image)
@@ -103,12 +166,14 @@ class MainController:
         self.mouse_y = 0
         self.z = 0
 
-        mzs = np.arange(10000).reshape((5, 2, 1000))
+        mzs = np.arange(1000)
         x = np.random.random((10, 100, 1000))
         x[x < 0.9] = 0  # fill most of the array with zeros
+        x_r = x.reshape((np.prod(x.shape[-1]), x.shape[-1]))
+        spectra = np.stack((np.tile(mzs, (1000,1)), x_r), axis=1)
         sm = SparseMatrix(x, is_maybe_densify=False)
-        mzs = SparseMatrix(mzs, is_maybe_densify=False)
-        mss = MSImage(mzs, sm, tolerance=0.0003)
+        mzs = SparseMatrix(spectra, is_maybe_densify=False)
+        mss = MSImage(spectra, sm, tolerance=0.0003)
         mss.spectral_axis = 0
         mss = mss.transpose((2,1,0))
         self.img_data = mss
@@ -117,10 +182,7 @@ class MainController:
         self.filename = "test"
 
 
-        # self.open_imzML("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/synthetic.imzML")
-
-
-    def open_image_gui(self, filename):
+    def image_to_view(self, filename):
         name = os.path.basename(filename)
         name = os.path.splitext(name)[0]
         self.mainview.combobox.setCurrentIndex(self.mainview.combobox.findText(name))
@@ -128,43 +190,31 @@ class MainController:
         self.choose_image(name)
         self.filename = name
 
-    def open_imzML(self, filename):
+    def open(self):
         """
         Opens Bruker directory
         """
-        filename, ext = QtWidgets.QFileDialog.getOpenFileName(self.mainview.centralwidget, "Select image (other formats)", self.config['default']['otherformatdir'])
+
+        filename, ext = QtWidgets.QFileDialog.getOpenFileName(self.mainview.centralwidget, "Select image", self.config['default']["imzmldir"])
         if not filename:
             return
 
-        self.config['default']['imzmldir'] = filename
+        self.config['default']["imzmldir"] = filename
 
-        imzml = io.open_imzml(filename)
-        mz, I = imzml.getspectrum(0)
-        spectra = io.get_full_spectra(imzml)
-        self.img_data = MSImage(spectra, image=None, coordinates=imzml.coordinates, tolerance=0.003)
-        self.img_data.is_maybe_densify = True
-        self.img_data.spectral_axis = 0
-        new_order = (2, 1, 0)
-        self.img_data = self.img_data.transpose(new_order)
+        worker = WorkerOpen(path=filename)
+        thread = QThread()
+        worker.moveToThread(thread)
+        worker.signal_start.connect(self.mainview.show_run)
+        worker.signal_end.connect(self.end_open)
+        worker.signal_progress.connect(self.update_progressbar)
 
-        self.open_image_gui(filename)
+        self.update_progressbar(0)
+        self.mainview.progressBar.setMaximum(0)
+        self.sig_abort_workers.signal.connect(worker.abort)
+        thread.started.connect(worker.work)
+        thread.start()
 
-
-    def open_other_formats(self):
-        """
-        Opens nifti file and reads metadata
-        """
-        filename, ext = QtWidgets.QFileDialog.getOpenFileName(self.mainview.centralwidget, "Select image (other formats)", self.config['default']['otherformatdir'])
-        if not filename:
-            return
-
-        self.config['default']['otherformatdir'] = os.path.dirname(filename)
-
-        im_itk = sitk.ReadImage(filename)
-        im_array = sitk.GetArrayFromImage(im_itk)
-        self.img_data = im_array
-
-        self.open_image_gui(filename)
+        self.threads.append((thread, worker))
 
 
     def save(self):
@@ -183,13 +233,13 @@ class MainController:
             self.config.write(configfile)
         self.app.quit()
 
-    def changeMzValue(self, text):
+    def change_mz_value(self, text):
         self.is_text_editing = True
         number, is_converted = self.locale.toDouble(text)
         if is_converted:
             self.current_mz = number
 
-    def updateMzValue(self):
+    def update_mz_value(self):
         self.is_text_editing = False
         try:
             ind =   (np.abs(self.mainview.imageview.tVals - self.current_mz)).argmin()
@@ -197,13 +247,13 @@ class MainController:
         except Exception as e:
             pass
 
-    def changeTolerance(self, text):
+    def change_tolerance(self, text):
         self.is_text_editing = True
         number, is_converted = self.locale.toDouble(text)
         if is_converted:
             self.tolerance = number
 
-    def updateTolerance(self):
+    def update_tolerance(self):
         self.is_text_editing = False
         try:
             self.mainview.imageview.imageDisp.tolerance = self.tolerance
@@ -212,13 +262,12 @@ class MainController:
             print("error", e)
 
 
-    def end_preview(self, image, number):
-        name = "Preview"
-        if name in self.images:
-            self.images[name] = image
-        else:
-            self.add_image(image, name)
-        self.choose_image(name, preview=True, autoLevels=False)
+    def end_open(self, image, filename):
+        self.mainview.hide_run()
+        self.img_data = image
+        self.image_to_view(filename)
+        self.mainview.progressBar.setMaximum(100)
+
 
 
     def abort_computation(self):
@@ -291,6 +340,8 @@ class MainController:
         if old_name in self.images:
             self.images = OrderedDict([(new_name, v) if k == old_name else (k, v) for k, v in self.images.items()])
             self.metadata = OrderedDict([(new_name, v) if k == old_name else (k, v) for k, v in self.metadata.items()])
+
+
 
     def update_progressbar(self, progress):
         """

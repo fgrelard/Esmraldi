@@ -25,7 +25,7 @@ class AppWindow(QMainWindow):
         self.ui.setupUi(self)
         self.gridLayout = QGridLayout(self.ui.centralwidget)
         self.gridLayout.addLayout(self.ui.gridLayout, 0, 0, 1, 1)
-        self.setWindowIcon(QIcon('ProcessMRI.ico'))
+        self.setWindowIcon(QIcon('Esmraldi.ico'))
         self.show()
 
 
