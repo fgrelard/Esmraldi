@@ -384,11 +384,10 @@ class ImageViewExtended(pg.ImageView):
             self.mouse_y = 0
         position = "(" + str(self.mouse_x) + ", " + str(self.mouse_y) + ")"
         position_z = ""
-        if self.imageDisp.ndim == 2:
-            value = str(self.imageDisp[(self.mouse_y, self.mouse_x)])
+
         if self.imageDisp.ndim == 3:
             position_z = str(self.tVals[self.currentIndex])
-            value = str(self.imageDisp[(self.currentIndex, self.mouse_y, self.mouse_x)])
+        value = "{:.3e}".format(self.imageItem.image[(self.mouse_y, self.mouse_x)])
         self.label.setText("<p><span>" + position + "</span><span style='font-weight:bold; color: green;'>: " + value + "</span>" + "</p><p><span style='font-weight:bold'>" + position_z + "</span></p>")
 
 
@@ -586,8 +585,21 @@ class ImageViewExtended(pg.ImageView):
         for p in points:
             p.setPen(self.clickedPen)
         self.lastPointsClicked = np.append(self.lastPointsClicked, points)
-        print(self.lastPointsClicked)
+        indices = [p.pos().x() for p in self.lastPointsClicked]
+        median_val = np.median(indices)
+        self.setCurrentIndices(indices)
 
+    def setCurrentIndices(self, times):
+        self.ignorePlaying = True
+        median_val = np.median(times)
+        self.timeLine.setValue(median_val)
+
+        indices = np.argwhere(np.in1d(self.image.mzs, times)).flatten()
+        self.currentIndex = indices
+        self.updateImage()
+        self.currentIndex = np.int64(np.median(indices))
+        print(self.currentIndex, self.currentIndex.dtype)
+        self.ignorePlaying = False
 
     def buildPlot(self):
         if self.image is None:

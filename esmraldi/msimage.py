@@ -177,6 +177,8 @@ class MSImageImplementation:
             value = self.get_ion_image_index(key)
         else:
             value =  self.image[key]
+            if value.ndim == self.image.ndim:
+                value = self.average_image(key)
         if is_still_image and not self.is_maybe_densify:
             spectra = self.spectra[key]
             return MSImageImplementation(spectra, value, None, self.tolerance, is_maybe_densify=self.is_maybe_densify, spectral_axis=self.spectral_axis)
@@ -204,6 +206,9 @@ class MSImageImplementation:
                 mask_index = mask_index+1
             mask[mask_index] = True
         indices = np.argwhere(mask == True)
+        return self.average_image(indices)
+
+    def average_image(self, indices):
         average_image = np.mean(np.take(self.image, indices.flatten(), axis=self.spectral_axis), axis=self.spectral_axis)
         return average_image
 

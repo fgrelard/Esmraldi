@@ -242,7 +242,7 @@ class MainController:
     def update_mz_value(self):
         self.is_text_editing = False
         try:
-            ind =   (np.abs(self.mainview.imageview.tVals - self.current_mz)).argmin()
+            ind = (np.abs(self.mainview.imageview.tVals - self.current_mz)).argmin()
             self.mainview.imageview.setCurrentIndex(ind)
         except Exception as e:
             pass
