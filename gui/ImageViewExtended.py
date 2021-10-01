@@ -90,6 +90,18 @@ class ImageViewExtended(pg.ImageView):
         self.ui.histogram.gradient.updateGradient()
         self.ui.histogram.gradientChanged()
 
+
+        self.ui.spectraBtn = QtWidgets.QPushButton(self.ui.layoutWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(1)
+        sizePolicy.setHeightForWidth(self.ui.spectraBtn.sizePolicy().hasHeightForWidth())
+        # self.ui.spectraBtn.setSizePolicy(sizePolicy)
+        self.ui.spectraBtn.setCheckable(True)
+        self.ui.spectraBtn.setObjectName("spectraBtn")
+        self.ui.gridLayout.addWidget(self.ui.spectraBtn, 2, 2, 1, 1)
+        self.ui.spectraBtn.setText(QtCore.QCoreApplication.translate("Form", "Spectra"))
+        self.ui.spectraBtn.clicked.connect(self.spectraToggled)
         self.ui.normAutoRadio = QtWidgets.QRadioButton(self.ui.normGroup)
         self.ui.normAutoRadio.setObjectName("normAutoRadio")
 
@@ -152,6 +164,9 @@ class ImageViewExtended(pg.ImageView):
         self.mouse_x = 0
         self.mouse_y = 0
 
+        self.plot = None
+        self.displayed_spectra = None
+
         self.is_clickable = False
         self.is_drawable = False
 
@@ -165,6 +180,18 @@ class ImageViewExtended(pg.ImageView):
         self.normDivideRadioChecked = False
 
         self.ui.histogram.setHistogramRange = lambda mn, mx, padding=0.1: setHistogramRange(self.ui.histogram, mn, mx, padding)
+
+        self.plot = pg.ScatterPlotItem(size=5, pen=pg.mkPen(255,255, 255, 230), brush=pg.mkBrush(220, 220, 220, 230),hoverable=True,hoverPen=pg.mkPen(242, 38, 19),hoverSize=5,hoverBrush=pg.mkBrush(150, 40, 27))
+
+        self.clickedPen = pg.mkPen("b")
+        self.lastPointsClicked = []
+        self.plot.sigClicked.connect(self.clickedSpectra)
+
+        self.winPlot = pg.plot(size=(1,1))
+        self.winPlot.addItem(self.plot)
+        self.ui.gridLayout_3.addWidget(self.winPlot)
+        self.winPlot.setMaximumHeight(100)
+        # self.winPlot.setVisible(False)
 
     def roiRadioChanged(self):
         roiSquareChecked = self.ui.roiSquareRadio.isChecked()
@@ -273,6 +300,8 @@ class ImageViewExtended(pg.ImageView):
         self.isNewImage = True
         super().setImage(img, autoRange, autoLevels, levels, axes, xvals, pos, scale, transform, autoHistogramRange)
 
+        self.buildPlot()
+
         self.imageCopy = self.imageDisp.copy()
         self.pen_value = np.amax(self.imageDisp)+1
 
@@ -284,7 +313,7 @@ class ImageViewExtended(pg.ImageView):
         if not is_shown:
             return
         #Shows image at previous z-index if in range
-        if previousIndex < self.imageDisp.shape[0]:
+        if self.imageDisp.ndim > 2 and previousIndex < self.imageDisp.shape[0]:
             self.setCurrentIndex(previousIndex)
 
     def roi_scroll_bar(self, ev):
@@ -540,6 +569,37 @@ class ImageViewExtended(pg.ImageView):
         """
         self.levelMin, self.levelMax = self.ui.histogram.getLevels()
 
+
+    def spectraToggled(self):
+        self.winPlot.setVisible(self.ui.spectraBtn.isChecked())
+
+
+    def clickedSpectra(self, scatter, points):
+        modifiers = QtWidgets.QApplication.keyboardModifiers()
+        is_adding = False
+        if modifiers == QtCore.Qt.ControlModifier:
+            is_adding = True
+        if not is_adding:
+            for p in self.lastPointsClicked:
+                p.resetPen()
+            self.lastPointsClicked = []
+        for p in points:
+            p.setPen(self.clickedPen)
+        self.lastPointsClicked = np.append(self.lastPointsClicked, points)
+        print(self.lastPointsClicked)
+
+
+    def buildPlot(self):
+        if self.image is None:
+            return
+        self.plot.clear()
+        self.displayed_spectra = self.image.mean_spectra
+        x = self.image.mzs
+        spots = [{'pos': [x[i], self.displayed_spectra[i]], 'data': 1} for i in range(len(x))]
+        self.plot.addPoints(spots)
+        self.winPlot.autoRange()
+
+
     def buildMenu(self):
         """
         Adds the "Export all slices" option to the menu
@@ -551,7 +611,7 @@ class ImageViewExtended(pg.ImageView):
 
     def getImageItemHistogram(self, bins='auto', step='auto', targetImageSize=200, targetHistogramSize=500, **kwds):
         """Returns x and y arrays containing the histogram values for the current image.
-        For an explanation of the return format, see numpy.histogram().
+        For an explanation of the return format, see numpy.histogram().xb
 
         The *step* argument causes pixels to be skipped when computing the histogram to save time.
         If *step* is 'auto', then a step is chosen such that the analyzed data has
