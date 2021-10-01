@@ -142,6 +142,7 @@ class MainController:
         self.mainview.imageview.signal_start_export.connect(self.mainview.show_run)
         self.mainview.imageview.signal_end_export.connect(self.mainview.hide_run)
         self.mainview.imageview.signal_image_change.connect(self.change_image_combobox)
+        self.mainview.imageview.signal_mz_change.connect(lambda mz: self.mainview.lineEdit.setText("{:.4f}".format(mz)))
 
 
         self.is_edit = False

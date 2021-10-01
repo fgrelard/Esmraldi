@@ -64,6 +64,7 @@ class ImageViewExtended(pg.ImageView):
     signal_start_export = QtCore.pyqtSignal()
     signal_end_export = QtCore.pyqtSignal()
     signal_image_change = QtCore.pyqtSignal(int)
+    signal_mz_change = QtCore.pyqtSignal(float)
 
     def __init__(self, parent=None, name="ImageView", view=None, imageItem=None, *args):
         pg.setConfigOptions(imageAxisOrder='row-major')
@@ -393,10 +394,12 @@ class ImageViewExtended(pg.ImageView):
 
     def setCurrentIndex(self, ind):
         super().setCurrentIndex(ind)
+        self.signal_mz_change.emit(self.tVals[self.currentIndex])
         self.update_label()
 
     def timeLineChanged(self):
         super().timeLineChanged()
+        self.signal_mz_change.emit(self.tVals[self.currentIndex])
         self.update_label()
 
     def updateNorm(self):
@@ -598,7 +601,6 @@ class ImageViewExtended(pg.ImageView):
         self.currentIndex = indices
         self.updateImage()
         self.currentIndex = np.int64(np.median(indices))
-        print(self.currentIndex, self.currentIndex.dtype)
         self.ignorePlaying = False
 
     def buildPlot(self):
