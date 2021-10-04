@@ -5,10 +5,13 @@ import sys
 import numpy as np
 
 from sparse import COO, DOK
+from sparse._slicing import normalize_index
 
 from collections.abc import Iterable, Iterator, Sized
 from functools import reduce
 from typing import Callable
+
+from itertools import product, repeat
 
 def _find_start_end(mask):
     signed_mask = np.array(mask, dtype=int)
@@ -141,8 +144,29 @@ class SparseMatrix(COO):
     def __ipow__(self, other):
         return self ** other
 
+
+    def get_nd_iterable_indices(self, keys):
+        try:
+            np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
+            idx = np.array(keys)
+        except:
+            return None
+        if idx.ndim <= 2:
+            return None
+
+        x, y = keys
+        final_shape = x.shape + (self.shape[-1],)
+        final_array = SparseMatrix(coords=[], data=None, shape=final_shape)
+        for ind in np.ndindex(x.shape[:-2]):
+            curr_img = COO.__getitem__(self, (x[ind].flatten(), y[ind].flatten()))
+            curr_img = curr_img.reshape((x.shape[-2], x.shape[-1], self.shape[-1]))
+            final_array[ind] = curr_img.todense()
+        return final_array
+
     def __getitem__(self, key):
-        restricted_self = COO.__getitem__(self, key)
+        restricted_self = self.get_nd_iterable_indices(key)
+        if restricted_self is None:
+            restricted_self = COO.__getitem__(self, key)
         if self.is_maybe_densify:
             try:
                 value = restricted_self.maybe_densify(max_size=1e7)

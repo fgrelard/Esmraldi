@@ -21,6 +21,8 @@ s = sparse.SparseMatrix(x)  # convert to sparse array
 # x=x+s
 
 s[..., 3]= 123
+
+print(s[[1,2,3,1,2,3], [0,0,0,0,0,0]].shape)
 print(s[0,0,3])
 
 array = (np.arange(8)+1).reshape(4,2)

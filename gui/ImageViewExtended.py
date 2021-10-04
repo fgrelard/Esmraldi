@@ -1,6 +1,8 @@
 import pyqtgraph as pg
 import numpy as np
 import matplotlib
+import os
+import time
 
 #Allows to use QThreads without freezing
 #the main application
@@ -13,9 +15,16 @@ from PyQt5 import QtGui
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMessageBox, QApplication
-import os
 import pyqtgraph as pg
-import time
+from pyqtgraph.functions import affineSlice
+from pyqtgraph.graphicsItems.ROI import ROI
+
+
+
+# def newAffineSlice(data, shape, origin, vectors, axes, order=1, returnCoords=False, **kargs):
+#     return affineSlice(data, shape, origin, vectors, axes, order, returnCoords, **kargs)
+
+# ROI.affineSlice = newAffineSlice
 
 
 def addNewGradientFromMatplotlib( name):
@@ -65,6 +74,7 @@ class ImageViewExtended(pg.ImageView):
     signal_end_export = QtCore.pyqtSignal()
     signal_image_change = QtCore.pyqtSignal(int)
     signal_mz_change = QtCore.pyqtSignal(float)
+    signal_roi_changed = QtCore.pyqtSignal(float, float)
 
     def __init__(self, parent=None, name="ImageView", view=None, imageItem=None, *args):
         pg.setConfigOptions(imageAxisOrder='row-major')
@@ -76,8 +86,8 @@ class ImageViewExtended(pg.ImageView):
         addNewGradientFromMatplotlib("cividis")
         grayclip = pg.graphicsItems.GradientEditorItem.Gradients["greyclip"]
         pg.graphicsItems.GradientEditorItem.Gradients["segmentation"] = {'ticks': [(0.0, (0, 0, 0, 255)), (1.0-np.finfo(float).eps, (255, 255, 255, 255)), (1.0, (255, 0, 0, 255))], 'mode': 'rgb'}
-
         super().__init__(parent, name, view, imageItem, *args)
+
         self.imageItem.getHistogram = self.getImageItemHistogram
         self.imageItem.mouseClickEvent = self.mouseClickEventImageItem
         self.imageItem.mouseDragEvent = self.mouseClickEventImageItem
@@ -90,6 +100,12 @@ class ImageViewExtended(pg.ImageView):
 
         self.ui.histogram.gradient.updateGradient()
         self.ui.histogram.gradientChanged()
+
+        self.ui.labelRoiChanged = QtWidgets.QLabel(self.ui.layoutWidget)
+        self.ui.labelRoiChanged.setObjectName("labelRoiChanged")
+        self.ui.labelRoiChanged.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
+        self.ui.labelRoiChanged.hide()
+        self.ui.gridLayout.addWidget(self.ui.labelRoiChanged, 2, 0, 1, 1)
 
 
         self.ui.spectraBtn = QtWidgets.QPushButton(self.ui.layoutWidget)
@@ -196,22 +212,22 @@ class ImageViewExtended(pg.ImageView):
 
     def roiRadioChanged(self):
         roiSquareChecked = self.ui.roiSquareRadio.isChecked()
-        self.normRoi.hide()
+        self.roi.hide()
         if roiSquareChecked:
-            self.normRoi = pg.graphicsItems.ROI.ROI(pos=self.normRoi.pos(), size=self.normRoi.size())
-            self.normRoi.addScaleHandle([1, 1], [0, 0])
-            self.normRoi.addRotateHandle([0, 0], [0.5, 0.5])
-            self.normRoi.setZValue(10000)
-            self.normRoi.setPen('y')
-            self.normRoi.show()
+            self.roi = pg.graphicsItems.ROI.ROI(pos=self.roi.pos(), size=self.roi.size())
+            self.roi.addScaleHandle([1, 1], [0, 0])
+            self.roi.addScaleHandle([0, 0], [0.5, 0.5])
+            self.roi.setZValue(10000)
+            self.roi.setPen('y')
+            self.roi.show()
         else:
-            self.normRoi = pg.graphicsItems.ROI.CircleROI(pos=self.normRoi.pos(), size=self.normRoi.size())
-            self.normRoi.setPen("y")
-            self.normRoi.setZValue(20)
-            self.normRoi.show()
-        self.view.addItem(self.normRoi)
+            self.roi = pg.graphicsItems.ROI.CircleROI(pos=self.roi.pos(), size=self.roi.size())
+            self.roi.setPen("y")
+            self.roi.setZValue(20)
+            self.roi.show()
+        self.view.addItem(self.roi)
         self.updateNorm()
-        self.normRoi.sigRegionChangeFinished.connect(self.updateNorm)
+        self.roi.sigRegionChangeFinished.connect(self.roiChanged)
 
 
     def mouseClickEventImageItem(self, ev):
@@ -235,7 +251,7 @@ class ImageViewExtended(pg.ImageView):
         """
         Hide some elements from the parent GUI
         """
-        self.ui.roiBtn.hide()
+        # self.ui.roiBtn.hide()
         self.ui.label_4.hide()
         self.ui.label_8.hide()
         self.ui.label_9.hide()
@@ -400,6 +416,7 @@ class ImageViewExtended(pg.ImageView):
     def timeLineChanged(self):
         super().timeLineChanged()
         self.signal_mz_change.emit(self.tVals[self.currentIndex])
+        self.roiChanged()
         self.update_label()
 
     def updateNorm(self):
@@ -453,7 +470,39 @@ class ImageViewExtended(pg.ImageView):
 
     def roiChanged(self):
         self.isNewNorm = True
-        # super().roiChanged()
+        if self.image is None:
+            return
+
+        image = self.getProcessedImage()
+
+        colmaj = self.imageItem.axisOrder == 'col-major'
+        if colmaj:
+            axes = (self.axes['x'], self.axes['y'])
+        else:
+            axes = (self.axes['y'], self.axes['x'])
+
+        data, coords = self.roi.getArrayRegion(
+            image.view(np.ndarray), img=self.imageItem, axes=axes,
+            returnMappedCoords=True, order=0)
+
+        if data is None:
+            return
+
+        curr_roi = data[self.currentIndex]
+        mean_roi = np.mean(curr_roi)
+        stddev_roi = np.std(curr_roi)
+
+        string_roi = "\u03BC="+ "{:.3e}".format(mean_roi)+ "\t\t\u03C3="+ "{:.3e}".format(stddev_roi)
+        self.ui.labelRoiChanged.setText(string_roi)
+
+
+    def roiClicked(self):
+        super().roiClicked()
+        try:
+            self.ui.labelRoiChanged.setVisible(self.ui.roiBtn.isChecked())
+        except:
+            pass
+        self.ui.splitter.setSizes([self.height()-35, 35])
 
     def normalize(self, image):
         return image

@@ -178,7 +178,10 @@ class MSImageImplementation:
         else:
             value =  self.image[key]
             if value.ndim == self.image.ndim:
-                value = self.average_image(key)
+                try:
+                    value = self.average_image(key)
+                except:
+                    pass
         if is_still_image and not self.is_maybe_densify:
             spectra = self.spectra[key]
             return MSImageImplementation(spectra, value, None, self.tolerance, is_maybe_densify=self.is_maybe_densify, spectral_axis=self.spectral_axis)
@@ -231,3 +234,8 @@ class MSImageImplementation:
     def copy(self):
         copy = self.image.copy()
         return MSImageImplementation(self.spectra, copy, self.mzs, self.tolerance, self.is_maybe_densify, self.spectral_axis, self.mean_spectra)
+
+    def view(self, dtype):
+        copy = self.copy()
+        copy.is_maybe_densify = True
+        return copy
