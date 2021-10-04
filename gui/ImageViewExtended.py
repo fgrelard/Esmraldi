@@ -21,12 +21,6 @@ from pyqtgraph.graphicsItems.ROI import ROI
 
 
 
-# def newAffineSlice(data, shape, origin, vectors, axes, order=1, returnCoords=False, **kargs):
-#     return affineSlice(data, shape, origin, vectors, axes, order, returnCoords, **kargs)
-
-# ROI.affineSlice = newAffineSlice
-
-
 def addNewGradientFromMatplotlib( name):
     """
     Generic function to add a gradient from a
@@ -122,56 +116,12 @@ class ImageViewExtended(pg.ImageView):
         self.ui.normAutoRadio = QtWidgets.QRadioButton(self.ui.normGroup)
         self.ui.normAutoRadio.setObjectName("normAutoRadio")
 
-        self.ui.roiGroup = QtWidgets.QButtonGroup(self.ui.normGroup)
-        self.ui.normRadioGroup = QtWidgets.QButtonGroup(self.ui.normGroup)
-        self.ui.label_roi = QtWidgets.QLabel(self.ui.normGroup)
-        font = QtGui.QFont()
-        font.setBold(True)
-        font.setWeight(75)
-        self.ui.label_roi.setFont(font)
-        self.ui.label_roi.setText(QtWidgets.QApplication.translate("Form", "ROI:", None))
-        self.ui.roiSquareRadio = QtWidgets.QRadioButton(self.ui.normGroup)
-
-        self.ui.roiSquareRadio.setText(QtWidgets.QApplication.translate("Form", "Square", None))
-        self.ui.roiCircleRadio = QtWidgets.QRadioButton(self.ui.normGroup)
-        self.ui.roiCircleRadio.setText(QtWidgets.QApplication.translate("Form", "Circle", None))
-
-        self.ui.roiGroup.addButton(self.ui.roiSquareRadio)
-        self.ui.roiGroup.addButton(self.ui.roiCircleRadio)
-
-        self.ui.normAutoRadio.setText(QtWidgets.QApplication.translate("Form", "Stack", None))
-        self.ui.normOffRadio.setText(QtWidgets.QApplication.translate("Form", "Manual", None))
-        self.ui.normTimeRangeCheck.setText(QtWidgets.QApplication.translate("Form", "Slice range", None))
-        self.ui.normDivideRadio.setText(QtWidgets.QApplication.translate("Form", "Auto", None))
-        self.ui.label_5.setText(QtWidgets.QApplication.translate("Form", "Type:", None))
-
-        self.ui.roiSquareRadio.clicked.connect(self.roiRadioChanged)
-        self.ui.roiCircleRadio.clicked.connect(self.roiRadioChanged)
-        self.ui.normAutoRadio.clicked.connect(self.normRadioChanged)
-
-        self.ui.normRadioGroup.addButton(self.ui.normDivideRadio)
-        self.ui.normRadioGroup.addButton(self.ui.normOffRadio)
-
-        self.ui.roiSquareRadio.setChecked(True)
-        self.ui.normDivideRadio.setChecked(True)
-
 
         self.hide_partial()
 
         for i in reversed(range(self.ui.gridLayout_2.count())):
             self.ui.gridLayout_2.itemAt(i).widget().setParent(None)
 
-        self.ui.gridLayout_2.addWidget(self.ui.label_roi, 0, 0, 1, 1)
-        self.ui.gridLayout_2.addWidget(self.ui.roiSquareRadio, 0, 1, 1, 1)
-        self.ui.gridLayout_2.addWidget(self.ui.roiCircleRadio, 0, 2, 1, 1)
-        self.ui.gridLayout_2.addWidget(self.ui.label_5, 1, 0, 1, 1)
-        self.ui.gridLayout_2.addWidget(self.ui.normDivideRadio, 1, 1, 1, 1)
-
-        self.ui.gridLayout_2.addWidget(self.ui.normOffRadio, 1, 2, 1, 1)
-        self.ui.gridLayout_2.addWidget(self.ui.normFrameCheck, 2, 1, 1, 1)
-        self.ui.gridLayout_2.addWidget(self.ui.label_3, 2, 0, 1, 1)
-        self.ui.gridLayout_2.addWidget(self.ui.normROICheck, 2, 1, 1, 1)
-        self.ui.gridLayout_2.addWidget(self.ui.normTimeRangeCheck, 2, 2, 1, 1)
         self.label = pg.LabelItem(justify='right')
         self.scene.addItem(self.label)
         self.scene.sigMouseMoved.connect(self.on_hover_image)
@@ -208,26 +158,87 @@ class ImageViewExtended(pg.ImageView):
         self.winPlot.addItem(self.plot)
         self.ui.gridLayout_3.addWidget(self.winPlot)
         self.winPlot.setMaximumHeight(100)
+
+        self.previousRoiSize = 10
+        self.previousRoiPositions = [[0,0], [10, 0], [5, 5]]
+
+        self.build_roi_group()
+
         # self.winPlot.setVisible(False)
 
+    def build_roi_group(self):
+        self.ui.roiButtonGroup = QtWidgets.QButtonGroup(self.ui.normGroup)
+
+        self.ui.roiGroup = QtWidgets.QGroupBox(self)
+        self.ui.roiGroup.setObjectName("roiGroup")
+        self.ui.gridLayout_roi = QtWidgets.QGridLayout(self.ui.roiGroup)
+        self.ui.gridLayout_roi.setContentsMargins(0, 0, 0, 0)
+        self.ui.gridLayout_roi.setSpacing(0)
+        self.ui.gridLayout_roi.setObjectName("gridLayout_roi")
+
+        self.ui.label_roi_type = QtWidgets.QLabel(self.ui.roiGroup)
+        font = QtGui.QFont()
+        font.setBold(True)
+        font.setWeight(75)
+        self.ui.label_roi_type.setFont(font)
+        self.ui.label_roi_type.setObjectName("label_roi_type")
+        self.ui.gridLayout_roi.addWidget(self.ui.label_roi_type, 0, 0, 1, 1)
+        self.ui.label_roi_type.setText("Type")
+
+        self.ui.label_roi_range = QtWidgets.QLabel(self.ui.roiGroup)
+        self.ui.label_roi_range.setFont(font)
+        self.ui.label_roi_range.setObjectName("label_roi_range")
+        self.ui.gridLayout_roi.addWidget(self.ui.label_roi_range, 1, 0, 1, 1)
+        self.ui.label_roi_range.setText("Range")
+
+
+        self.ui.roiSquare = QtWidgets.QRadioButton(self.ui.roiGroup)
+        self.ui.roiSquare.setChecked(True)
+        self.ui.roiSquare.setObjectName("roiSquare")
+        self.ui.gridLayout_roi.addWidget(self.ui.roiSquare, 0, 2, 1, 1)
+        self.ui.roiSquare.setText(QtCore.QCoreApplication.translate("Form", "Square"))
+
+        self.ui.roiCircle = QtWidgets.QRadioButton(self.ui.roiGroup)
+        self.ui.roiCircle.setObjectName("roiCircle")
+        self.ui.gridLayout_roi.addWidget(self.ui.roiCircle, 0, 3, 1, 1)
+        self.ui.roiCircle.setText(QtCore.QCoreApplication.translate("Form", "Circle"))
+
+        self.ui.roiPolygon = QtWidgets.QRadioButton(self.ui.roiGroup)
+        self.ui.roiPolygon.setObjectName("roiPolygon")
+        self.ui.gridLayout_roi.addWidget(self.ui.roiPolygon, 0, 4, 1, 1)
+        self.ui.roiPolygon.setText(QtCore.QCoreApplication.translate("Form", "Polygon"))
+        self.ui.gridLayout_3.addWidget(self.ui.roiGroup)
+
+        self.ui.roiButtonGroup.addButton(self.ui.roiSquare)
+        self.ui.roiButtonGroup.addButton(self.ui.roiCircle)
+        self.ui.roiButtonGroup.addButton(self.ui.roiPolygon)
+        self.ui.roiSquare.clicked.connect(self.roiRadioChanged)
+        self.ui.roiCircle.clicked.connect(self.roiRadioChanged)
+        self.ui.roiPolygon.clicked.connect(self.roiRadioChanged)
+
+
     def roiRadioChanged(self):
-        roiSquareChecked = self.ui.roiSquareRadio.isChecked()
+        roiSquareChecked = self.ui.roiSquare.isChecked()
+        roiCircleChecked = self.ui.roiCircle.isChecked()
         self.roi.hide()
         if roiSquareChecked:
-            self.roi = pg.graphicsItems.ROI.ROI(pos=self.roi.pos(), size=self.roi.size())
+            self.roi = pg.graphicsItems.ROI.ROI(pos=self.roi.pos(), size=self.previousRoiSize)
             self.roi.addScaleHandle([1, 1], [0, 0])
-            self.roi.addScaleHandle([0, 0], [0.5, 0.5])
+            self.roi.addScaleHandle([0, 0], [1, 1])
             self.roi.setZValue(10000)
-            self.roi.setPen('y')
+            self.roi.setPen("y")
             self.roi.show()
-        else:
-            self.roi = pg.graphicsItems.ROI.CircleROI(pos=self.roi.pos(), size=self.roi.size())
+        elif roiCircleChecked:
+            self.roi = pg.graphicsItems.ROI.CircleROI(pos=self.roi.pos(), size=self.previousRoiSize)
             self.roi.setPen("y")
             self.roi.setZValue(20)
             self.roi.show()
+        else:
+            self.roi = pg.graphicsItems.ROI.PolyLineROI(positions=self.previousRoiPositions, pos=self.roi.pos(), closed=True, hoverPen="r")
+            self.roi.setPen("y")
         self.view.addItem(self.roi)
-        self.updateNorm()
         self.roi.sigRegionChangeFinished.connect(self.roiChanged)
+        self.roiChanged()
 
 
     def mouseClickEventImageItem(self, ev):
@@ -473,6 +484,12 @@ class ImageViewExtended(pg.ImageView):
         if self.image is None:
             return
 
+        if self.ui.roiSquare.isChecked() or \
+           self.ui.roiCircle.isChecked():
+            self.previousRoiSize = self.roi.size()
+        elif self.ui.roiPolygon.isChecked():
+            self.previousRoiPositions = [[handle["pos"].x(), handle["pos"].y()] for handle in self.roi.handles]
+
         image = self.getProcessedImage()
 
         colmaj = self.imageItem.axisOrder == 'col-major'
@@ -500,6 +517,7 @@ class ImageViewExtended(pg.ImageView):
         super().roiClicked()
         try:
             self.ui.labelRoiChanged.setVisible(self.ui.roiBtn.isChecked())
+            self.ui.roiGroup.setVisible(self.ui.roiBtn.isChecked())
         except:
             pass
         self.ui.splitter.setSizes([self.height()-35, 35])
