@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib
 import os
 import time
+import inspect
 
 #Allows to use QThreads without freezing
 #the main application
@@ -17,8 +18,35 @@ from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMessageBox, QApplication
 import pyqtgraph as pg
 from pyqtgraph.functions import affineSlice
-from pyqtgraph.graphicsItems.ROI import ROI
+from pyqtgraph.graphicsItems.ROI import ROI, CircleROI, PolyLineROI
+from pyqtgraph.graphicsItems.GraphicsObject import GraphicsObject
+from qtrangeslider import QRangeSlider
+from collections import ChainMap
 
+
+def PaintingROI(parent, roi, brush, **kwargs):
+    class WrapROI(parent):
+        def __init__(self, roi, brush=None):
+            c = ChainMap({"angle":roi.angle(), "invertible":roi.invertible, "maxBounds":roi.maxBounds, "snapSize":roi.snapSize, "scaleSnap":roi.scaleSnap, "translateSnap":roi.translateSnap, "rotateSnap":roi.rotateSnap, "parent":None, "pen":roi.pen, "hoverPen":roi.hoverPen, "handlePen":roi.handlePen, "handleHoverPen":roi.handleHoverPen, "movable":roi.translatable, "rotatable":roi.rotatable, "resizable":roi.resizable, "removable":roi.removable}, **kwargs)
+            if parent == PolyLineROI:
+                positions = [[handle["pos"].x(), handle["pos"].y()] for handle in roi.handles]
+                super().__init__(positions, roi.closed, pos=roi.pos(), **c)
+            else:
+                super().__init__(pos=roi.pos(), size=roi.size(), **c)
+            self.brush =  brush
+
+        def setBrush(self, brush):
+            self.brush = brush
+
+        def paint(self, p, opt, widget):
+            p.setBrush(self.brush)
+            if parent == PolyLineROI:
+                p.setPen(self.currentPen)
+                p.fillPath(self.shape(), self.brush)
+            else:
+                super().paint(p, opt, widget)
+
+    return WrapROI(roi, brush)
 
 
 def addNewGradientFromMatplotlib( name):
@@ -183,30 +211,37 @@ class ImageViewExtended(pg.ImageView):
         self.ui.label_roi_type.setFont(font)
         self.ui.label_roi_type.setObjectName("label_roi_type")
         self.ui.gridLayout_roi.addWidget(self.ui.label_roi_type, 0, 0, 1, 1)
-        self.ui.label_roi_type.setText("Type")
+        self.ui.label_roi_type.setText("Type:")
 
         self.ui.label_roi_range = QtWidgets.QLabel(self.ui.roiGroup)
         self.ui.label_roi_range.setFont(font)
         self.ui.label_roi_range.setObjectName("label_roi_range")
         self.ui.gridLayout_roi.addWidget(self.ui.label_roi_range, 1, 0, 1, 1)
-        self.ui.label_roi_range.setText("Range")
+        self.ui.label_roi_range.setText("Range:")
 
 
         self.ui.roiSquare = QtWidgets.QRadioButton(self.ui.roiGroup)
         self.ui.roiSquare.setChecked(True)
         self.ui.roiSquare.setObjectName("roiSquare")
-        self.ui.gridLayout_roi.addWidget(self.ui.roiSquare, 0, 2, 1, 1)
+        self.ui.gridLayout_roi.addWidget(self.ui.roiSquare, 0, 1, 1, 1)
         self.ui.roiSquare.setText(QtCore.QCoreApplication.translate("Form", "Square"))
 
         self.ui.roiCircle = QtWidgets.QRadioButton(self.ui.roiGroup)
         self.ui.roiCircle.setObjectName("roiCircle")
-        self.ui.gridLayout_roi.addWidget(self.ui.roiCircle, 0, 3, 1, 1)
+        self.ui.gridLayout_roi.addWidget(self.ui.roiCircle, 0, 2, 1, 1)
         self.ui.roiCircle.setText(QtCore.QCoreApplication.translate("Form", "Circle"))
 
         self.ui.roiPolygon = QtWidgets.QRadioButton(self.ui.roiGroup)
         self.ui.roiPolygon.setObjectName("roiPolygon")
-        self.ui.gridLayout_roi.addWidget(self.ui.roiPolygon, 0, 4, 1, 1)
+        self.ui.gridLayout_roi.addWidget(self.ui.roiPolygon, 0, 3, 1, 1)
         self.ui.roiPolygon.setText(QtCore.QCoreApplication.translate("Form", "Polygon"))
+
+        self.ui.rangeSliderThreshold = QRangeSlider(QtCore.Qt.Horizontal)
+        self.ui.rangeSliderThreshold.setMinimum(0)
+        self.ui.rangeSliderThreshold.setMaximum(100)
+        self.ui.rangeSliderThreshold.setValue((0, 100))
+        self.ui.gridLayout_roi.addWidget(self.ui.rangeSliderThreshold, 1, 1, 1, 3)
+
         self.ui.gridLayout_3.addWidget(self.ui.roiGroup)
 
         self.ui.roiButtonGroup.addButton(self.ui.roiSquare)
@@ -215,27 +250,31 @@ class ImageViewExtended(pg.ImageView):
         self.ui.roiSquare.clicked.connect(self.roiRadioChanged)
         self.ui.roiCircle.clicked.connect(self.roiRadioChanged)
         self.ui.roiPolygon.clicked.connect(self.roiRadioChanged)
+        self.roiRadioChanged()
 
 
     def roiRadioChanged(self):
+        pen = "y"
+        brush = pg.mkBrush(220, 100, 100, 200)
         roiSquareChecked = self.ui.roiSquare.isChecked()
         roiCircleChecked = self.ui.roiCircle.isChecked()
         self.roi.hide()
         if roiSquareChecked:
-            self.roi = pg.graphicsItems.ROI.ROI(pos=self.roi.pos(), size=self.previousRoiSize)
+            self.roi = ROI(pos=self.roi.pos(), size=self.previousRoiSize)
             self.roi.addScaleHandle([1, 1], [0, 0])
             self.roi.addScaleHandle([0, 0], [1, 1])
             self.roi.setZValue(10000)
-            self.roi.setPen("y")
+            self.roi.setPen(pen)
             self.roi.show()
         elif roiCircleChecked:
-            self.roi = pg.graphicsItems.ROI.CircleROI(pos=self.roi.pos(), size=self.previousRoiSize)
-            self.roi.setPen("y")
+            self.roi = CircleROI(pos=self.roi.pos(), size=self.previousRoiSize)
+            self.roi.setPen(pen)
             self.roi.setZValue(20)
             self.roi.show()
         else:
-            self.roi = pg.graphicsItems.ROI.PolyLineROI(positions=self.previousRoiPositions, pos=self.roi.pos(), closed=True, hoverPen="r")
-            self.roi.setPen("y")
+            self.roi = PolyLineROI(positions=self.previousRoiPositions, pos=self.roi.pos(), closed=True, hoverPen="r")
+            self.roi.setBrush(brush)
+            self.roi.setPen(pen)
         self.view.addItem(self.roi)
         self.roi.sigRegionChangeFinished.connect(self.roiChanged)
         self.roiChanged()
@@ -508,6 +547,32 @@ class ImageViewExtended(pg.ImageView):
         curr_roi = data[self.currentIndex]
         mean_roi = np.mean(curr_roi)
         stddev_roi = np.std(curr_roi)
+
+        self.updateImage()
+
+
+        try:
+
+            self.imageItem.render()
+            pixel_value = QtGui.qRgb(255, 0, 0)
+            mask = self.roi.renderShapeMask(data.shape[axes[1]], data.shape[axes[0]])
+            min_slider, max_slider = self.ui.rangeSliderThreshold.value()
+            max_value = self.ui.rangeSliderThreshold.maximum()
+            min_thresh = min_slider * curr_roi.max() / max_value
+            max_thresh = max_slider * curr_roi.max() / max_value
+            coords_mask = np.argwhere((mask > 0) & (curr_roi.T >= min_thresh) & (curr_roi.T <= max_thresh))
+            for i, j in coords_mask:
+                point = self.roi.boundingRect().topLeft()
+                x = i + round(point.x()) + round(self.roi.pos().x())
+                y = j + round(point.y()) + round(self.roi.pos().y())
+                d = image.ndim - self.imageItem.image.ndim
+                if 0 < x < self.imageItem.image.shape[1] and \
+                   0 < y < self.imageItem.image.shape[0]:
+                    self.imageItem.qimage.setPixel(int(x), int(y), pixel_value)
+            self.imageItem._renderRequired = False
+            self.imageItem._unrenderable = False
+        except Exception as e:
+            print(e)
 
         string_roi = "\u03BC="+ "{:.3e}".format(mean_roi)+ "\t\t\u03C3="+ "{:.3e}".format(stddev_roi)
         self.ui.labelRoiChanged.setText(string_roi)
