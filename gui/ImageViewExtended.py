@@ -20,8 +20,9 @@ import pyqtgraph as pg
 from pyqtgraph.functions import affineSlice
 from pyqtgraph.graphicsItems.ROI import ROI, CircleROI, PolyLineROI
 from pyqtgraph.graphicsItems.GraphicsObject import GraphicsObject
-from qtrangeslider import QRangeSlider
+from qtrangeslider import QLabeledRangeSlider
 from collections import ChainMap
+
 
 
 def PaintingROI(parent, roi, brush, **kwargs):
@@ -113,6 +114,7 @@ class ImageViewExtended(pg.ImageView):
         self.imageItem.getHistogram = self.getImageItemHistogram
         self.imageItem.mouseClickEvent = self.mouseClickEventImageItem
         self.imageItem.mouseDragEvent = self.mouseClickEventImageItem
+
         self.timeLine.setPen('g')
 
         self.ui.histogram.sigLevelsChanged.connect(self.levelsChanged)
@@ -159,15 +161,21 @@ class ImageViewExtended(pg.ImageView):
         self.mouse_x = 0
         self.mouse_y = 0
 
+        self.curr_roi = None
+
         self.plot = None
         self.displayed_spectra = None
 
         self.is_clickable = False
         self.is_drawable = False
 
+        self.min_thresh = 0
+        self.max_thresh = 100
+
         self.pen_size = 1
         self.imageCopy = None
         self.imageItem.drawAt = self.drawAt
+        self.imageItem.render = self.render
 
         self.levelMin, self.levelMax = None, None
         self.isNewImage = False
@@ -236,10 +244,11 @@ class ImageViewExtended(pg.ImageView):
         self.ui.gridLayout_roi.addWidget(self.ui.roiPolygon, 0, 3, 1, 1)
         self.ui.roiPolygon.setText(QtCore.QCoreApplication.translate("Form", "Polygon"))
 
-        self.ui.rangeSliderThreshold = QRangeSlider(QtCore.Qt.Horizontal)
+        self.ui.rangeSliderThreshold = QLabeledRangeSlider(QtCore.Qt.Horizontal)
         self.ui.rangeSliderThreshold.setMinimum(0)
         self.ui.rangeSliderThreshold.setMaximum(100)
         self.ui.rangeSliderThreshold.setValue((0, 100))
+        self.ui.rangeSliderThreshold.valueChanged.connect(self.sliderValueChanged)
         self.ui.gridLayout_roi.addWidget(self.ui.rangeSliderThreshold, 1, 1, 1, 3)
 
         self.ui.gridLayout_3.addWidget(self.ui.roiGroup)
@@ -273,11 +282,29 @@ class ImageViewExtended(pg.ImageView):
             self.roi.show()
         else:
             self.roi = PolyLineROI(positions=self.previousRoiPositions, pos=self.roi.pos(), closed=True, hoverPen="r")
-            self.roi.setBrush(brush)
             self.roi.setPen(pen)
         self.view.addItem(self.roi)
         self.roi.sigRegionChangeFinished.connect(self.roiChanged)
         self.roiChanged()
+
+    def render(self):
+        pg.ImageItem.render(self.imageItem)
+        if not self.ui.roiBtn.isChecked() or self.curr_roi is None or self.imageItem is None or self.imageItem.qimage is None:
+            return
+
+        pixel_value = QtGui.qRgb(255, 0, 0)
+        mask = self.roi.renderShapeMask(self.curr_roi.shape[1], self.curr_roi.shape[0])
+
+        coords_mask = np.argwhere((mask > 0) & (self.curr_roi.T >= self.min_thresh) & (self.curr_roi.T <= self.max_thresh))
+        point = self.roi.boundingRect().topLeft()
+        for i, j in coords_mask:
+            x = round(i + point.x() + self.roi.pos().x())
+            y = round(j + point.y() + self.roi.pos().y())
+            if 0 <= x < self.imageItem.image.shape[1] and \
+               0 <= y < self.imageItem.image.shape[0]:
+                self.imageItem.qimage.setPixel(x, y, pixel_value)
+        self.imageItem._renderRequired = False
+        self.imageItem._unrenderable = False
 
 
     def mouseClickEventImageItem(self, ev):
@@ -366,6 +393,9 @@ class ImageViewExtended(pg.ImageView):
 
         self.isNewImage = True
         super().setImage(img, autoRange, autoLevels, levels, axes, xvals, pos, scale, transform, autoHistogramRange)
+
+        self.min_thresh = 0
+        self.max_thresh = self.imageItem.image.max()
 
         self.buildPlot()
 
@@ -466,6 +496,7 @@ class ImageViewExtended(pg.ImageView):
     def timeLineChanged(self):
         super().timeLineChanged()
         self.signal_mz_change.emit(self.tVals[self.currentIndex])
+        self.max_thresh = self.imageItem.image.max()
         self.roiChanged()
         self.update_label()
 
@@ -518,6 +549,14 @@ class ImageViewExtended(pg.ImageView):
         self.isNewNorm = True
         super().normRadioChanged()
 
+    def sliderValueChanged(self):
+        min_slider, max_slider = self.ui.rangeSliderThreshold.value()
+        max_value = self.ui.rangeSliderThreshold.maximum()
+        self.min_thresh = min_slider * self.curr_roi.max() / max_value
+        self.max_thresh = max_slider * self.curr_roi.max() / max_value
+        self.roiChanged()
+
+
     def roiChanged(self):
         self.isNewNorm = True
         if self.image is None:
@@ -533,46 +572,29 @@ class ImageViewExtended(pg.ImageView):
 
         colmaj = self.imageItem.axisOrder == 'col-major'
         if colmaj:
-            axes = (self.axes['x'], self.axes['y'])
+            axes = (1, 0)
         else:
-            axes = (self.axes['y'], self.axes['x'])
+            axes = (0, 1)
 
         data, coords = self.roi.getArrayRegion(
-            image.view(np.ndarray), img=self.imageItem, axes=axes,
+            self.imageItem.image, img=self.imageItem, axes=axes,
             returnMappedCoords=True, order=0)
 
         if data is None:
             return
 
-        curr_roi = data[self.currentIndex]
-        mean_roi = np.mean(curr_roi)
-        stddev_roi = np.std(curr_roi)
+        self.curr_roi = data
+
+        roi_thresh = self.curr_roi[(self.curr_roi >= self.min_thresh) & (self.curr_roi <= self.max_thresh)]
+
+        if not roi_thresh.size:
+            roi_thresh = [0]
+
+        mean_roi = np.mean(roi_thresh)
+        stddev_roi = np.std(roi_thresh)
 
         self.updateImage()
 
-
-        try:
-
-            self.imageItem.render()
-            pixel_value = QtGui.qRgb(255, 0, 0)
-            mask = self.roi.renderShapeMask(data.shape[axes[1]], data.shape[axes[0]])
-            min_slider, max_slider = self.ui.rangeSliderThreshold.value()
-            max_value = self.ui.rangeSliderThreshold.maximum()
-            min_thresh = min_slider * curr_roi.max() / max_value
-            max_thresh = max_slider * curr_roi.max() / max_value
-            coords_mask = np.argwhere((mask > 0) & (curr_roi.T >= min_thresh) & (curr_roi.T <= max_thresh))
-            for i, j in coords_mask:
-                point = self.roi.boundingRect().topLeft()
-                x = i + round(point.x()) + round(self.roi.pos().x())
-                y = j + round(point.y()) + round(self.roi.pos().y())
-                d = image.ndim - self.imageItem.image.ndim
-                if 0 < x < self.imageItem.image.shape[1] and \
-                   0 < y < self.imageItem.image.shape[0]:
-                    self.imageItem.qimage.setPixel(int(x), int(y), pixel_value)
-            self.imageItem._renderRequired = False
-            self.imageItem._unrenderable = False
-        except Exception as e:
-            print(e)
 
         string_roi = "\u03BC="+ "{:.3e}".format(mean_roi)+ "\t\t\u03C3="+ "{:.3e}".format(stddev_roi)
         self.ui.labelRoiChanged.setText(string_roi)
@@ -586,6 +608,8 @@ class ImageViewExtended(pg.ImageView):
         except:
             pass
         self.ui.splitter.setSizes([self.height()-35, 35])
+        self.updateImage()
+
 
     def normalize(self, image):
         return image

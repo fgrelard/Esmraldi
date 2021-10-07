@@ -1,3 +1,5 @@
+import esmraldi.traceit as traceit
+
 from gui.maincontroller import MainController
 from gui.mainview import Ui_MainView
 
