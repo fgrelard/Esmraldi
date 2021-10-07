@@ -5,6 +5,7 @@ import os
 import time
 import inspect
 
+import numbers
 #Allows to use QThreads without freezing
 #the main application
 matplotlib.use('Qt5Agg')
@@ -125,11 +126,11 @@ class ImageViewExtended(pg.ImageView):
         self.ui.histogram.gradient.updateGradient()
         self.ui.histogram.gradientChanged()
 
-        self.ui.labelRoiChanged = QtWidgets.QLabel(self.ui.layoutWidget)
-        self.ui.labelRoiChanged.setObjectName("labelRoiChanged")
-        self.ui.labelRoiChanged.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
-        self.ui.labelRoiChanged.hide()
-        self.ui.gridLayout.addWidget(self.ui.labelRoiChanged, 2, 0, 1, 1)
+        self.ui.labelRoiChange = QtWidgets.QLabel(self.ui.layoutWidget)
+        self.ui.labelRoiChange.setObjectName("labelRoiChange")
+        self.ui.labelRoiChange.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
+        self.ui.labelRoiChange.hide()
+        self.ui.gridLayout.addWidget(self.ui.labelRoiChange, 2, 0, 1, 1)
 
 
         self.ui.spectraBtn = QtWidgets.QPushButton(self.ui.layoutWidget)
@@ -293,13 +294,23 @@ class ImageViewExtended(pg.ImageView):
             return
 
         pixel_value = QtGui.qRgb(255, 0, 0)
+
         mask = self.roi.renderShapeMask(self.curr_roi.shape[1], self.curr_roi.shape[0])
+
 
         coords_mask = np.argwhere((mask > 0) & (self.curr_roi.T >= self.min_thresh) & (self.curr_roi.T <= self.max_thresh))
         point = self.roi.boundingRect().topLeft()
+
+
+        if self.imageItem.qimage.format() < 4:
+            self.imageItem.qimage = self.imageItem.qimage.convertToFormat(QtGui.QImage.Format_RGBA8888)
+
+
         for i, j in coords_mask:
+            sum_x = i + point.x() + self.roi.pos().x()
             x = round(i + point.x() + self.roi.pos().x())
             y = round(j + point.y() + self.roi.pos().y())
+
             if 0 <= x < self.imageItem.image.shape[1] and \
                0 <= y < self.imageItem.image.shape[0]:
                 self.imageItem.qimage.setPixel(x, y, pixel_value)
@@ -410,7 +421,7 @@ class ImageViewExtended(pg.ImageView):
         if not is_shown:
             return
         #Shows image at previous z-index if in range
-        if self.imageDisp.ndim > 2 and previousIndex < self.imageDisp.shape[0]:
+        if self.imageDisp.ndim > 2 and previousIndex < self.imageDisp.shape[0] and self.axes["t"] is not None:
             self.setCurrentIndex(previousIndex)
 
     def roi_scroll_bar(self, ev):
@@ -475,17 +486,22 @@ class ImageViewExtended(pg.ImageView):
         Updates the label with mouse position
         and pixel values relative to the image
         """
-        if not (self.mouse_x >= 0 and self.mouse_x < self.imageDisp.shape[-1] and
-            self.mouse_y >= 0 and self.mouse_y < self.imageDisp.shape[-2]):
+        if not (self.mouse_x >= 0 and self.mouse_x < self.imageItem.image.shape[1] and \
+                self.mouse_y >= 0 and self.mouse_y < self.imageItem.image.shape[0]):
             self.mouse_x = 0
             self.mouse_y = 0
         position = "(" + str(self.mouse_x) + ", " + str(self.mouse_y) + ")"
         position_z = ""
 
-        if self.imageDisp.ndim == 3:
+        if self.axes["t"] is not None:
             position_z = str(self.tVals[self.currentIndex])
-        value = "{:.3e}".format(self.imageItem.image[(self.mouse_y, self.mouse_x)])
-        self.label.setText("<p><span>" + position + "</span><span style='font-weight:bold; color: green;'>: " + value + "</span>" + "</p><p><span style='font-weight:bold'>" + position_z + "</span></p>")
+
+        value = self.imageItem.image[(self.mouse_y, self.mouse_x)]
+        if isinstance(value, numbers.Number):
+            str_value = "{:.3e}".format(value)
+        else:
+            str_value = ",".join([str(v) for v in value])
+        self.label.setText("<p><span>" + position + "</span><span style='font-weight:bold; color: green;'>: " + str_value + "</span>" + "</p><p><span style='font-weight:bold'>" + position_z + "</span></p>")
 
 
     def setCurrentIndex(self, ind):
@@ -583,6 +599,9 @@ class ImageViewExtended(pg.ImageView):
         if data is None:
             return
 
+        if data.ndim > 2:
+            data = data[..., 0]
+
         self.curr_roi = data
 
         roi_thresh = self.curr_roi[(self.curr_roi >= self.min_thresh) & (self.curr_roi <= self.max_thresh)]
@@ -597,13 +616,13 @@ class ImageViewExtended(pg.ImageView):
 
 
         string_roi = "\u03BC="+ "{:.3e}".format(mean_roi)+ "\t\t\u03C3="+ "{:.3e}".format(stddev_roi)
-        self.ui.labelRoiChanged.setText(string_roi)
+        self.ui.labelRoiChange.setText(string_roi)
 
 
     def roiClicked(self):
         super().roiClicked()
         try:
-            self.ui.labelRoiChanged.setVisible(self.ui.roiBtn.isChecked())
+            self.ui.labelRoiChange.setVisible(self.ui.roiBtn.isChecked())
             self.ui.roiGroup.setVisible(self.ui.roiBtn.isChecked())
         except:
             pass
@@ -760,9 +779,11 @@ class ImageViewExtended(pg.ImageView):
         self.ignorePlaying = False
 
     def buildPlot(self):
+        self.plot.clear()
         if self.image is None:
             return
-        self.plot.clear()
+        if self.axes["t"] is None:
+            return
         self.displayed_spectra = self.image.mean_spectra
         x = self.image.mzs
         spots = [{'pos': [x[i], self.displayed_spectra[i]], 'data': 1} for i in range(len(x))]
