@@ -169,6 +169,7 @@ class MSImageImplementation:
     def __getitem__(self, key):
         is_array = isinstance(key, tuple) and any([isinstance(elem, (collections.abc.Iterable, slice)) for elem in key])
         is_still_image = isinstance(key, numbers.Number)
+
         if isinstance(key, tuple):
             L = [isinstance(k, numbers.Number) for k in key]
             i = iter(L)

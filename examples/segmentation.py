@@ -18,6 +18,8 @@ import argparse
 import os
 import math
 
+from esmraldi.msimage import MSImage
+
 from skimage import segmentation
 from skimage import measure
 from sklearn.decomposition import PCA
@@ -42,13 +44,14 @@ def display_stack(img):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--input", help="Input (.nii)")
+parser.add_argument("-i", "--input", help="Input (.nii or imzML)")
 parser.add_argument("-o", "--output", help="Output segmentation (.nii)")
 parser.add_argument("-f", "--factor", help="Factor for the spatially coherent images")
 parser.add_argument("-t", "--threshold", help="Lower threshold for region growing", default=60)
 parser.add_argument("-q", "--quantiles", nargs="+", type=int, help="Quantile lower thresholds", default=[60, 70, 80, 90])
 parser.add_argument("-u", "--quantile_upper", help="Quantile upper threshold", default=100)
 parser.add_argument("--fill_holes", help="Fill holes in the image.", default=0)
+parser.add_argument("--tolerance", help="m/z tolerance value", default=0)
 args = parser.parse_args()
 
 threshold = int(args.threshold)
@@ -58,15 +61,26 @@ factor = float(args.factor)
 quantiles = args.quantiles
 quantile_upper = int(args.quantile_upper)
 fill_holes = int(args.fill_holes)
+tolerance = float(args.tolerance)
 
 radius = 1
 selem = disk(radius)
 
-image = nib.load(inputname)
 
-img_data = image.get_data()
+if inputname.lower().endswith(".imzml"):
+    imzml = imzmlio.open_imzml(inputname)
+    mz, I = imzml.getspectrum(0)
+    spectra = imzmlio.get_full_spectra(imzml)
+    img_data = MSImage(spectra, coordinates=imzml.coordinates, tolerance=tolerance)
+else:
+    image = nib.load(inputname)
+    img_data = image.get_data()
+
+
 padding = 3
-img_data = np.pad(img_data, (padding,padding), 'constant')
+list_padding = [(padding, padding) for i in range(len(img_data.shape)-1)] + [(0,0)]
+img_data = np.pad(img_data, list_padding, 'constant')
+print(type(img_data))
 
 similar_images = seg.find_similar_images_spatial_coherence_percentage(img_data, factor, quantiles=quantiles, upper=quantile_upper)
 # similar_images = seg.find_similar_images_spatial_chaos(img_data, factor, quantiles=[60, 70, 80, 90])
