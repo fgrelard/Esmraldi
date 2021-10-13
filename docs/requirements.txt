@@ -2,6 +2,6 @@ sphinx-rtd-theme
 nbsphinx
 numpydoc
 sphinx-autoapi
-jupyter_client
+jupyter_client==6.1.5
 ipykernel
 ipython
