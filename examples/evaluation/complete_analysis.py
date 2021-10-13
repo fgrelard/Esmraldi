@@ -19,7 +19,6 @@ import matplotlib.pyplot as plt
 from xlsxwriter.utility import xl_rowcol_to_cell, xl_col_to_name
 from PIL import Image
 from io import BytesIO
-from urllib.request import urlopen
 
 import esmraldi.imzmlio as imzmlio
 import esmraldi.speciesrule as sr
@@ -326,7 +325,11 @@ reduction_dir = args.reduction_dir
 
 imzml = imzmlio.open_imzml(input_name)
 spectra = imzmlio.get_spectra(imzml)
-image = imzmlio.to_image_array(imzml)
+full_spectra = imzmlio.get_full_spectra(imzml)
+max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
+max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
+max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
+image = imzmlio.get_images_from_spectra(full_spectra, (max_x, max_y, max_z))
 observed_spectrum, intensities = imzml.getspectrum(0)
 
 number_samples = image.shape[0]

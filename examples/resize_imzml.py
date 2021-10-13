@@ -1,4 +1,10 @@
+"""
+Resize imzML image
+in spatial coordinates
+"""
+
 import esmraldi.segmentation as seg
+import esmraldi.imageutils as utils
 import esmraldi.imzmlio as io
 import SimpleITK as sitk
 import argparse
@@ -18,14 +24,18 @@ imzml = io.open_imzml(input_name)
 original_spectra = io.get_spectra(imzml)
 mzs = original_spectra[:, 0, :]
 
-image = io.to_image_array(imzml)
+spectra = imzmlio.get_full_spectra(imzml)
+max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
+max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
+max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
+image = imzmlio.get_images_from_spectra(spectra, (max_x, max_y, max_z))
 itk_image = sitk.GetImageFromArray(image)
 
 size = image.shape[:2]
 
 new_size = [d*factor for d in size]
 new_size = new_size[::-1]
-resized_itk = seg.resize(itk_image, new_size)
+resized_itk = utils.resize(itk_image, new_size)
 
 resized_image = sitk.GetArrayFromImage(resized_itk)
 intensities, coordinates = io.get_spectra_from_images(resized_image)

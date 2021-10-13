@@ -3,6 +3,8 @@ Module for the annotation of a spectrum
 """
 
 import numpy as np
+from collections.abc import Iterable
+import numbers
 
 def closest_peak(reference_mz, theoretical_spectrum, tolerance):
     """
@@ -66,3 +68,40 @@ def annotation(observed, theoretical, tolerance=0.1):
         closest_peaks = closest_peak(peak, theoretical, tolerance)
         annotated[peak] = closest_peaks
     return annotated
+
+
+def annotation_ratio(observed, theoretical, tolerance=0.1):
+    """
+    Annotate an observed spectrum by comparison
+    to a theoretical spectrum. The observed spectrum
+    may contain ratio between two species.
+
+    Parameters
+    ----------
+    observed: list
+        mass list
+    theoretical: dict
+        theoretical spectrum generated from several species rule
+    tolerance: float
+        acceptable mz delta to consider peaks are equal
+
+    Returns
+    ----------
+    dict
+        annotated mass list
+    """
+    O = []
+    OT = set()
+    for o in observed:
+        if isinstance(o, numbers.Number):
+            O += [o]
+        elif o is not None:
+            OT |= {i for i in o}
+    annotated = annotation(O, theoretical, tolerance)
+    annotated_tuples = annotation(list(OT), theoretical, tolerance)
+    ratios = [o for o in observed if o not in O]
+    for peak in ratios:
+        value = [annotated_tuples[peak[0]], annotated_tuples[peak[1]]]
+        annotated[peak] = value
+    order_annotated = {k:annotated[k] for k in observed}
+    return order_annotated

@@ -1,3 +1,6 @@
+"""
+Evaluation of alignment on real data
+"""
 import csv
 import argparse
 import os

@@ -180,8 +180,7 @@ def get_spectra_from_images(images):
     coordinates = []
     intensities = []
     index_max = shape[:-1] if len(shape)==4 else shape[:-1] + (1,)
-    intensities.append([0] * shape[-1])
-    coordinates.append(index_max)
+
     for index in np.ndindex(shape[:-1]):
         xy_index = index + (slice(None),)
         I = images[xy_index]
@@ -191,6 +190,9 @@ def get_spectra_from_images(images):
             imzml_index = tuple(map(sum, zip(index_3D, add_tuple)))
             intensities.append(I)
             coordinates.append(imzml_index)
+    if index_max not in coordinates:
+        intensities.append([0] * shape[-1])
+        coordinates.append(index_max)
     return intensities, coordinates
 
 def get_images_from_spectra(spectra, shape):

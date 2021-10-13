@@ -8,13 +8,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import SimpleITK as sitk
 import argparse
-from sklearn import metrics
 import os
 import re
-from esmraldi.registration import *
+import math
 import matplotlib.colors as mcolors
 import scipy.ndimage
 import esmraldi.segmentation as seg
+import esmraldi.imageutils as utils
+
+from sklearn import metrics
+from esmraldi.registration import *
+
 
 def tryint(s):
     """
@@ -125,7 +129,33 @@ def quality_registration_size_bin(fixed, registered_dir):
     return zip(*sorted(precision.items()))
 
 
+def determine_scale(imRef, image):
+    imRef_array = sitk.GetArrayFromImage(imRef)
 
+    number_nzs = np.count_nonzero(imRef)
+    max_diff = 2**32
+    best_size = (imRef_array.shape[0], imRef_array.shape[1])
+    for s in range(100):
+        size = (imRef_array.shape[0], imRef_array.shape[1])
+        size = tuple([round((1+s*0.01)*x) for x in size])
+        imScaled = utils.resize(image, size)
+        imScaled_array = sitk.GetArrayFromImage(imScaled)
+        number_nzs_scaled =  np.count_nonzero(imScaled_array)
+        diff = abs(number_nzs - number_nzs_scaled)
+        if diff < max_diff:
+            max_diff = diff
+            best_size = size
+    return best_size
+
+def crop_nonzero(image, size):
+    x, y = np.nonzero(image)
+    xl,xr = x.min(),x.max()
+    yl,yr = y.min(),y.max()
+    im = image[xl:xr+1, yl:yr+1]
+    pad_w, pad_h = (size[0] - im.shape[0])/2, (size[1] - im.shape[1])/2
+    print(pad_w, pad_h)
+    im = np.pad(im, ((int(pad_w), math.ceil(pad_w)), (int(pad_h), math.ceil(pad_h))), mode='constant')
+    return im
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--fixed", help="Fixed image")
@@ -133,6 +163,7 @@ parser.add_argument("-r", "--registered", help="Moving image")
 parser.add_argument("-o", "--original", help="Original before registration image")
 parser.add_argument("-b", "--bins", help="number of bins", default=20)
 parser.add_argument("-t", "--threshold", help="Threshold for binary image to compute precision and recall (-1 uses Otsu)", default=-1)
+parser.add_argument("-d", "--display", help="Display binary images", action="store_true")
 
 args = parser.parse_args()
 fixedname = args.fixed
@@ -140,6 +171,7 @@ registeredname = args.registered
 originalname = args.original
 threshold = int(args.threshold)
 bins = int(args.bins)
+display = args.display
 
 fixed = sitk.ReadImage(fixedname, sitk.sitkFloat32)
 original = sitk.ReadImage(originalname, sitk.sitkFloat32)
@@ -156,25 +188,40 @@ simg1 = sitk.Cast(sitk.RescaleIntensity(fixed), sitk.sitkUInt8)
 simg2 = sitk.Cast(sitk.RescaleIntensity(registered), sitk.sitkUInt8)
 
 cimg = sitk.Compose(simg1, simg2, simg1//3.+simg2//1.5)
-plt.imshow(sitk.GetArrayFromImage(cimg))
-plt.axis('off')
-plt.show()
-p, r = quality_registration(fixed, registered, threshold)
+
+
+p, r = quality_registration(fixed, registered, threshold, display)
 f = (2*p*r)/(p+r)
 print("Precision=", p, " recall=", r, " fmeasure=", f)
+
+print("Average precision=", np.mean(p), " recall=", np.mean(r), " fmeasure=", np.mean(f))
+print("Stddev preision=", np.std(p), " recall=", np.std(r), " fmeasure=", np.std(f))
+
+if cimg.GetDimension() == 2:
+    plt.imshow(sitk.GetArrayFromImage(cimg))
+    plt.axis('off')
+    plt.show()
+else:
+    fig, ax = plt.subplots(1,1)
+    tracker = SliceViewer(ax, sitk.GetArrayFromImage(cimg))
+    fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
+    plt.show()
 
 fixed_array = sitk.GetArrayFromImage(fixed)
 registered_array = sitk.GetArrayFromImage(registered)
 original_array = sitk.GetArrayFromImage(original)
 size = original.GetSize()
-scaled_registered = seg.resize(registered, (size[1], size[0]))
+scaled_registered = utils.resize(registered, size)
+
 scaled_registered_array = sitk.GetArrayFromImage(scaled_registered)
 
 print(scaled_registered_array.shape, original_array.shape)
+
 # fig, ax = plt.subplots(1,2)
 # ax[0].imshow(original_array)
-# ax[1].imshow(scaled_registered_array)
+# ax[1].imshow(scaled_registered_array.T)
 # plt.show()
+
 # The one-dimensional histograms of the example slices:
 
 #plot_similarity(fixed_array, registered_array)

@@ -5,7 +5,10 @@ import sys
 import math
 import numpy as np
 import pyimzml.ImzMLParser as imzmlparser
-import matplotlib.pyplot as plt
+import scipy.spatial.distance as dist
+import cv2 as cv
+import SimpleITK as sitk
+
 from sklearn.decomposition import PCA
 from sklearn.feature_extraction import grid_to_graph
 from sklearn.cluster import KMeans
@@ -16,13 +19,8 @@ from skimage.filters import threshold_otsu, rank, sobel
 from skimage.transform import hough_circle, hough_circle_peaks
 from skimage.feature import canny
 from skimage import data, color
-from skimage.draw import circle
+from skimage.draw import disk as drawdisk
 from skimage.morphology import binary_erosion, closing, disk
-import skimage.transform as transform
-import scipy.spatial.distance as dist
-import scipy.signal as signal
-import cv2 as cv
-import SimpleITK as sitk
 
 def max_variance_sort(image_maldi):
     """
@@ -46,10 +44,7 @@ def max_variance_sort(image_maldi):
         im = imzmlparser.getionimage(image_maldi, mz, tol=0.1)
         image_list.append({"mz": mz, "im": im})
     image_list.sort(key=lambda elem: np.var(elem["im"]), reverse=True)
-    for elem in image_list:
-        print(elem["mz"])
-        plt.imshow(elem["im"], cmap='jet').set_interpolation('nearest')
-        plt.show()
+    return image_list
 
 
 def properties_largest_area_cc(ccs):
@@ -95,6 +90,8 @@ def region_property_to_cc(ccs, regionprop):
     label = regionprop.label
     cc = np.where(ccs == label, 0, 255)
     return cc
+
+
 
 def sort_size_ascending(images, threshold):
     """
@@ -177,32 +174,6 @@ def region_growing(images, seedList, lower_threshold):
             evolution_segmentation[current_index] = image
     return list(seeds), evolution_segmentation
 
-def estimate_noise(I):
-    """
-    Estimates the noise in an image
-    by convolution with a kernel.
-
-    See: Fast Noise Variance Estimation,
-    Immerkaear et al.
-
-    Parameters
-    ----------
-    I: np.ndarray
-        image
-
-    Returns
-    ----------
-    float
-        the noise standard deviation
-    """
-    H, W = I.shape
-
-    M = [[1, -2, 1],
-         [-2, 4, -2],
-         [1, -2, 1]]
-    sigma = np.sum(np.sum(np.absolute(signal.convolve2d(I, M))))
-    sigma = sigma * math.sqrt(0.5 * math.pi) / (6 * (W-2) * (H-2))
-    return sigma
 
 
 def average_area(images):
@@ -396,7 +367,7 @@ def fill_circle(center_x, center_y, radius, image, color=0):
     """
     image2 = np.copy(image)
     dim = len(image2.shape)
-    rr, cc = circle(int(center_y), int(center_x), int(radius), image2.shape[dim-2:])
+    rr, cc = drawdisk((int(center_y), int(center_x)), int(radius), shape=image2.shape[dim-2:])
     if dim == 2:
         image2[rr, cc] = color
     if dim == 3:
@@ -432,29 +403,6 @@ def binary_closing(image, radius_selem=1):
     masked_image = masked_image.filled(0)
     return masked_image
 
-
-def resize(image, size):
-    """
-    Resize the image to a given size.
-
-    Parameters
-    ----------
-    image: sitk.Image
-        input image
-    size: tuple
-        new size of the image
-
-    Returns
-    ----------
-    sitk.Image
-        new resized image
-
-    """
-    image_array = sitk.GetArrayFromImage(image)
-    reversed_size = np.array(size)[::-1]
-    resized = transform.resize(image_array, reversed_size, order=0)
-    resized_itk = sitk.GetImageFromArray(resized)
-    return resized_itk
 
 
 def distances_closest_neighbour(points):
@@ -611,7 +559,7 @@ def spatial_coherence(image):
     else:
         return r.area
 
-def find_similar_images_spatial_coherence(image_maldi, factor, quantiles=[]):
+def find_similar_images_spatial_coherence(image_maldi, factor, quantiles=[], upper=100):
     """
     Finds images with spatial
     coherence values greater than a given threshold.
@@ -628,6 +576,8 @@ def find_similar_images_spatial_coherence(image_maldi, factor, quantiles=[]):
         threshold for spatial coherence values
     quantiles: list
         quantile threshold values (list of integers)
+    upper: int
+        quantile upper threshold
 
     Returns
     ----------
@@ -639,14 +589,60 @@ def find_similar_images_spatial_coherence(image_maldi, factor, quantiles=[]):
         image2D = image_maldi[..., i]
         norm_img = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
         min_area = sys.maxsize
+        upper_threshold = np.percentile(norm_img, upper)
         for quantile in quantiles:
             threshold = int(np.percentile(norm_img, quantile))
-            sc = spatial_coherence(norm_img > threshold)
+            sc = spatial_coherence( (norm_img > threshold) & (norm_img <= upper_threshold) )
             if sc < min_area:
                 min_area = sc
         values.append(min_area)
     value_array = np.array(values)
     similar_images = image_maldi[..., value_array > factor]
+    return similar_images
+
+def find_similar_images_spatial_coherence_percentage(image_maldi, percentage, quantiles=[], upper=100):
+    """
+    Finds images with spatial
+    coherence values greater than a threshold defined as a
+    factor (percentage) multiplied by the maximum spatial
+    coherence value.
+
+    Spatial coherence values are computed
+    for several quantile thresholds. The minimum area
+    over the thresholded images is kept.
+
+    Parameters
+    ----------
+    image_maldi: np.ndarray
+        MALDI image
+    percentage: float
+        multiplicative factor for spatial coherence values
+    quantiles: list
+        quantile threshold values (list of integers)
+    upper: int
+        quantile upper threshold
+
+    Returns
+    ----------
+    np.ndarray
+        images whose spatial coherence values are above factor
+    """
+    values = []
+    for i in range(image_maldi.shape[-1]):
+        image2D = image_maldi[..., i]
+        norm_img = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
+        min_area = sys.maxsize
+        upper_threshold = np.percentile(norm_img, upper)
+        for quantile in quantiles:
+            threshold = int(np.percentile(norm_img, quantile))
+            sc = spatial_coherence( (norm_img > threshold) & (norm_img <= upper_threshold) )
+            if sc < min_area:
+                min_area = sc
+        values.append(min_area)
+    value_array = np.array(values)
+    max_sc_value = np.amax(value_array)
+    t = percentage * max_sc_value
+    similar_images = image_maldi[..., value_array > t]
     return similar_images
 
 def find_similar_images_variance(image_maldi, factor_variance=0.1):

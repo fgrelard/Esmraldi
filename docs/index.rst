@@ -16,6 +16,7 @@ Esmraldi Documentation
    user/quickstart.ipynb
    user/advanced_example.ipynb
    user/data.rst
+   user/workflow_3D.rst
    
 
 Index

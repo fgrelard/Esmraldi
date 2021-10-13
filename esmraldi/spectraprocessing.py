@@ -7,16 +7,12 @@ specifically designed for MALDI images
   - Deisotoping
 """
 
-import ms_peak_picker
-import ms_deisotope
 import math
 import re
 import sys
 import scipy.signal as signal
 import numpy as np
-import matplotlib.pyplot as plt
 import bisect
-from pyopenms import *
 from functools import reduce
 
 def spectra_sum(spectra):
@@ -159,7 +155,7 @@ def spectra_peak_indices_adaptative(spectra, factor=1, wlen=10):
         x, y = spectrum
         indices_current = peak_indices(y, stddev * factor, wlen)
         indices.append(indices_current)
-    return np.array(indices)
+    return np.array(indices, dtype=object)
 
 def spectra_peak_mzs_adaptative(spectra, factor=1, wlen=10):
     """
@@ -196,7 +192,40 @@ def spectra_peak_mzs_adaptative(spectra, factor=1, wlen=10):
         mzs_current = x[indices_current]
         mzs.append(mzs_current)
         index += 1
-    return np.array(mzs)
+    return np.array(mzs, dtype=object)
+
+def spectra_peak_indices_adaptative_noiselevel(spectra, factor=1, noise_level=1, wlen=10):
+    """
+    Estimates and extracts significant peaks in the spectra
+    with specified noise level(s),
+    by using the local prominence
+    (height of the peak relative to
+    the background noise)
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        Spectra as [mz*I] array
+    factor: float
+        prominence factor
+    noise_level: float or list
+        noise level
+    wlen: int
+        size of the window
+
+    Returns
+    ----------
+    np.ndarray
+        Peaks m/z
+    """
+    indices = []
+    print(noise_level, factor)
+    for spectrum in spectra:
+        x, y = spectrum
+        indices_current = peak_indices(y, noise_level * factor, wlen)
+        indices.append(indices_current)
+    return np.array(indices, dtype=object)
+
 
 def spectra_peak_mzs_adaptative_noiselevel(spectra, factor=1, noise_level=1, wlen=10):
     """
@@ -206,9 +235,6 @@ def spectra_peak_mzs_adaptative_noiselevel(spectra, factor=1, noise_level=1, wle
     (height of the peak relative to
     the background noise)
 
-    Background noise is estimated as the
-    standard deviation of the
-    signal over a window of size wlen.
 
     Parameters
     ----------
@@ -231,12 +257,10 @@ def spectra_peak_mzs_adaptative_noiselevel(spectra, factor=1, noise_level=1, wle
     for spectrum in spectra:
         x, y = spectrum
         indices_current = peak_indices(y, noise_level * factor, wlen)
-        # plt.plot(x,y,x[indices_current], y[indices_current], "o")
-        # plt.show()
         mzs_current = x[indices_current]
         mzs.append(mzs_current)
         index += 1
-    return np.array(mzs)
+    return np.array(mzs, dtype=object)
 
 
 def peak_indices(data, prominence, wlen):
@@ -319,7 +343,7 @@ def spectra_peak_mzs_cwt(spectra, factor, widths):
             mzs.append(x[indices_current])
         else:
             mzs.append([])
-    return np.array(mzs)
+    return np.array(mzs, dtype=object)
 
 def same_mz_axis(spectra, tol=0):
     """
@@ -362,52 +386,68 @@ def same_mz_axis(spectra, tol=0):
         index += 1
     return new_matrix
 
-def peak_selection_shape(spectra):
-    """
-    Peak selection based on shape.
 
-    Uses ms_peak_picker module.
+
+def normalization_tic(spectra):
+    """
+    TIC (total ion count) normalization.
+
+    Divides each intensity in a spectrum by
+    the sum of all its intensities.
 
     Parameters
     ----------
     spectra: np.ndarray
-        Spectra as [mz*I] array
-
-    Returns
-    ----------
-    list
-        list of peaks for all spectra
-    """
-    spectra_peak_list = []
-    for spectrum in spectra:
-        x, y = spectrum
-        peak_list = ms_peak_picker.pick_peaks(x, y, fit_type="quadratic", signal_to_noise_threshold=2)
-        break
-        spectra_peak_list = spectra_peak_list + list(peak_list.peaks.peaks)
-    return spectra_peak_list
-
-
-def normalization_tic(y):
-    """
-    TIC (total ion count) normalization.
-
-    Divides each intensity in a spectrum by the sum of all its intensities.
-
-    Parameters
-    ----------
-    y: np.ndarray
-        spectrum
+        spectra as [mz*I] array
 
     Returns
     ----------
     np.ndarray
         normalized spectrum
     """
-    sum_intensity = 0
-    for intensity in y:
-        sum_intensity += intensity
-    return y / sum_intensity
+    spectra_normalized = spectra.copy()
+    for i, (x, y) in enumerate(spectra):
+        spectra_sum = np.sum(y)
+        new_y = y.copy()
+        if spectra_sum > 0:
+            new_y /= spectra_sum
+        spectra_normalized[i, 1, :] = new_y
+    return spectra_normalized
 
+def normalization_sic(spectra, indices_peaks, width_peak=10):
+    """
+    SIC (selective ion count) normalization.
+
+    Defined as : TIC - sum of peaks of high intensities
+    Peaks are given with indices_peaks.
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        spectra as [mz*I] array
+    indices_peaks: np.ndarray
+        indices peaks
+    width_peak: int
+        average width of peaks
+
+    Returns
+    ----------
+    np.ndarray
+        normalized spectrum
+    """
+    spectra_normalized = spectra.copy()
+    for i, (x, y) in enumerate(spectra):
+        indices = indices_peaks[i]
+        indices = np.unique(np.array([int(max(0, min(ind+i, y.shape[0]-1))) for ind in indices for i in range(-width_peak//2, width_peak//2+1)], dtype=np.int64))
+        mask = np.zeros(y.shape, dtype=bool)
+        mask[indices] = True
+        y_without_indices = y[~mask]
+        spectra_sum = np.sum(y_without_indices)
+        new_y = y.copy()
+        if spectra_sum > 0:
+            new_y /= spectra_sum
+        spectra_normalized[i, 1, :] = new_y
+    return spectra_normalized
 
 def index_groups(indices, step=1):
     """
@@ -617,7 +657,8 @@ def realign_wrt_peaks_mzs(spectra, aligned_mzs, full_mzs, indices_to_width):
         spectrum = spectra[i]
         x, y = spectrum
         matching_indices = [bisect.bisect_left(x, ii) for ii in aligned_mzs]
-        y_realigned = y[matching_indices]
+        matching_indices = [elem if elem < len(x) else len(x) - 1 for elem in matching_indices]
+        y_realigned = np.array(y)[matching_indices]
         indices = full_mzs[i]
         for i in indices:
             mz, width = closest_peak(i, indices_to_width)
@@ -814,7 +855,7 @@ def find_isotopic_pattern(neighbours, tolerance, nb_charges):
         previous = pattern[-1]
         d_previous = n[0] - previous[0]
         eps_previous = abs(d_previous - round(d_previous))
-        if eps < tolerance and d_previous-eps_previous < nb_charges:
+        if eps < tolerance and d_previous-eps_previous < 1+tolerance:
             pattern.append(n)
     return pattern
 
@@ -923,7 +964,7 @@ def mz_second_isotope_most_abundant(average_distribution):
             matches = pattern.findall(list_names)
             with_isotopes += sum([v*masses[m]*distribution[m] for m in matches])
     if with_isotopes == without_isotopes:
-        return 0
+        return 2**32
     n = 1.0 / (with_isotopes - without_isotopes)
     mz = n * without_isotopes
     return mz
@@ -993,12 +1034,15 @@ def deisotoping_simple(spectra, tolerance=0.1, nb_neighbours=8, nb_charges=5, av
         if np.any([np.isclose(ignore_indices[j][0], peaks[0, i]) for j in range(len(ignore_indices))]):
             continue
         peak = peaks[..., i]
+
         N = neighbours(i, nb_neighbours, peaks.T)
         pattern = find_isotopic_pattern(N, tolerance, nb_charges)
         if peak[0] < mz_second_isotope:
-            peaks_pattern = peaks_max_intensity_isotopic_pattern(pattern)
+            # peaks_pattern = peaks_max_intensity_isotopic_pattern(pattern)
+            peaks_pattern = [pattern[0]]
         else:
             peaks_pattern = peaks_derivative_isotopic_pattern(pattern)
+
         isotopes = isotopes_from_pattern(pattern, peaks_pattern)
         ignore_indices.extend(isotopes)
         indices = [peak_to_index(peak, pattern) for peak in peaks_pattern]
@@ -1010,97 +1054,3 @@ def deisotoping_simple(spectra, tolerance=0.1, nb_neighbours=8, nb_charges=5, av
         new_intensities = intensities[deisotoped_indices]
         deisotoped_spectra.append((new_mzs, new_intensities))
     return np.array(deisotoped_spectra)
-
-
-def deisotoping(spectra):
-    """
-    Removes isotopes from a collection of spectra.
-
-    Computes deisotoping for each spectrum and
-    keeps array of mzs of highest length.
-
-    Based on pyopenms module
-
-    Note:
-    looks at height of neighbouring peaks
-    not accurate for patterns where peak with max intensity
-    does not have the lowest m/z in the pattern.
-
-    Parameters
-    ----------
-    spectra: np.ndarray
-        Spectra as [mz*I] array
-
-    Returns
-    ----------
-    np.ndarray
-        Deisotoped spectra
-    """
-    max_length = 0
-    mzs = spectra[0, 0]
-    x = spectra.shape[0]
-    for i in range(x):
-        s = MSSpectrum()
-        s.set_peaks(spectra[i, ...].tolist())
-        Deisotoper.deisotopeAndSingleCharge(s, fragment_tolerance=0.1, fragment_unit_ppm=False, min_charge=1, max_charge=8, keep_only_deisotoped=True, min_isopeaks=2, max_isopeaks=3, make_single_charged=True, annotate_charge=True)
-        if s.size() > max_length:
-            max_length = s.size()
-            mzs = np.array(s.get_peaks())[0, ...]
-    condition = np.isin(spectra[0,0], mzs)
-    deisotoped_spectra = spectra[..., condition]
-    return deisotoped_spectra
-
-
-def peak_to_ms_peak(peak, index):
-    """
-    Converts a peak from [mz,I] to
-    ms_peak_picker.FittedPeak.
-
-    Parameters
-    ----------
-    peak: list
-        [mz,I]
-    index: int
-        index in spectrum
-
-    Returns
-    ----------
-    ms_peak_picker.FittedPeak
-        adjusted peak
-    """
-    peak = ms_peak_picker.FittedPeak(mz=peak[0],
-                                     intensity=peak[1],
-                                     signal_to_noise=max(peak[1]*0.1, 50),
-                                     peak_count=index,
-                                     index=index,
-                                     full_width_at_half_max=0.1,
-                                     area=peak[1]*0.1,
-                                     left_width=0.05,
-                                     right_width=0.05)
-    return peak
-
-
-
-
-
-def deisotoping_deconvolution(spectra):
-    """
-    Deisotoping by deconvolution.
-
-    Computes deisotoping on max spectrum.
-
-    Based on ms_deisotope module.
-    """
-    max_length = 0
-    x, y = spectra[0]
-    y = spectra_max(spectra)
-    peak_list = [peak_to_ms_peak([x[i], y[i]], i) for i in range(len(x))]
-    deconvoluted_peaks, _ = ms_deisotope.deconvolute_peaks(peak_list,
-                                                           averagine=ms_deisotope.glycan,
-                                                           scorer=ms_deisotope.MSDeconVFitter(10.0),
-                                                           charge_range=(1,3),
-                                                           truncate_after=0.8)
-    mzs = [elem.mz for elem in list(deconvoluted_peaks.peaks)]
-    condition = np.isin(spectra[0,0], mzs)
-    deisotoped_spectra = spectra[..., condition]
-    return deisotoped_spectra
