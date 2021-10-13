@@ -19,7 +19,7 @@
 #
 # import os
 # import sys
-# sys.path.insert(0, os.path.abspath('.'))
+# sys.path.insert(0, os.path.abspath('..'))
 
 
 # -- General configuration ------------------------------------------------
@@ -181,4 +181,4 @@ texinfo_documents = [
 
 
 def setup(app):
-    app.add_stylesheet('custom.css')  # may also be an URL
+    app.add_css_file('custom.css')  # may also be an URL
