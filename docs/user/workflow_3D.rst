@@ -3,7 +3,7 @@
 ===========
 
 Esmraldi is suited for the joint statistical analysis of 3D MS images along with other imaging modalities.
-The registration and statistical analysis steps should be adapted compared to the traditional 2D use-case. Refer to `Usage`_ for this case.
+The registration and statistical analysis steps should be adapted compared to the traditional 2D use-case. Refer to :doc:`Usage <./usage>` for this case.
 
 Registration
 ============
@@ -38,13 +38,13 @@ Visualization
 At each step of the workflow, 3D MS images may be visualized. Our visualization tool allows for the visualization of **2D slices**, as well as a **rendering of the volume**.
 
 .. image:: ../_images/visu.png
-   :width: 50%
+   :width: 65%
    :alt: Visualization of a 2D slice in a 3D MS image
 
 The slices can be selected by the slider "z" on the right of the screen. One can select specific m/z, using the text box on the right of the screen, or by clicking on the average spectrum displayed below the image. All 2D slices can be shown at the same by hitting the **"z" key**. The 3D volume rendering can be shown by hitting the **"v" key**:
 
 .. image:: ../_images/visu_3d.png
-   :width: 20%
+   :width: 25%
    :alt: 3D volume rendering
 
 
