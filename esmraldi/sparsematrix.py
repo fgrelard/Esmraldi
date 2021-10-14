@@ -165,7 +165,6 @@ class SparseMatrix(COO):
 
     def __getitem__(self, key):
         restricted_self = self.get_nd_iterable_indices(key)
-        print("1", restricted_self)
         if restricted_self is None:
             restricted_self = COO.__getitem__(self, key)
         if self.is_maybe_densify:

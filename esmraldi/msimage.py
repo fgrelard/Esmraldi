@@ -120,6 +120,24 @@ class MSImageImplementation:
         except:
             pass
 
+    def __lt__(self, other):
+        return self.image < other
+
+    def __gt__(self, other):
+        return self.image > other
+
+    def __le__(self, other):
+        return self.image <= other
+
+    def __ge__(self, other):
+        return self.image >= other
+
+    def __eq__(self, other):
+        return self.image == other
+
+    def __ne__(self, other):
+        return self.image != other
+
     def compute_mean_spectra(self):
         self.mean_spectra = sp.spectra_mean(self.spectra)
 

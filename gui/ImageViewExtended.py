@@ -168,6 +168,7 @@ class ImageViewExtended(pg.ImageView):
         self.mouse_x = 0
         self.mouse_y = 0
 
+        self.mask_roi = None
         self.coords_roi = None
 
         self.plot = None
@@ -175,9 +176,6 @@ class ImageViewExtended(pg.ImageView):
 
         self.is_clickable = False
         self.is_drawable = False
-
-        self.min_thresh = 0
-        self.max_thresh = 100
 
         self.pen_size = 1
         self.imageCopy = None
@@ -312,11 +310,6 @@ class ImageViewExtended(pg.ImageView):
 
 
         for x, y in self.coords_roi.T:
-            # x = round(i + point.x() + self.roi.pos().x())
-            # y = round(j + point.y() + self.roi.pos().y())
-
-            # if 0 <= x < self.imageItem.image.shape[1] and \
-            #    0 <= y < self.imageItem.image.shape[0]:
             self.imageItem.qimage.setPixel(x, y, pixel_value)
         self.imageItem._renderRequired = False
         self.imageItem._unrenderable = False
@@ -394,8 +387,6 @@ class ImageViewExtended(pg.ImageView):
         self.isNewImage = True
         super().setImage(img, autoRange, autoLevels, levels, axes, xvals, pos, scale, transform, autoHistogramRange)
 
-        self.min_thresh = 0
-        self.max_thresh = self.imageItem.image.max()
 
         self.buildPlot()
 
@@ -576,12 +567,50 @@ class ImageViewExtended(pg.ImageView):
         self.roi.sigRegionChangeFinished.connect(self.roiChanged)
         self.roiChanged()
 
-    def sliderValueChanged(self):
+    def intensity_value_slider(self, image):
         min_slider, max_slider = self.ui.rangeSliderThreshold.value()
         max_value = self.ui.rangeSliderThreshold.maximum()
-        self.min_thresh = min_slider * self.imageItem.image.max() / max_value
-        self.max_thresh = max_slider * self.imageItem.image.max() / max_value
+        min_thresh = min_slider * np.amax(image) / max_value
+        max_thresh = max_slider * np.amax(image) / max_value
+
+        min_thresh = min_thresh - np.finfo(min_thresh.dtype).eps
+        max_thresh = max_thresh + np.finfo(max_thresh.dtype).eps
+        return min_thresh, max_thresh
+
+    def sliderValueChanged(self):
         self.roiChanged()
+
+
+    def roi_to_coordinates(self, image):
+        min_t, max_t = self.intensity_value_slider(image)
+        topLeft = self.roi.boundingRect().topLeft()
+        coords_roi = np.argwhere((self.mask_roi > 0) & (image >= min_t) & (image <= max_t))
+        coords_roi = np.around(coords_roi + np.array(self.roi.pos()) + np.array([topLeft.x(), topLeft.y()])).astype(int)
+        coords_roi = np.clip(coords_roi, 0, np.subtract(self.imageItem.image.T.shape, 1))
+        coords_roi = coords_roi.T
+
+        return coords_roi
+
+    def roi_to_mean_spectra(self, image):
+        axes = tuple([i for i in range(image.ndim)  if i != image.spectral_axis])
+        if self.imageItem.axisOrder == "col-major":
+            axes = axes[::-1]
+        data, coords = self.roi.getArrayRegion(
+            image, img=self.imageItem, axes=axes,
+            returnMappedCoords=True, order=0)
+
+        mean = []
+        for i in range(data.shape[image.spectral_axis]):
+            index = [i if j == image.spectral_axis else slice(None) for j in range(image.ndim)]
+            im2D = data[tuple(index)].T
+            coords_2D = self.roi_to_coordinates(im2D)
+            linear = np.ravel_multi_index(coords_2D, self.imageItem.image.T.shape)
+            linear = np.unique(linear)
+            index = [linear, Ellipsis]
+            spectra = self.imageDisp.spectra[tuple(index)]
+            mean_value = np.mean(spectra[..., 1, i])
+            mean.append(mean_value)
+        return mean
 
 
     def roiChanged(self):
@@ -601,10 +630,8 @@ class ImageViewExtended(pg.ImageView):
         colmaj = self.imageItem.axisOrder == 'col-major'
         if colmaj:
             axes = (1, 0)
-            axes_spectra = (0, 1)
         else:
             axes = (0, 1)
-            axes_spectra = (1, 0)
             current_image = current_image.T
 
         data, coords = self.roi.getArrayRegion(
@@ -614,25 +641,10 @@ class ImageViewExtended(pg.ImageView):
         if data is None:
             return
 
-        if data.ndim > 2:
-            data = data[..., 0]
+        image_roi = data.T
+        self.mask_roi = self.roi.renderShapeMask(image_roi.shape[axes[0]], image_roi.shape[axes[1]])
 
-        image_roi = data
-        mask = self.roi.renderShapeMask(image_roi.shape[1], image_roi.shape[0])
-
-
-
-        topLeft = self.roi.boundingRect().topLeft()
-        self.coords_roi = np.argwhere((mask > 0) & (image_roi.T >= self.min_thresh) & (image_roi.T <= self.max_thresh))
-        self.coords_roi = np.around(self.coords_roi + np.array(self.roi.pos()) + np.array([topLeft.x(), topLeft.y()])).astype(int)
-        self.coords_roi = np.clip(self.coords_roi, 0, np.subtract(self.imageItem.image.T.shape, 1))
-
-        self.coords_roi = self.coords_roi.T
-
-        coords_spectra = [slice(None) if i==self.imageDisp.spectral_axis else self.coords_roi[i if i < self.imageDisp.spectral_axis else i-1] for i in range(self.imageDisp.ndim)]
-        print(coords_spectra)
-        print(self.imageDisp.shape, self.imageDisp[tuple(coords_spectra)].shape)
-
+        self.coords_roi = self.roi_to_coordinates(image_roi)
         image_roi = current_image[tuple(self.coords_roi)]
 
         if not image_roi.size:
@@ -656,23 +668,30 @@ class ImageViewExtended(pg.ImageView):
         self.ui.splitter.setSizes([self.height()-35, 35])
         self.updateImage()
 
+
     def plotSpectraROI(self):
         if self.coords_roi is None or self.axes["t"] is None:
             return
 
-
-        dock = Dock("Plot ROI" + str(self.area.count()), size=(500,300), closable=True)
+        dock = Dock("ROI " + str(len(self.area.docks)), size=(500,300), closable=True)
         self.area.addDock(dock, "below")
         plot = pg.PlotWidget()
-        plot.plot(sp.spectra_mean(self.coords_roi))
+
+        min_slider, max_slider = self.ui.rangeSliderThreshold.value()
+        min_value = self.ui.rangeSliderThreshold.minimum()
+        max_value = self.ui.rangeSliderThreshold.maximum()
+        if min_slider == min_value and max_value == max_slider:
+            linear = np.ravel_multi_index(self.coords_roi, self.imageItem.image.T.shape)
+            linear = np.unique(linear)
+            ind = tuple([linear, Ellipsis])
+            spectra = self.imageDisp.spectra[ind]
+            mean_spectra = sp.spectra_mean(spectra)
+        else:
+            mean_spectra = self.roi_to_mean_spectra(self.imageDisp)
+        plot.plot(mean_spectra)
         dock.addWidget(plot)
 
         self.winPlotROI.show()
-
-
-
-
-
 
 
     def normalize(self, image):
