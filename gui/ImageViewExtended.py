@@ -8,6 +8,8 @@ import inspect
 import numbers
 
 import esmraldi.spectraprocessing as sp
+from gui.viewboxdirac import ViewBoxDirac
+
 #Allows to use QThreads without freezing
 #the main application
 matplotlib.use('Qt5Agg')
@@ -29,6 +31,7 @@ from pyqtgraph.dockarea import DockArea, Dock
 
 from qtrangeslider import QLabeledRangeSlider
 from collections import ChainMap
+
 
 
 
@@ -189,16 +192,20 @@ class ImageViewExtended(pg.ImageView):
 
         self.ui.histogram.setHistogramRange = lambda mn, mx, padding=0.1: setHistogramRange(self.ui.histogram, mn, mx, padding)
 
-        self.plot = pg.ScatterPlotItem(size=5, pen=pg.mkPen(255,255, 255, 230), brush=pg.mkBrush(220, 220, 220, 230),hoverable=True,hoverPen=pg.mkPen(242, 38, 19),hoverSize=5,hoverBrush=pg.mkBrush(150, 40, 27))
+        # self.plot = pg.ScatterPlotItem(size=5, pen=pg.mkPen(255,255, 255, 230), brush=pg.mkBrush(220, 220, 220, 230),hoverable=True,hoverPen=pg.mkPen(242, 38, 19),hoverSize=5,hoverBrush=pg.mkBrush(150, 40, 27))
+
+        vb = ViewBoxDirac()
+        self.winPlot = pg.PlotWidget(viewBox=vb, size=(1,1))
+        self.plot = pg.BarGraphItem(x=[], height=[], width=0)
 
         self.clickedPen = pg.mkPen("b")
         self.lastPointsClicked = []
-        self.plot.sigClicked.connect(self.clickedSpectra)
 
-        self.winPlot = pg.plot(size=(1,1))
-        self.winPlot.addItem(self.plot)
-        self.ui.gridLayout_3.addWidget(self.winPlot)
         self.winPlot.setMaximumHeight(100)
+        self.winPlot.addItem(self.plot)
+        self.plot.getViewBox().mouseDragEvent = self.draggedSpectra
+
+        self.ui.gridLayout_3.addWidget(self.winPlot)
 
         self.previousRoiSize = 10
         self.previousRoiPositions = [[0,0], [10, 0], [5, 5]]
@@ -675,7 +682,8 @@ class ImageViewExtended(pg.ImageView):
 
         dock = Dock("ROI " + str(len(self.area.docks)), size=(500,300), closable=True)
         self.area.addDock(dock, "below")
-        plot = pg.PlotWidget()
+        vb = ViewBoxDirac()
+        plot = pg.PlotWidget(viewBox=vb, enableMenu=False)
 
         min_slider, max_slider = self.ui.rangeSliderThreshold.value()
         min_value = self.ui.rangeSliderThreshold.minimum()
@@ -688,7 +696,9 @@ class ImageViewExtended(pg.ImageView):
             mean_spectra = sp.spectra_mean(spectra)
         else:
             mean_spectra = self.roi_to_mean_spectra(self.imageDisp)
-        plot.plot(mean_spectra)
+
+        bg = pg.BarGraphItem(x=self.tVals, height=mean_spectra, width=0)
+        plot.addItem(bg)
         dock.addWidget(plot)
 
         self.winPlotROI.show()
@@ -814,6 +824,13 @@ class ImageViewExtended(pg.ImageView):
     def spectraToggled(self):
         self.winPlot.setVisible(self.ui.spectraBtn.isChecked())
 
+    def draggedSpectra(self, event):
+        ViewBoxDirac.mouseDragEvent(self.plot.getViewBox(), event)
+        if event.isFinish():
+            indices = self.plot.getViewBox().x_selected
+            if not indices.size:
+                return
+            self.setCurrentIndices(indices)
 
     def clickedSpectra(self, scatter, points):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
@@ -828,7 +845,6 @@ class ImageViewExtended(pg.ImageView):
             p.setPen(self.clickedPen)
         self.lastPointsClicked = np.append(self.lastPointsClicked, points)
         indices = [p.pos().x() for p in self.lastPointsClicked]
-        median_val = np.median(indices)
         self.setCurrentIndices(indices)
 
     def setCurrentIndices(self, times):
@@ -843,15 +859,15 @@ class ImageViewExtended(pg.ImageView):
         self.ignorePlaying = False
 
     def buildPlot(self):
-        self.plot.clear()
         if self.image is None:
             return
         if self.axes["t"] is None:
             return
         self.displayed_spectra = self.image.mean_spectra
         x = self.image.mzs
-        spots = [{'pos': [x[i], self.displayed_spectra[i]], 'data': 1} for i in range(len(x))]
-        self.plot.addPoints(spots)
+        self.plot.setOpts(x=x, height=self.displayed_spectra)
+        # spots = [{'pos': [x[i], self.displayed_spectra[i]], 'data': 1} for i in range(len(x))]
+        # self.plot.addPoints(spots)
         self.winPlot.autoRange()
 
 
