@@ -113,6 +113,7 @@ class MainController:
         self.locale = Qt.QLocale(Qt.QLocale.English)
         Qt.QLocale.setDefault(self.locale)
 
+        mainview.closeEvent = self.exit_app
         self.mainview = mainview.ui
         self.mainview.parent = mainview
         self.app = app
@@ -153,7 +154,7 @@ class MainController:
         self.tolerance = 0.003
 
 
-        self.app.aboutToQuit.connect(self.exit_app)
+
         self.config = config
         self.images = OrderedDict()
         self.metadata = OrderedDict()
@@ -226,13 +227,14 @@ class MainController:
     def get_image(self):
         return self.img_data
 
-    def exit_app(self):
+    def exit_app(self, ev=None):
         """
         Exits the app and save configuration
         preferences
         """
         with open('config.ini', 'w') as configfile:
             self.config.write(configfile)
+        self.mainview.imageview.winPlotROI.close()
         self.app.quit()
 
     def change_mz_value(self, text):

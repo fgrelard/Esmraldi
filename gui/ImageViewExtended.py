@@ -274,7 +274,7 @@ class ImageViewExtended(pg.ImageView):
         self.winPlotROI.setCentralWidget(self.area)
         self.winPlotROI.setWindowTitle("Plot ROI")
         self.winPlotROI.resize(600, 480)
-        self.winPlotROI.closeEvent = lambda ev: self.winPlotROI.hide
+        self.winPlotROI.closeEvent = self.hide_win_roi
 
         self.ui.gridLayout_3.addWidget(self.ui.roiGroup)
 
@@ -286,6 +286,10 @@ class ImageViewExtended(pg.ImageView):
         self.ui.roiPolygon.clicked.connect(self.roiRadioChanged)
         self.ui.plotSpectraButton.clicked.connect(self.plotSpectraROI)
         self.roiRadioChanged()
+
+    def hide_win_roi(self, ev):
+        ev.ignore()
+        self.winPlotROI.hide()
 
     def hide_partial(self):
         """
