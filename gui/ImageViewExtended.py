@@ -166,6 +166,8 @@ class ImageViewExtended(pg.ImageView):
         self.scene.addItem(self.label)
         self.scene.sigMouseMoved.connect(self.on_hover_image)
 
+        self.actualIndex = 0
+
         self.threads = []
 
         self.mouse_x = 0
@@ -396,6 +398,7 @@ class ImageViewExtended(pg.ImageView):
         """
         #Saves previous z-index
         previousIndex = self.currentIndex
+        self.actualIndex = self.currentIndex
         is_shown = False
         if self.imageDisp is not None:
             previousShape = self.imageDisp.shape
@@ -437,6 +440,7 @@ class ImageViewExtended(pg.ImageView):
         ev: QWheelEvent
             the wheel event
         """
+
         new_index = self.currentIndex + 1 if ev.angleDelta().y() < 0 else self.currentIndex - 1
         self.setCurrentIndex(new_index)
 
@@ -483,7 +487,6 @@ class ImageViewExtended(pg.ImageView):
             self.play(0)
 
 
-
     def update_label(self):
         """
         Updates the label with mouse position
@@ -509,15 +512,16 @@ class ImageViewExtended(pg.ImageView):
 
     def setCurrentIndex(self, ind):
         super().setCurrentIndex(ind)
+        self.actualIndex = self.currentIndex
         self.signal_mz_change.emit(self.tVals[self.currentIndex])
         self.update_label()
 
     def timeLineChanged(self):
         super().timeLineChanged()
+        self.actualIndex = self.currentIndex
         self.signal_mz_change.emit(self.tVals[self.currentIndex])
-        self.max_thresh = self.imageItem.image.max()
-        self.roiChanged()
         self.update_label()
+        self.roiChanged()
 
     def updateNorm(self):
         self.isNewNorm = True
@@ -678,7 +682,7 @@ class ImageViewExtended(pg.ImageView):
         stddev_roi = np.std(image_roi)
         string_roi = "\u03BC="+ "{:.3e}".format(mean_roi)+ "\t\t\u03C3="+ "{:.3e}".format(stddev_roi)
 
-        self.updateImage()
+        self.setCurrentIndices(self.actualIndex)
         self.ui.labelRoiChange.setText(string_roi)
 
 
@@ -704,8 +708,6 @@ class ImageViewExtended(pg.ImageView):
 
         dock = Dock("ROI " + str(len(self.area.docks.valuerefs())), size=(500,300), closable=True)
 
-        if len(self.area.docks) > 0:
-            print(self.area.docks.valuerefs()[-1]())
         containers, _ = self.area.findAll()
         if len(containers) <= 1:
             self.area.addDock(dock, "below")
@@ -865,7 +867,7 @@ class ImageViewExtended(pg.ImageView):
             indices = self.plot.getViewBox().x_selected
             if not indices.size:
                 return
-            self.setCurrentIndices(indices)
+            self.setCurrentTimes(indices)
 
     def clickedSpectra(self, scatter, points):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
@@ -880,18 +882,23 @@ class ImageViewExtended(pg.ImageView):
             p.setPen(self.clickedPen)
         self.lastPointsClicked = np.append(self.lastPointsClicked, points)
         indices = [p.pos().x() for p in self.lastPointsClicked]
-        self.setCurrentIndices(indices)
+        self.setCurrentTimes(indices)
 
-    def setCurrentIndices(self, times):
+
+    def setCurrentTimes(self, times):
         self.ignorePlaying = True
         median_val = np.median(times)
         self.timeLine.setValue(median_val)
 
         indices = np.argwhere(np.in1d(self.image.mzs, times)).flatten()
-        self.currentIndex = indices
+        self.setCurrentIndices(indices)
+        self.ignorePlaying = False
+
+    def setCurrentIndices(self, indices):
+        self.actualIndex = indices
+        self.currentIndex = self.actualIndex
         self.updateImage()
         self.currentIndex = np.int64(np.median(indices))
-        self.ignorePlaying = False
 
     def buildPlot(self):
         self.displayed_spectra = self.image.mean_spectra
