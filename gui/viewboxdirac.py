@@ -1,5 +1,5 @@
 import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore
+from pyqtgraph.Qt import QtCore, QtGui
 from pyqtgraph.Point import Point
 
 class ViewBoxDirac(pg.ViewBox):
@@ -22,7 +22,11 @@ class ViewBoxDirac(pg.ViewBox):
             for child in self.allChildren():
                 if isinstance(child, pg.BarGraphItem):
                     x, y = child.getData()
-                    self.x_selected = x[(x > min_x) & (x < max_x)]
+                    condition = (x > min_x) & (x < max_x)
+
+                    brushes = [QtGui.QColor(0, 50, 200) if condition[i] else pg.getConfigOption("foreground") for i in range(len(condition))]
+                    child.setOpts(pens=brushes)
+                    self.x_selected = x[condition]
             self.rbScaleBox.hide()
         elif ev.button() == QtCore.Qt.MouseButton.MiddleButton:
             self.setMouseMode(pg.ViewBox.PanMode)
