@@ -701,10 +701,17 @@ class ImageViewExtended(pg.ImageView):
         if self.coords_roi is None or not self.hasTimeAxis():
             return
 
-        dock = Dock("ROI " + str(len(self.area.docks)), size=(500,300), closable=True)
-        self.area.addDock(dock, "below")
+        dock = Dock("ROI " + str(len(self.area.docks.valuerefs())), size=(500,300), closable=True)
+
+        if len(self.area.docks) > 0:
+            print(self.area.docks.valuerefs()[-1]())
+        containers, _ = self.area.findAll()
+        if len(containers) <= 1:
+            self.area.addDock(dock, "below")
+        else:
+            self.area.addDock(dock, "below", self.area.docks.valuerefs()[-1]())
         vb = ViewBoxDirac()
-        plot = pg.PlotWidget(viewBox=vb, enableMenu=False)
+        plot = pg.PlotWidget(viewBox=vb, enableMenu=True)
 
         min_slider, max_slider = self.ui.rangeSliderThreshold.value()
         min_value = self.ui.rangeSliderThreshold.minimum()
