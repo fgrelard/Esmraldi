@@ -609,7 +609,7 @@ class ImageViewExtended(pg.ImageView):
 
 
     def roi_to_coordinates(self, image):
-        min_t, max_t = self.intensity_value_slider(self.imageItem.image)
+        min_t, max_t = self.intensity_value_slider(image)
         topLeft = self.roi.boundingRect().topLeft()
         coords_roi = np.argwhere((self.mask_roi > 0) & (image >= min_t) & (image <= max_t))
         coords_roi = np.around(coords_roi + np.array(self.roi.pos()) + np.array([topLeft.x(), topLeft.y()])).astype(int)
@@ -620,6 +620,8 @@ class ImageViewExtended(pg.ImageView):
         return coords_roi
 
     def roi_to_mean_spectra(self, image):
+        print("roi to mean spectra")
+        print(image.shape)
         axes = tuple([i for i in range(image.ndim)  if i != image.spectral_axis])
         if self.imageItem.axisOrder == "col-major":
             axes = axes[::-1]
@@ -636,7 +638,10 @@ class ImageViewExtended(pg.ImageView):
             linear = np.unique(linear)
             index = [linear, Ellipsis]
             spectra = self.imageDisp.spectra[tuple(index)]
-            mean_value = np.mean(spectra[..., 1, i])
+            current_spectra = spectra[..., 1, i]
+            mean_value = 0
+            if current_spectra.size:
+                mean_value = np.mean(current_spectra)
             mean.append(mean_value)
         return mean
 
