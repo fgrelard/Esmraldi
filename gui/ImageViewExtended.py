@@ -589,7 +589,7 @@ class ImageViewExtended(pg.ImageView):
 
 
     def roi_to_coordinates(self, image):
-        min_t, max_t = self.intensity_value_slider(image)
+        min_t, max_t = self.intensity_value_slider(self.imageItem.image)
         topLeft = self.roi.boundingRect().topLeft()
         coords_roi = np.argwhere((self.mask_roi > 0) & (image >= min_t) & (image <= max_t))
         coords_roi = np.around(coords_roi + np.array(self.roi.pos()) + np.array([topLeft.x(), topLeft.y()])).astype(int)
