@@ -415,6 +415,7 @@ class ImageViewExtended(pg.ImageView):
         self.imageCopy = self.imageDisp.copy()
         self.pen_value = np.amax(self.imageDisp)+1
 
+        self.roi.setPos(0,0)
 
         if not is_shown:
             return
