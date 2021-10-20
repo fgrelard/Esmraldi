@@ -826,7 +826,7 @@ class ImageViewExtended(pg.ImageView):
 
     def draggedSpectra(self, event):
         ViewBoxDirac.mouseDragEvent(self.plot.getViewBox(), event)
-        if event.isFinish():
+        if event.isFinish() and event.button() == QtCore.Qt.MouseButton.LeftButton:
             indices = self.plot.getViewBox().x_selected
             if not indices.size:
                 return
