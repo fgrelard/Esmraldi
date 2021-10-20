@@ -398,21 +398,28 @@ class ImageViewExtended(pg.ImageView):
         self.isNewImage = True
         super().setImage(img, autoRange, autoLevels, levels, axes, xvals, pos, scale, transform, autoHistogramRange)
 
-
-        self.buildPlot()
-
-        self.imageCopy = self.imageDisp.copy()
-        self.pen_value = np.amax(self.imageDisp)+1
-
         #Changes wheel event
         self.ui.roiPlot.setMouseEnabled(True, True)
         self.ui.roiPlot.wheelEvent = self.roi_scroll_bar
         max_t = self.imageDisp.shape[0]
         self.normRgn.setRegion((1, max_t//2))
+
+        if self.image is None or not self.hasTimeAxis():
+            self.timeLine.hide()
+            self.winPlot.hide()
+        else:
+            self.buildPlot()
+            self.timeLine.show()
+            self.winPlot.show()
+
+        self.imageCopy = self.imageDisp.copy()
+        self.pen_value = np.amax(self.imageDisp)+1
+
+
         if not is_shown:
             return
         #Shows image at previous z-index if in range
-        if self.imageDisp.ndim > 2 and previousIndex < self.imageDisp.shape[0] and self.axes["t"] is not None:
+        if self.imageDisp.ndim > 2 and previousIndex < self.imageDisp.shape[0] and self.hasTimeAxis():
             self.setCurrentIndex(previousIndex)
 
     def roi_scroll_bar(self, ev):
@@ -484,7 +491,7 @@ class ImageViewExtended(pg.ImageView):
         position = "(" + str(self.mouse_x) + ", " + str(self.mouse_y) + ")"
         position_z = ""
 
-        if self.axes["t"] is not None:
+        if self.hasTimeAxis():
             position_z = str(self.tVals[self.currentIndex])
 
         value = self.imageItem.image[(self.mouse_y, self.mouse_x)]
@@ -530,7 +537,7 @@ class ImageViewExtended(pg.ImageView):
             self.imageDisp = self.image
         elif self.imageDisp is None or self.isNewNorm:
             self.imageDisp = self.normalize(self.image)
-            if self.axes['t'] is not None and self.ui.normOffRadio.isChecked():
+            if self.hasTimeAxis() and self.ui.normOffRadio.isChecked():
                 curr_img = self.imageDisp[self.currentIndex, ...]
                 self.levelMin, self.levelMax = np.amin(curr_img), np.amax(curr_img)
             else:
@@ -671,6 +678,11 @@ class ImageViewExtended(pg.ImageView):
 
     def roiClicked(self):
         super().roiClicked()
+
+        if not self.hasTimeAxis():
+            self.timeLine.hide()
+            self.ui.roiPlot.setVisible(False)
+
         try:
             self.ui.labelRoiChange.setVisible(self.ui.roiBtn.isChecked())
             self.ui.roiGroup.setVisible(self.ui.roiBtn.isChecked())
@@ -681,7 +693,7 @@ class ImageViewExtended(pg.ImageView):
 
 
     def plotSpectraROI(self):
-        if self.coords_roi is None or self.axes["t"] is None:
+        if self.coords_roi is None or not self.hasTimeAxis():
             return
 
         dock = Dock("ROI " + str(len(self.area.docks)), size=(500,300), closable=True)
@@ -863,15 +875,9 @@ class ImageViewExtended(pg.ImageView):
         self.ignorePlaying = False
 
     def buildPlot(self):
-        if self.image is None:
-            return
-        if self.axes["t"] is None:
-            return
         self.displayed_spectra = self.image.mean_spectra
         x = self.image.mzs
         self.plot.setOpts(x=x, height=self.displayed_spectra)
-        # spots = [{'pos': [x[i], self.displayed_spectra[i]], 'data': 1} for i in range(len(x))]
-        # self.plot.addPoints(spots)
         self.winPlot.autoRange()
 
 
