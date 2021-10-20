@@ -269,6 +269,11 @@ class ImageViewExtended(pg.ImageView):
         self.ui.plotSpectraButton.setText("Plot spectra")
         self.ui.gridLayout_roi.addWidget(self.ui.plotSpectraButton, 2, 0, 1, 1)
 
+        self.ui.resetROIButton = QtWidgets.QPushButton(self.ui.roiGroup)
+        self.ui.resetROIButton.setObjectName("resetROIButton")
+        self.ui.resetROIButton.setText("Reset ROI")
+        self.ui.gridLayout_roi.addWidget(self.ui.resetROIButton, 2, 1, 1, 1)
+
         self.winPlotROI = QtWidgets.QMainWindow()
         self.area = DockArea()
         self.winPlotROI.setCentralWidget(self.area)
@@ -285,6 +290,7 @@ class ImageViewExtended(pg.ImageView):
         self.ui.roiCircle.clicked.connect(self.roiRadioChanged)
         self.ui.roiPolygon.clicked.connect(self.roiRadioChanged)
         self.ui.plotSpectraButton.clicked.connect(self.plotSpectraROI)
+        self.ui.resetROIButton.clicked.connect(self.resetROI)
         self.roiRadioChanged()
 
     def hide_win_roi(self, ev):
@@ -414,8 +420,6 @@ class ImageViewExtended(pg.ImageView):
 
         self.imageCopy = self.imageDisp.copy()
         self.pen_value = np.amax(self.imageDisp)+1
-
-        self.roi.setPos(0,0)
 
         if not is_shown:
             return
@@ -720,6 +724,12 @@ class ImageViewExtended(pg.ImageView):
 
         self.winPlotROI.show()
 
+    def resetROI(self, event):
+        self.previousRoiSize = 10
+        self.previousRoiPositions = [[0,0], [10, 0], [5, 5]]
+        self.roiRadioChanged()
+        self.roi.setPos((0,0))
+        self.autoRange()
 
     def normalize(self, image):
         return image
