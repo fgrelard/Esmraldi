@@ -609,7 +609,8 @@ class ImageViewExtended(pg.ImageView):
         topLeft = self.roi.boundingRect().topLeft()
         coords_roi = np.argwhere((self.mask_roi > 0) & (image >= min_t) & (image <= max_t))
         coords_roi = np.around(coords_roi + np.array(self.roi.pos()) + np.array([topLeft.x(), topLeft.y()])).astype(int)
-        coords_roi = np.clip(coords_roi, 0, np.subtract(self.imageItem.image.T.shape, 1))
+        condition = (coords_roi >= (0,0)) & (coords_roi < self.imageItem.image.T.shape)
+        coords_roi = coords_roi[condition.all(axis=-1)]
         coords_roi = coords_roi.T
 
         return coords_roi
