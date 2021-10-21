@@ -6,9 +6,16 @@ class ViewBoxDirac(pg.ViewBox):
     def __init__(self, *args, **kwds):
         pg.ViewBox.__init__(self, *args, **kwds)
         self.x_selected = []
-        self.setMenuEnabled(True)
         self.setMouseEnabled(True, False)
         self.setMouseMode(self.RectMode)
+        del self.menu.actions()[0]
+
+        del self.menu.actions()[1]
+        del self.menu.actions()[2]
+
+        del self.menu.actions()[3]
+
+
 
     def mouseDragEvent(self, ev, axis=None):
         if ev.isFinish() and  ev.button() == QtCore.Qt.MouseButton.LeftButton:
@@ -20,7 +27,7 @@ class ViewBoxDirac(pg.ViewBox):
                     x, y = child.getData()
                     condition = (x > min_x) & (x < max_x)
 
-                    brushes = [QtGui.QColor(250, 216, 89) if condition[i] else pg.getConfigOption("foreground") for i in range(len(condition))]
+                    brushes = [QtGui.QColor(0, 177, 106) if condition[i] else pg.getConfigOption("foreground") for i in range(len(condition))]
                     child.setOpts(pens=brushes)
                     self.x_selected = x[condition]
             self.rbScaleBox.hide()

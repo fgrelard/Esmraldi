@@ -194,10 +194,9 @@ class ImageViewExtended(pg.ImageView):
 
         self.ui.histogram.setHistogramRange = lambda mn, mx, padding=0.1: setHistogramRange(self.ui.histogram, mn, mx, padding)
 
-        # self.plot = pg.ScatterPlotItem(size=5, pen=pg.mkPen(255,255, 255, 230), brush=pg.mkBrush(220, 220, 220, 230),hoverable=True,hoverPen=pg.mkPen(242, 38, 19),hoverSize=5,hoverBrush=pg.mkBrush(150, 40, 27))
 
         vb = ViewBoxDirac()
-        self.winPlot = pg.PlotWidget(viewBox=vb, size=(1,1))
+        self.winPlot = pg.PlotWidget(viewBox=vb, size=(1,1), enableMenu=False)
         self.plot = pg.BarGraphItem(x=[], height=[], width=0)
 
         self.clickedPen = pg.mkPen("b")
@@ -418,6 +417,7 @@ class ImageViewExtended(pg.ImageView):
             self.winPlot.hide()
         else:
             self.buildPlot()
+            self.plot.getViewBox().setXLink(self.timeLine.getViewBox())
             self.timeLine.show()
             self.winPlot.show()
 
@@ -498,6 +498,7 @@ class ImageViewExtended(pg.ImageView):
             self.mouse_y = 0
         position = "(" + str(self.mouse_x) + ", " + str(self.mouse_y) + ")"
         position_z = ""
+
 
         if self.hasTimeAxis():
             position_z = str(self.tVals[self.currentIndex])
@@ -719,7 +720,7 @@ class ImageViewExtended(pg.ImageView):
         else:
             self.area.addDock(dock, "below", self.area.docks.valuerefs()[-1]())
         vb = ViewBoxDirac()
-        plot = pg.PlotWidget(viewBox=vb, enableMenu=True)
+        plot = pg.PlotWidget(viewBox=vb, enableMenu=False)
 
         min_slider, max_slider = self.ui.rangeSliderThreshold.value()
         min_value = self.ui.rangeSliderThreshold.minimum()
@@ -874,35 +875,22 @@ class ImageViewExtended(pg.ImageView):
                 return
             self.setCurrentTimes(indices)
 
-    def clickedSpectra(self, scatter, points):
-        modifiers = QtWidgets.QApplication.keyboardModifiers()
-        is_adding = False
-        if modifiers == QtCore.Qt.ControlModifier:
-            is_adding = True
-        if not is_adding:
-            for p in self.lastPointsClicked:
-                p.resetPen()
-            self.lastPointsClicked = []
-        for p in points:
-            p.setPen(self.clickedPen)
-        self.lastPointsClicked = np.append(self.lastPointsClicked, points)
-        indices = [p.pos().x() for p in self.lastPointsClicked]
-        self.setCurrentTimes(indices)
-
 
     def setCurrentTimes(self, times):
         self.ignorePlaying = True
+        indices = np.argwhere(np.in1d(self.image.mzs, times)).flatten()
         median_val = np.median(times)
         self.timeLine.setValue(median_val)
-
-        indices = np.argwhere(np.in1d(self.image.mzs, times)).flatten()
         self.setCurrentIndices(indices)
         self.ignorePlaying = False
 
-    def setCurrentIndices(self, indices):
+    def setCurrentIndices(self, indices, update_current=True):
         self.actualIndex = indices
         self.currentIndex = self.actualIndex
         self.updateImage()
+        condition = np.in1d(np.arange(len(self.tVals)), self.actualIndex)
+        pens = [QtGui.QColor(0, 177, 106) if condition[i] else pg.getConfigOption("foreground") for i in range(len(condition))]
+        self.plot.setOpts(pens=pens)
         self.currentIndex = np.int64(np.median(indices))
 
     def buildPlot(self):
