@@ -4,18 +4,14 @@ from pyqtgraph.Point import Point
 
 class ViewBoxDirac(pg.ViewBox):
     def __init__(self, *args, **kwds):
-        kwds['enableMenu'] = False
         pg.ViewBox.__init__(self, *args, **kwds)
         self.x_selected = []
+        self.setMenuEnabled(True)
+        self.setMouseEnabled(True, False)
         self.setMouseMode(self.RectMode)
 
-    def mouseClickEvent(self, ev):
-        if ev.button() == QtCore.Qt.MouseButton.RightButton:
-            self.autoRange()
-
-
     def mouseDragEvent(self, ev, axis=None):
-        if ev.isFinish() and not ev.button() == QtCore.Qt.MouseButton.MiddleButton:
+        if ev.isFinish() and  ev.button() == QtCore.Qt.MouseButton.LeftButton:
             rect = QtCore.QRectF(Point(ev.buttonDownPos(ev.button())), Point(ev.pos()))
             rect = self.childGroup.mapRectFromParent(rect)
             min_x, max_x = rect.left(), rect.right()
@@ -24,7 +20,7 @@ class ViewBoxDirac(pg.ViewBox):
                     x, y = child.getData()
                     condition = (x > min_x) & (x < max_x)
 
-                    brushes = [QtGui.QColor(0, 50, 200) if condition[i] else pg.getConfigOption("foreground") for i in range(len(condition))]
+                    brushes = [QtGui.QColor(250, 216, 89) if condition[i] else pg.getConfigOption("foreground") for i in range(len(condition))]
                     child.setOpts(pens=brushes)
                     self.x_selected = x[condition]
             self.rbScaleBox.hide()
@@ -32,5 +28,9 @@ class ViewBoxDirac(pg.ViewBox):
             self.setMouseMode(pg.ViewBox.PanMode)
             pg.ViewBox.mouseDragEvent(self, ev, axis=axis)
             self.setMouseMode(pg.ViewBox.RectMode)
+        elif ev.button() == QtCore.Qt.MouseButton.RightButton:
+            self.setMouseEnabled(True, True)
+            pg.ViewBox.mouseDragEvent(self, ev, axis=axis)
         else:
             pg.ViewBox.mouseDragEvent(self, ev, axis=axis)
+        self.setMouseEnabled(True, False)
