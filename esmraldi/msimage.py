@@ -199,7 +199,7 @@ class MSImageImplementation:
             if value.ndim == self.image.ndim:
                 try:
                     value = self.average_image(key)
-                except:
+                except Exception as e:
                     pass
         if is_still_image and not self.is_maybe_densify:
             spectra = self.spectra[key]
@@ -232,6 +232,10 @@ class MSImageImplementation:
 
     def average_image(self, indices):
         average_image = np.mean(np.take(self.image, indices.flatten(), axis=self.spectral_axis), axis=self.spectral_axis)
+        try:
+            average_image = average_image.todense()
+        except:
+            pass
         return average_image
 
 

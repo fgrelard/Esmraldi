@@ -168,7 +168,7 @@ class MainController:
         self.mouse_y = 0
         self.z = 0
 
-        nb=10
+        nb = 200000
         mzs = (np.arange(nb)+1)
 
         x = np.random.random((10, 10, nb))
