@@ -9,6 +9,7 @@ import numbers
 
 import esmraldi.spectraprocessing as sp
 from gui.viewboxdirac import ViewBoxDirac
+from gui.scatterplotitemdirac import ScatterPlotItemDirac
 
 #Allows to use QThreads without freezing
 #the main application
@@ -197,7 +198,7 @@ class ImageViewExtended(pg.ImageView):
 
         vb = ViewBoxDirac()
         self.winPlot = pg.PlotWidget(viewBox=vb, size=(1,1), enableMenu=False)
-        self.plot = pg.BarGraphItem(x=[], height=[], width=0)
+        self.plot = ScatterPlotItemDirac(pen="w")
 
         self.clickedPen = pg.mkPen("b")
         self.lastPointsClicked = []
@@ -405,7 +406,6 @@ class ImageViewExtended(pg.ImageView):
 
         self.isNewImage = True
         super().setImage(img, autoRange, autoLevels, levels, axes, xvals, pos, scale, transform, autoHistogramRange)
-
         #Changes wheel event
         self.ui.roiPlot.setMouseEnabled(True, True)
         self.ui.roiPlot.wheelEvent = self.roi_scroll_bar
@@ -423,6 +423,7 @@ class ImageViewExtended(pg.ImageView):
 
         self.imageCopy = self.imageDisp.copy()
         self.pen_value = np.amax(self.imageDisp)+1
+
 
         if not is_shown:
             return
@@ -547,11 +548,11 @@ class ImageViewExtended(pg.ImageView):
             self.imageDisp = self.image
         elif self.imageDisp is None or self.isNewNorm:
             self.imageDisp = self.normalize(self.image)
-            if self.hasTimeAxis() and self.ui.normOffRadio.isChecked():
-                curr_img = self.imageDisp[self.currentIndex, ...]
-                self.levelMin, self.levelMax = np.amin(curr_img), np.amax(curr_img)
-            else:
-                self.levelMin, self.levelMax = np.amin(self.imageDisp), np.amax(self.imageDisp)
+        if self.hasTimeAxis() and self.ui.normOffRadio.isChecked():
+            curr_img = self.imageDisp[self.currentIndex, ...]
+            self.levelMin, self.levelMax = np.amin(curr_img), np.amax(curr_img)
+        else:
+            self.levelMin, self.levelMax = np.amin(self.imageDisp), np.amax(self.imageDisp)
         if self.is_drawable:
             self.levelMin, self.levelMax = np.amin(self.imageDisp), self.pen_value
         if self.levelMin == self.levelMax:
@@ -621,7 +622,6 @@ class ImageViewExtended(pg.ImageView):
         return coords_roi
 
     def roi_to_mean_spectra(self, image):
-        print("roi to mean spectra")
         print(image.shape)
         axes = tuple([i for i in range(image.ndim)  if i != image.spectral_axis])
         if self.imageItem.axisOrder == "col-major":
@@ -734,7 +734,7 @@ class ImageViewExtended(pg.ImageView):
         else:
             mean_spectra = self.roi_to_mean_spectra(self.imageDisp)
 
-        bg = pg.BarGraphItem(x=self.tVals, height=mean_spectra, width=0)
+        bg = pg.BarGraphItem(x=self.tVals, height=mean_spectra, width=0, skipFiniteCheck=True)
         plot.addItem(bg)
         dock.addWidget(plot)
 
@@ -888,15 +888,19 @@ class ImageViewExtended(pg.ImageView):
         self.actualIndex = indices
         self.currentIndex = self.actualIndex
         self.updateImage()
-        condition = np.in1d(np.arange(len(self.tVals)), self.actualIndex)
-        pens = [QtGui.QColor(0, 177, 106) if condition[i] else pg.getConfigOption("foreground") for i in range(len(condition))]
-        self.plot.setOpts(pens=pens)
+        if self.displayed_spectra is not None:
+            data = self.tVals[self.actualIndex], self.displayed_spectra[self.actualIndex]
+            if self.actualIndex.size == 1:
+                data = [data[0]], [data[1]]
+            self.plot.setSelectedPoints(data)
         self.currentIndex = np.int64(np.median(indices))
 
     def buildPlot(self):
         self.displayed_spectra = self.image.mean_spectra
         x = self.image.mzs
-        self.plot.setOpts(x=x, height=self.displayed_spectra)
+        spots = [{'pos': [x[i], self.displayed_spectra[i]], 'data': 1} for i in range(len(x))]
+        self.plot.addPoints(spots)
+        # self.plot.setOpts(x=x, height=self.displayed_spectra, skipFiniteCheck=True)
         self.winPlot.autoRange()
 
 

@@ -168,9 +168,10 @@ class MainController:
         self.mouse_y = 0
         self.z = 0
 
-        nb=1000
+        nb=1000000
         mzs = (np.arange(nb)+1)
-        x = np.random.random((10, 100, nb))
+
+        x = np.random.random((10, 10, nb))
         x[x < 0.9] = 0  # fill most of the array with zeros
         x_r = x.reshape((np.prod(x.shape[:-1]), x.shape[-1]))
         spectra = np.stack((np.tile(mzs, (np.prod(x.shape[:-1]),1)), x_r), axis=1)

@@ -1,20 +1,17 @@
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui
 from pyqtgraph.Point import Point
+from gui.scatterplotitemdirac import ScatterPlotItemDirac
 
 class ViewBoxDirac(pg.ViewBox):
     def __init__(self, *args, **kwds):
         pg.ViewBox.__init__(self, *args, **kwds)
+
         self.x_selected = []
+        self.y_selected = []
+
         self.setMouseEnabled(True, False)
         self.setMouseMode(self.RectMode)
-        del self.menu.actions()[0]
-
-        del self.menu.actions()[1]
-        del self.menu.actions()[2]
-
-        del self.menu.actions()[3]
-
 
 
     def mouseDragEvent(self, ev, axis=None):
@@ -23,13 +20,13 @@ class ViewBoxDirac(pg.ViewBox):
             rect = self.childGroup.mapRectFromParent(rect)
             min_x, max_x = rect.left(), rect.right()
             for child in self.allChildren():
-                if isinstance(child, pg.BarGraphItem):
+                if isinstance(child, ScatterPlotItemDirac):
                     x, y = child.getData()
                     condition = (x > min_x) & (x < max_x)
-
-                    brushes = [QtGui.QColor(0, 177, 106) if condition[i] else pg.getConfigOption("foreground") for i in range(len(condition))]
-                    child.setOpts(pens=brushes)
                     self.x_selected = x[condition]
+                    self.y_selected = y[condition]
+                    data = self.x_selected, self.y_selected
+                    # child.setSelectedPoints(data_selected)
             self.rbScaleBox.hide()
         elif ev.button() == QtCore.Qt.MouseButton.MiddleButton:
             self.setMouseMode(pg.ViewBox.PanMode)
