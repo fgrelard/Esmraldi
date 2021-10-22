@@ -420,6 +420,7 @@ class ImageViewExtended(pg.ImageView):
             self.plot.getViewBox().setXLink(self.timeLine.getViewBox())
             self.timeLine.show()
             self.winPlot.show()
+            self.winPlot.autoRange()
 
         self.imageCopy = self.imageDisp.copy()
         self.pen_value = np.amax(self.imageDisp)+1
@@ -521,6 +522,7 @@ class ImageViewExtended(pg.ImageView):
     def timeLineChanged(self):
         super().timeLineChanged()
         self.actualIndex = self.currentIndex
+        self.setCurrentIndices(self.actualIndex)
         self.signal_mz_change.emit(self.tVals[self.currentIndex])
         self.update_label()
         self.roiChanged()
@@ -688,7 +690,7 @@ class ImageViewExtended(pg.ImageView):
         stddev_roi = np.std(image_roi)
         string_roi = "\u03BC="+ "{:.3e}".format(mean_roi)+ "\t\t\u03C3="+ "{:.3e}".format(stddev_roi)
 
-        self.setCurrentIndices(self.actualIndex)
+        # self.setCurrentIndices(self.actualIndex)
         self.ui.labelRoiChange.setText(string_roi)
 
 
@@ -715,7 +717,7 @@ class ImageViewExtended(pg.ImageView):
         dock = Dock("ROI " + str(len(self.area.docks.valuerefs())), size=(500,300), closable=True)
 
         containers, _ = self.area.findAll()
-        if len(containers) <= 1:
+        if len(containers) <= 1 and (len(containers) == 0 or isinstance(containers[-1], pg.dockarea.Container.TContainer)):
             self.area.addDock(dock, "below")
         else:
             self.area.addDock(dock, "below", self.area.docks.valuerefs()[-1]())
@@ -734,8 +736,10 @@ class ImageViewExtended(pg.ImageView):
         else:
             mean_spectra = self.roi_to_mean_spectra(self.imageDisp)
 
-        bg = pg.BarGraphItem(x=self.tVals, height=mean_spectra, width=0, skipFiniteCheck=True)
-        plot.addItem(bg)
+        scatter = ScatterPlotItemDirac(pen="w")
+        spots = [{'pos': [self.tVals[i], mean_spectra[i]], 'data': 1} for i in range(len(self.tVals))]
+        scatter.addPoints(spots)
+        plot.addItem(scatter)
         dock.addWidget(plot)
 
         self.winPlotROI.show()
@@ -890,7 +894,7 @@ class ImageViewExtended(pg.ImageView):
         self.updateImage()
         if self.displayed_spectra is not None:
             data = self.tVals[self.actualIndex], self.displayed_spectra[self.actualIndex]
-            if self.actualIndex.size == 1:
+            if isinstance(self.actualIndex, numbers.Number):
                 data = [data[0]], [data[1]]
             self.plot.setSelectedPoints(data)
         self.currentIndex = np.int64(np.median(indices))
@@ -900,7 +904,6 @@ class ImageViewExtended(pg.ImageView):
         x = self.image.mzs
         spots = [{'pos': [x[i], self.displayed_spectra[i]], 'data': 1} for i in range(len(x))]
         self.plot.addPoints(spots)
-        # self.plot.setOpts(x=x, height=self.displayed_spectra, skipFiniteCheck=True)
         self.winPlot.autoRange()
 
 
