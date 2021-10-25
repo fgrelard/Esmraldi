@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QFrame
-import gui.ImageViewExtended as ive
+from gui.imagehandleview import Ui_ImageHandleView
 import qtawesome as qta
 
 class Ui_MainView(object):
@@ -16,10 +16,25 @@ class Ui_MainView(object):
         MainView.setObjectName("MainView")
         MainView.setEnabled(True)
         MainView.resize(810, 593)
+
+
+
         self.centralwidget = QtWidgets.QWidget(MainView)
         self.gridLayoutWidget = QtWidgets.QWidget(self.centralwidget)
 
-        self.imageview = ive.ImageViewExtended(parent=self.centralwidget)
+        self.imagehandleview = Ui_ImageHandleView()
+        self.imagehandleview.setupUi(self.gridLayoutWidget)
+
+        self.imagehandleview2 = Ui_ImageHandleView()
+        self.imagehandleview2.setupUi(self.gridLayoutWidget)
+
+        fa_oneview = qta.icon('fa5s.dice-one')
+        fa_twoviews = qta.icon('fa5s.th-large')
+        self.oneViewButton = QtWidgets.QPushButton(fa_oneview, "")
+        self.twoViewButton = QtWidgets.QPushButton(fa_twoviews, "")
+        self.labelView = QtWidgets.QLabel(self.gridLayoutWidget)
+        self.labelView.setText("View:")
+
         self.label = QtWidgets.QLabel(self.gridLayoutWidget)
         self.label.setText("Running...")
         self.progressBar = QtWidgets.QProgressBar(self.gridLayoutWidget)
@@ -27,33 +42,6 @@ class Ui_MainView(object):
 
         self.textEdit = QtWidgets.QTextEdit(self.gridLayoutWidget)
 
-        self.labelmz =  QtWidgets.QLabel(self.gridLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.labelmz.sizePolicy().hasHeightForWidth())
-        self.labelmz.setSizePolicy(sizePolicy)
-        self.labelmz.setObjectName("labelmz")
-        self.lineEdit = QtWidgets.QLineEdit(self.gridLayoutWidget)
-
-        self.labeltol =  QtWidgets.QLabel(self.gridLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.labeltol.sizePolicy().hasHeightForWidth())
-        self.labeltol.setSizePolicy(sizePolicy)
-        self.labeltol.setObjectName("labeltol")
-        self.lineEditTol = QtWidgets.QLineEdit(self.gridLayoutWidget)
-
-        self.textEdit.setFrameStyle(QFrame.NoFrame)
-
-        self.labelCombo = QtWidgets.QLabel(self.gridLayoutWidget)
-        self.horizontalSpace = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum)
-        self.combobox = QtWidgets.QComboBox(self.gridLayoutWidget)
-        fa_trash = qta.icon('fa.trash')
-        fa_edit = qta.icon('fa.edit')
-        self.trashButton = QtWidgets.QPushButton(fa_trash, "")
-        self.editButton = QtWidgets.QPushButton(fa_edit, "")
         self.menubar = QtWidgets.QMenuBar(MainView)
         self.menuFile = QtWidgets.QMenu(self.menubar)
         self.actionExit = QtWidgets.QAction(MainView)
@@ -105,20 +93,6 @@ class Ui_MainView(object):
         self.gridLayout.setObjectName("gridLayout")
 
 
-        self.hLayoutmz = QtWidgets.QHBoxLayout()
-        self.lineEdit.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Minimum)
-        self.hLayoutmz.addStretch()
-        self.hLayoutmz.addWidget(self.labelmz, 0, QtCore.Qt.AlignRight)
-        self.hLayoutmz.addWidget(self.lineEdit)
-        self.gridLayout.addLayout(self.hLayoutmz, 2, 1, 1, 1)
-
-        self.hLayouttol = QtWidgets.QHBoxLayout()
-        self.lineEditTol.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Minimum)
-        self.hLayouttol.addStretch()
-        self.hLayouttol.addWidget(self.labeltol, 0, QtCore.Qt.AlignRight)
-        self.hLayouttol.addWidget(self.lineEditTol)
-        self.gridLayout.addLayout(self.hLayouttol, 3, 1, 1, 1)
-
         self.progressBar.setEnabled(True)
         self.progressBar.setMinimum(0)
         self.progressBar.setMaximum(100)
@@ -133,41 +107,32 @@ class Ui_MainView(object):
 
         self.stopButton.setText("Stop")
         self.stopButton.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Preferred)
-
         self.gridLayout.addWidget(self.stopButton, 6, 0, 1, 1)
 
         self.textEdit.setAcceptDrops(False)
         self.textEdit.setAutoFillBackground(True)
         self.textEdit.setReadOnly(True)
         self.textEdit.setObjectName("textEdit")
-        self.gridLayout.addWidget(self.textEdit, 1, 0, 1, 1)
+        self.gridLayout.addWidget(self.textEdit, 0, 0, 1, 1)
 
-        self.labelCombo.setText("Current image: ")
-        self.combobox.setFixedWidth(200)
-        self.combobox.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
-        self.hLayout = QtWidgets.QHBoxLayout()
-        self.hLayout.addWidget(self.labelCombo)
-        self.hLayout.addWidget(self.combobox)
-        self.hLayout.addWidget(self.editButton)
-        self.hLayout.addWidget(self.trashButton)
-        self.hLayout.addStretch()
-        self.hLayout.setAlignment(QtCore.Qt.AlignLeft)
-
-        self.gridLayout.addLayout(self.hLayout, 0, 1, 1, 1)
+        hLayout = QtWidgets.QHBoxLayout()
+        hLayout.addWidget(self.labelView)
+        hLayout.addWidget(self.oneViewButton)
+        hLayout.addWidget(self.twoViewButton)
+        hLayout.addStretch()
+        hLayout.setAlignment(QtCore.Qt.AlignLeft)
+        self.gridLayout.addLayout(hLayout, 2, 0, 1, 1)
         self.gridLayout.setColumnStretch(1, 1)
 
-        # self.imageview.ui.menuBtn.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        # self.imageview.ui.roiBtn.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        # self.imageview.ui.histogram.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
-        # self.imageview.ui.graphicsView.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        self.imageview.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        # self.imageview.ui.histogram.vb.setFixedWidth(2)
-        # self.imageview.ui.histogram.vb.setMinimumWidth(2)
-        self.gridLayout.addWidget(self.imageview, 1, 1, 1, 3)
-        self.gridLayout.setSizeConstraint(QtWidgets.QLayout.SetMaximumSize)
+        widgetImage = QtWidgets.QWidget()
+        widgetImage2 = QtWidgets.QWidget()
+        widgetImage.setLayout(self.imagehandleview.gridLayout)
+        widgetImage2.setLayout(self.imagehandleview2.gridLayout)
+        self.gridLayout.addWidget(widgetImage, 0, 1, 1, 1)
+        self.gridLayout.addWidget(widgetImage2, 0, 2, 1, 1)
+
         MainView.setCentralWidget(self.centralwidget)
-
-
+        widgetImage2.hide()
 
         self.menubar.setGeometry(QtCore.QRect(0, 0, 810, 20))
         self.menubar.setObjectName("menubar")
@@ -195,6 +160,17 @@ class Ui_MainView(object):
         self.menubar.addAction(self.menuHelp.menuAction())
 
 
+    def show_second_view(self):
+        self.gridLayout.setColumnStretch(2, 1)
+        widget = self.gridLayout.itemAtPosition(0, 2).widget()
+        widget.show()
+        self.imagehandleview2.imageview.winPlot.autoRange()
+
+    def hide_second_view(self):
+        self.gridLayout.setColumnStretch(2, 0)
+        widget = self.gridLayout.itemAtPosition(0, 2).widget()
+        widget.hide()
+
     def retranslateUi(self, MainView):
         _translate = QtCore.QCoreApplication.translate
         MainView.setWindowTitle(_translate("MainView", "Esmraldi"))
@@ -206,12 +182,6 @@ class Ui_MainView(object):
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:600;\">Esmraldi</span></p></body></html>"))
         self.textEdit.setStyleSheet("background: rgba(0,0,0,0%)")
         self.textEdit.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-
-        self.labelmz.setText(_translate("MainView", "m/z"))
-        self.lineEdit.setText(_translate("MainView", "1.0"))
-
-        self.labeltol.setText(_translate("MainView", "Tolerance"))
-        self.lineEditTol.setText(_translate("MainView", "0.003"))
 
         self.menuFile.setTitle(_translate("MainView", "File"))
 

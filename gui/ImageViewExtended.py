@@ -130,6 +130,11 @@ class ImageViewExtended(pg.ImageView):
 
         self.ui.histogram.sigLevelsChanged.connect(self.levelsChanged)
 
+        self.ui.histogram.vb.setMaximumWidth(10)
+        self.ui.histogram.setMaximumWidth(10)
+        self.ui.gridLayout.addWidget(self.ui.graphicsView, 0, 0, 2, 2)
+        self.ui.gridLayout.addWidget(self.ui.histogram, 0, 2, 1, 1)
+
         self.ui.histogram.gradient.loadPreset("viridis")
         self.gradient = self.ui.histogram.gradient.colorMap()
 
@@ -144,16 +149,14 @@ class ImageViewExtended(pg.ImageView):
 
 
         self.ui.spectraBtn = QtWidgets.QPushButton(self.ui.layoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(1)
-        sizePolicy.setHeightForWidth(self.ui.spectraBtn.sizePolicy().hasHeightForWidth())
-        # self.ui.spectraBtn.setSizePolicy(sizePolicy)
         self.ui.spectraBtn.setCheckable(True)
         self.ui.spectraBtn.setObjectName("spectraBtn")
         self.ui.gridLayout.addWidget(self.ui.spectraBtn, 2, 2, 1, 1)
         self.ui.spectraBtn.setText(QtCore.QCoreApplication.translate("Form", "Spectra"))
         self.ui.spectraBtn.clicked.connect(self.spectraToggled)
+        self.ui.roiBtn.setMaximumWidth(self.ui.spectraBtn.width())
+
+
         self.ui.normAutoRadio = QtWidgets.QRadioButton(self.ui.normGroup)
         self.ui.normAutoRadio.setObjectName("normAutoRadio")
 
@@ -550,13 +553,11 @@ class ImageViewExtended(pg.ImageView):
             self.imageDisp = self.image
         elif self.imageDisp is None or self.isNewNorm:
             self.imageDisp = self.normalize(self.image)
-        if self.hasTimeAxis() and self.ui.normOffRadio.isChecked():
+        if self.hasTimeAxis():
             curr_img = self.imageDisp[self.currentIndex, ...]
             self.levelMin, self.levelMax = np.amin(curr_img), np.amax(curr_img)
         else:
             self.levelMin, self.levelMax = np.amin(self.imageDisp), np.amax(self.imageDisp)
-        if self.is_drawable:
-            self.levelMin, self.levelMax = np.amin(self.imageDisp), self.pen_value
         if self.levelMin == self.levelMax:
             self.levelMin = self.levelMax - 1
         self.autoLevels()
@@ -690,7 +691,7 @@ class ImageViewExtended(pg.ImageView):
         stddev_roi = np.std(image_roi)
         string_roi = "\u03BC="+ "{:.3e}".format(mean_roi)+ "\t\t\u03C3="+ "{:.3e}".format(stddev_roi)
 
-        self.updateImage()
+        self.setCurrentIndices(self.actualIndex)
         self.ui.labelRoiChange.setText(string_roi)
 
 
@@ -721,7 +722,7 @@ class ImageViewExtended(pg.ImageView):
             self.area.addDock(dock, "below")
         else:
             self.area.addDock(dock, "below", self.area.docks.valuerefs()[-1]())
-        vb = ViewBoxDirac()
+        vb = ViewBoxDirac(selectable=False)
         plot = pg.PlotWidget(viewBox=vb, enableMenu=False)
 
         min_slider, max_slider = self.ui.rangeSliderThreshold.value()
@@ -888,10 +889,14 @@ class ImageViewExtended(pg.ImageView):
         self.setCurrentIndices(indices)
         self.ignorePlaying = False
 
-    def setCurrentIndices(self, indices, update_current=True):
+    def setCurrentIndices(self, indices):
         self.actualIndex = indices
         self.currentIndex = self.actualIndex
         self.updateImage()
+
+        self.levelMin, self.levelMax = np.amin(self.imageItem.image), np.amax(self.imageItem.image)
+        self.autoLevels()
+
         if self.displayed_spectra is not None:
             data = self.tVals[self.actualIndex], self.displayed_spectra[self.actualIndex]
             if isinstance(self.actualIndex, numbers.Number):

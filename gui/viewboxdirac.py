@@ -4,18 +4,20 @@ from pyqtgraph.Point import Point
 from gui.scatterplotitemdirac import ScatterPlotItemDirac
 
 class ViewBoxDirac(pg.ViewBox):
-    def __init__(self, *args, **kwds):
+    def __init__(self, selectable=True, *args, **kwds):
         pg.ViewBox.__init__(self, *args, **kwds)
 
         self.x_selected = []
         self.y_selected = []
+
+        self.selectable = selectable
 
         self.setMouseEnabled(True, False)
         self.setMouseMode(self.RectMode)
 
 
     def mouseDragEvent(self, ev, axis=None):
-        if ev.isFinish() and  ev.button() == QtCore.Qt.MouseButton.LeftButton:
+        if ev.isFinish() and  ev.button() == QtCore.Qt.MouseButton.LeftButton and self.selectable:
             rect = QtCore.QRectF(Point(ev.buttonDownPos(ev.button())), Point(ev.pos()))
             rect = self.childGroup.mapRectFromParent(rect)
             min_x, max_x = rect.left(), rect.right()

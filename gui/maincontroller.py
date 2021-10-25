@@ -24,6 +24,8 @@ import esmraldi.spectraprocessing as sp
 from esmraldi.msimage import MSImage, MSImageImplementation
 from esmraldi.sparsematrix import SparseMatrix
 
+from gui.imagehandlecontroller import ImageHandleController
+
 
 class WorkerOpen(QObject):
 
@@ -109,10 +111,6 @@ class MainController:
         controller for tpc dialog
     """
     def __init__(self, app, mainview, config):
-
-        self.locale = Qt.QLocale(Qt.QLocale.English)
-        Qt.QLocale.setDefault(self.locale)
-
         mainview.closeEvent = self.exit_app
         self.mainview = mainview.ui
         self.mainview.parent = mainview
@@ -124,75 +122,22 @@ class MainController:
         self.mainview.actionOpen.triggered.connect(self.open)
         self.mainview.actionSave.triggered.connect(self.save)
 
+        self.imagehandlecontroller = ImageHandleController(self.mainview.imagehandleview)
+        self.imagehandlecontroller2 = ImageHandleController(self.mainview.imagehandleview2)
 
-        self.mainview.lineEdit.textEdited.connect(self.change_mz_value)
-        self.mainview.lineEdit.returnPressed.connect(self.update_mz_value)
+        self.mainview.oneViewButton.clicked.connect(lambda event: self.update_number_view(1))
 
-        self.mainview.lineEditTol.textEdited.connect(self.change_tolerance)
-        self.mainview.lineEditTol.returnPressed.connect(self.update_tolerance)
+        self.mainview.twoViewButton.clicked.connect(lambda event: self.update_number_view(2))
 
-        self.mainview.stopButton.clicked.connect(self.abort_computation)
-        self.mainview.combobox.activated[str].connect(self.choose_image)
-        self.mainview.trashButton.clicked.connect(lambda : self.remove_image(self.current_name(self.img_data), manual=True))
-
-        self.mainview.editButton.clicked.connect(self.edit_name)
-
-        self.mainview.imageview.scene.sigMouseClicked.connect(self.on_click_image)
-
-        self.mainview.imageview.signal_progress_export.connect(self.update_progressbar)
-        self.mainview.imageview.signal_start_export.connect(self.mainview.show_run)
-        self.mainview.imageview.signal_end_export.connect(self.mainview.hide_run)
-        self.mainview.imageview.signal_image_change.connect(self.change_image_combobox)
-        self.mainview.imageview.signal_mz_change.connect(lambda mz: self.mainview.lineEdit.setText("{:.4f}".format(mz)))
-
-
-        self.is_edit = False
-
-        self.is_text_editing = False
-
-        self.current_mz = 1.0
-        self.tolerance = 0.003
-
-
+        imageview = self.mainview.imagehandleview.imageview
+        imageview.signal_progress_export.connect(self.update_progressbar)
+        imageview.signal_start_export.connect(self.mainview.show_run)
+        imageview.signal_end_export.connect(self.mainview.hide_run)
 
         self.config = config
-        self.images = OrderedDict()
-        self.metadata = OrderedDict()
-        self.mainview.hide_run()
-
         self.threads = []
 
-        self.img_data = None
-
-        self.mouse_x = 0
-        self.mouse_y = 0
-        self.z = 0
-
-        nb = 2000
-        mzs = (np.arange(nb)+1)
-
-        x = np.random.random((10, 100, nb))
-        x[x < 0.9] = 0  # fill most of the array with zeros
-        x_r = x.reshape((np.prod(x.shape[:-1]), x.shape[-1]))
-        spectra = np.stack((np.tile(mzs, (np.prod(x.shape[:-1]),1)), x_r), axis=1)
-        sm = SparseMatrix(x, is_maybe_densify=False)
-        mzs = SparseMatrix(spectra, is_maybe_densify=False)
-        mss = MSImage(spectra, sm, tolerance=0.0003)
-        mss.spectral_axis = 0
-        mss = mss.transpose((2,1,0))
-        self.img_data = mss
-        self.add_image(self.img_data, "test")
-        self.choose_image("test")
-        self.filename = "test"
-
-
-    def image_to_view(self, filename):
-        name = os.path.basename(filename)
-        name = os.path.splitext(name)[0]
-        self.mainview.combobox.setCurrentIndex(self.mainview.combobox.findText(name))
-        self.add_image(self.img_data, name)
-        self.choose_image(name)
-        self.filename = name
+        self.mainview.hide_run()
 
     def open(self):
         """
@@ -225,9 +170,6 @@ class MainController:
         pass
 
 
-    def get_image(self):
-        return self.img_data
-
     def exit_app(self, ev=None):
         """
         Exits the app and save configuration
@@ -235,44 +177,24 @@ class MainController:
         """
         with open('config.ini', 'w') as configfile:
             self.config.write(configfile)
-        self.mainview.imageview.winPlotROI.close()
+        self.mainview.imagehandleview.imageview.winPlotROI.close()
+        self.mainview.imagehandleview2.imageview.winPlotROI.close()
         self.app.quit()
-
-    def change_mz_value(self, text):
-        self.is_text_editing = True
-        number, is_converted = self.locale.toDouble(text)
-        if is_converted:
-            self.current_mz = number
-
-    def update_mz_value(self):
-        self.is_text_editing = False
-        try:
-            ind = (np.abs(self.mainview.imageview.tVals - self.current_mz)).argmin()
-            self.mainview.imageview.setCurrentIndex(ind)
-        except Exception as e:
-            pass
-
-    def change_tolerance(self, text):
-        self.is_text_editing = True
-        number, is_converted = self.locale.toDouble(text)
-        if is_converted:
-            self.tolerance = number
-
-    def update_tolerance(self):
-        self.is_text_editing = False
-        try:
-            self.mainview.imageview.imageDisp.tolerance = self.tolerance
-            self.mainview.imageview.updateImage()
-        except Exception as e:
-            print("error", e)
 
 
     def end_open(self, image, filename):
         self.mainview.hide_run()
-        self.img_data = image
-        self.image_to_view(filename)
+        self.imagehandlecontroller.image_to_view(image, filename)
+        self.imagehandlecontroller2.image_to_view(image, filename)
         self.mainview.progressBar.setMaximum(100)
 
+
+    def update_number_view(self, number=1):
+        item = self.mainview.gridLayout.itemAtPosition(0,2)
+        if number > 1:
+            self.mainview.show_second_view()
+        else:
+            self.mainview.hide_second_view()
 
 
     def abort_computation(self):
@@ -281,71 +203,22 @@ class MainController:
         Hides the progress bar and stop button
         """
         self.sig_abort_workers.signal.emit()
-        self.mainview.imageview.signal_abort.emit()
+        imageview = self.mainview.imagehandleview.imageview
+        imageview.signal_abort.emit()
+
+        imageview2 = self.mainview.imagehandleview.imageview2
+        imageview2.signal_abort.emit()
+
         for thread, worker in self.threads:
             thread.quit()
             thread.wait()
-        for thread, worker in self.mainview.imageview.threads:
+        for thread, worker in imageview.threads:
+            thread.quit()
+            thread.wait()
+        for thread, worker in imageview2.threads:
             thread.quit()
             thread.wait()
         self.mainview.hide_run()
-
-    def add_image(self, image, name):
-        """
-        Adds an image to the combobox
-        and to the self.images dictionary
-
-        Parameters
-        ----------
-        image: np.ndarray
-            the image
-        name: str
-            combobox name
-        """
-        self.mainview.combobox.addItem(name)
-        image_with_metadata = image
-        self.images[name] = image_with_metadata
-        img_data_name = self.current_name(self.img_data)
-        self.metadata[name] = self.metadata[img_data_name] if img_data_name in self.metadata else None
-
-    def current_name(self, image):
-        list_keys = list(self.images.keys())
-        list_values = list(self.images.values())
-        try:
-            key = [np.all(image == array) for array in list_values].index(True)
-        except Exception as e:
-            key = -1
-        if len(list_keys) > 0:
-            img_data_name = list_keys[key]
-        else:
-            img_data_name = "No image"
-        return img_data_name
-
-    def edit_name(self):
-        self.is_edit = not self.is_edit
-        if self.is_edit:
-            fa_check = qta.icon('fa.check', color="green")
-            self.mainview.editButton.setIcon(fa_check)
-        else:
-            self.mainview.combobox.update()
-            old_name = self.current_name(self.img_data)
-            new_name = self.mainview.combobox.currentText()
-            if old_name != "No image":
-                self.change_name(old_name, new_name)
-                self.mainview.combobox.clear()
-                self.mainview.combobox.addItems(list(self.images.keys()))
-                index = self.mainview.combobox.findText(new_name)
-                self.mainview.combobox.setCurrentIndex(index)
-            fa_edit = qta.icon('fa.edit')
-            self.mainview.editButton.setIcon(fa_edit)
-        self.mainview.combobox.setEditable(self.is_edit)
-
-
-    def change_name(self, old_name, new_name):
-        if old_name in self.images:
-            self.images = OrderedDict([(new_name, v) if k == old_name else (k, v) for k, v in self.images.items()])
-            self.metadata = OrderedDict([(new_name, v) if k == old_name else (k, v) for k, v in self.metadata.items()])
-
 
 
     def update_progressbar(self, progress):
@@ -360,71 +233,3 @@ class MainController:
 
         """
         self.mainview.progressBar.setValue(progress)
-
-    def change_image_combobox(self, value):
-        current_index = self.mainview.combobox.currentIndex()
-        count = self.mainview.combobox.count() - 1
-        new_index = max(0, min(current_index + value, count))
-        name = self.mainview.combobox.itemText(new_index)
-        self.choose_image(name)
-
-
-
-    def remove_image(self,  name, manual=False):
-        if name in self.metadata:
-            del self.metadata[name]
-        if name in self.images:
-            del self.images[name]
-            index = self.mainview.combobox.findText(name)
-            self.mainview.combobox.removeItem(index)
-            if len(self.images.keys()) > 0:
-                if manual:
-                    self.choose_image(list(self.images.keys())[index-1])
-                else:
-                    self.choose_image(list(self.images.keys())[-1])
-            else:
-                self.choose_image("No image")
-
-    def choose_image(self, name, preview=False, autoLevels=True):
-        """
-        Choose an image among available image
-        The name must be in self.images
-
-        Parameters
-        ----------
-        name: str
-            name of the image, must be in self.images.keys()
-        """
-        if name == "No image":
-            return
-        if name not in self.images:
-            return
-        if not preview:
-            self.img_data = self.images[name]
-        self.mainview.combobox.setCurrentIndex(self.mainview.combobox.findText(name))
-        try:
-            xvals = self.images[name].mzs
-        except AttributeError:
-            xvals = None
-        self.mainview.imageview.setImage(self.images[name], xvals=xvals)
-
-    def image_to_visualization(self, img):
-        """
-        Modifies the image so it can be rendered
-        Converts n-D image to 3D
-
-        Parameters
-        ----------
-        img: np.ndarray
-            n-D image loaded by the imageio module
-        """
-        img2 = np.reshape(img, (img.shape[0], img.shape[1]) + (-1,), order='F')
-        return img2
-
-
-    def on_click_image(self, evt):
-        pos = evt
-        ive = self.mainview.imageview
-        image = ive.imageDisp
-        if image is None:
-            return
