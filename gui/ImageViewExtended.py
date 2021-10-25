@@ -908,6 +908,7 @@ class ImageViewExtended(pg.ImageView):
         self.displayed_spectra = self.image.mean_spectra
         x = self.image.mzs
         spots = [{'pos': [x[i], self.displayed_spectra[i]], 'data': 1} for i in range(len(x))]
+        self.plot.clear()
         self.plot.addPoints(spots)
         self.winPlot.autoRange()
 
