@@ -690,7 +690,7 @@ class ImageViewExtended(pg.ImageView):
         stddev_roi = np.std(image_roi)
         string_roi = "\u03BC="+ "{:.3e}".format(mean_roi)+ "\t\t\u03C3="+ "{:.3e}".format(stddev_roi)
 
-        # self.setCurrentIndices(self.actualIndex)
+        self.updateImage()
         self.ui.labelRoiChange.setText(string_roi)
 
 
