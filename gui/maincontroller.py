@@ -129,6 +129,8 @@ class MainController:
 
         self.mainview.twoViewButton.clicked.connect(lambda event: self.update_number_view(2))
 
+        self.mainview.stopButton.clicked.connect(self.abort_computation)
+
         imageview = self.mainview.imagehandleview.imageview
         imageview.signal_progress_export.connect(self.update_progressbar)
         imageview.signal_start_export.connect(self.mainview.show_run)
@@ -206,7 +208,7 @@ class MainController:
         imageview = self.mainview.imagehandleview.imageview
         imageview.signal_abort.emit()
 
-        imageview2 = self.mainview.imagehandleview.imageview2
+        imageview2 = self.mainview.imagehandleview2.imageview
         imageview2.signal_abort.emit()
 
         for thread, worker in self.threads:
