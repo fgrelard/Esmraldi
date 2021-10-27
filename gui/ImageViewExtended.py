@@ -10,6 +10,7 @@ import numbers
 import esmraldi.spectraprocessing as sp
 from gui.viewboxdirac import ViewBoxDirac
 from gui.scatterplotitemdirac import ScatterPlotItemDirac
+from gui.crosshair import CrosshairDrawing
 
 #Allows to use QThreads without freezing
 #the main application
@@ -125,6 +126,7 @@ class ImageViewExtended(pg.ImageView):
         self.imageItem.getHistogram = self.getImageItemHistogram
         self.imageItem.mouseClickEvent = self.mouseClickEventImageItem
         self.imageItem.mouseDragEvent = self.mouseClickEventImageItem
+        self.imageItem.mouseDoubleClickEvent = self.mouseDoubleClickEventImageItem
 
         self.timeLine.setPen('g')
 
@@ -183,6 +185,7 @@ class ImageViewExtended(pg.ImageView):
         self.plot = None
         self.displayed_spectra = None
 
+        self.crossdrawer = CrosshairDrawing()
         self.is_clickable = False
         self.is_drawable = False
 
@@ -339,8 +342,8 @@ class ImageViewExtended(pg.ImageView):
 
     def mouseClickEventImageItem(self, ev):
         pg.ImageItem.mouseClickEvent(self.imageItem, ev)
+        pos = ev.pos()
         if self.is_drawable:
-            pos = ev.pos()
             pos = [int(pos.x()), int(pos.y())]
             if ev.button() == QtCore.Qt.RightButton:
                 ev.accept()
@@ -353,6 +356,14 @@ class ImageViewExtended(pg.ImageView):
                 self.update_pen(pen_size=self.pen_size, array=None)
             self.drawAt(pos, ev)
 
+
+
+    def mouseDoubleClickEventImageItem(self, ev):
+        pg.ImageItem.mouseClickEvent(self.imageItem, ev)
+        pos = ev.pos()
+        if not self.is_clickable:
+            cross = self.crossdrawer.get_drawable_crosshair(pos.x(), pos.y())
+            self.imageItem.getViewBox().addItem(cross)
 
 
     def drawAt(self, pos, ev=None):
@@ -387,8 +398,6 @@ class ImageViewExtended(pg.ImageView):
 
     def setClickable(self, is_clickable):
         self.is_clickable = is_clickable
-
-
 
     def setImage(self, img, autoRange=True, autoLevels=True, levels=None, axes=None, xvals=None, pos=None, scale=None, transform=None, autoHistogramRange=True):
         """

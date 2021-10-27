@@ -7,7 +7,7 @@ import qtawesome as qta
 
 from PyQt5 import Qt, QtWidgets
 from PyQt5.Qt import QVBoxLayout
-from PyQt5.QtWidgets import QApplication, QTableWidget, QTableWidgetItem
+from PyQt5.QtWidgets import QApplication, QTableWidget, QTableWidgetItem, QFrame
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 
 from collections import OrderedDict
@@ -25,7 +25,8 @@ from esmraldi.msimage import MSImage, MSImageImplementation
 from esmraldi.sparsematrix import SparseMatrix
 
 from gui.imagehandlecontroller import ImageHandleController
-
+from gui.registration_selection_controller import RegistrationSelectionController
+from gui.signal import Signal
 
 class WorkerOpen(QObject):
 
@@ -74,17 +75,6 @@ class WorkerOpen(QObject):
     def abort(self):
         self.is_abort = True
 
-class Signal(QObject):
-    """
-    Class wrapping a PyQt5 signal
-
-    Attributes
-    ----------
-    signal: pyqtSignal
-        the signal
-    """
-    signal = pyqtSignal()
-
 class MainController:
     """
     Main controller connecting all controllers and events
@@ -122,6 +112,11 @@ class MainController:
         self.mainview.actionOpen.triggered.connect(self.open)
         self.mainview.actionSave.triggered.connect(self.save)
 
+        self.registrationselectioncontroller = RegistrationSelectionController(self.mainview.registrationselectionview)
+
+        self.mainview.actionRegistrationSelection.triggered.connect(lambda event: self.mainview.set_frame(self.mainview.registrationselectionview))
+
+
         self.imagehandlecontroller = ImageHandleController(self.mainview.imagehandleview)
         self.imagehandlecontroller2 = ImageHandleController(self.mainview.imagehandleview2)
 
@@ -140,6 +135,7 @@ class MainController:
         self.threads = []
 
         self.mainview.hide_run()
+
 
     def open(self):
         """

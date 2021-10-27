@@ -7,8 +7,9 @@
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QFrame
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QFrame, QStackedWidget
 from gui.imagehandleview import Ui_ImageHandleView
+from gui.registration_selection import Ui_RegistrationSelection
 import qtawesome as qta
 
 class Ui_MainView(object):
@@ -17,10 +18,16 @@ class Ui_MainView(object):
         MainView.setEnabled(True)
         MainView.resize(810, 593)
 
-
-
         self.centralwidget = QtWidgets.QWidget(MainView)
         self.gridLayoutWidget = QtWidgets.QWidget(self.centralwidget)
+
+        self.qframe = QFrame(self.gridLayoutWidget)
+        self.qframe.setLayout(QtWidgets.QVBoxLayout())
+
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.qframe.setSizePolicy(sizePolicy)
+
+        self.registrationselectionview = self.initialize_frame(Ui_RegistrationSelection)
 
         self.imagehandleview = Ui_ImageHandleView()
         self.imagehandleview.setupUi(self.gridLayoutWidget)
@@ -52,9 +59,9 @@ class Ui_MainView(object):
 
         self.menuHelp = QtWidgets.QMenu(self.menubar)
 
-        self.menuProcess = QtWidgets.QMenu(self.menubar)
-
         self.menuSegmentation = QtWidgets.QMenu(self.menubar)
+
+        self.menuRegistration = QtWidgets.QMenu(self.menubar)
 
         self.menuAnalyze = QtWidgets.QMenu(self.menubar)
 
@@ -62,6 +69,9 @@ class Ui_MainView(object):
 
         self.actionDenoising_TPC = QtWidgets.QAction(MainView)
 
+        self.actionRegistrationSelection = QtWidgets.QAction(MainView)
+
+        self.actionRegistrationCoordinates = QtWidgets.QAction(MainView)
 
         self.menuFile = QtWidgets.QMenu(self.menubar)
 
@@ -69,16 +79,6 @@ class Ui_MainView(object):
 
         self.retranslateUi(MainView)
         QtCore.QMetaObject.connectSlotsByName(MainView)
-
-    def show_run(self):
-        self.label.show()
-        self.progressBar.show()
-        self.stopButton.show()
-
-    def hide_run(self):
-        self.label.hide()
-        self.progressBar.hide()
-        self.stopButton.hide()
 
     def configure(self, MainView):
         self.centralwidget.setEnabled(True)
@@ -89,10 +89,16 @@ class Ui_MainView(object):
 
         self.gridLayout = QtWidgets.QGridLayout()
 
-        self.gridLayout.setContentsMargins(20, 10, 0, 0)
+        self.gridLayout.setContentsMargins(0, 0, 0, 0)
         self.gridLayout.setObjectName("gridLayout")
 
 
+        self.textEdit.setAcceptDrops(False)
+        self.textEdit.setAutoFillBackground(True)
+        self.textEdit.setReadOnly(True)
+        self.textEdit.setObjectName("textEdit")
+
+        self.gridLayout.addWidget(self.qframe, 0, 0, 1, 1)
         self.progressBar.setEnabled(True)
         self.progressBar.setMinimum(0)
         self.progressBar.setMaximum(100)
@@ -109,11 +115,6 @@ class Ui_MainView(object):
         self.stopButton.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Preferred)
         self.gridLayout.addWidget(self.stopButton, 6, 0, 1, 1)
 
-        self.textEdit.setAcceptDrops(False)
-        self.textEdit.setAutoFillBackground(True)
-        self.textEdit.setReadOnly(True)
-        self.textEdit.setObjectName("textEdit")
-        self.gridLayout.addWidget(self.textEdit, 0, 0, 1, 1)
 
         hLayout = QtWidgets.QHBoxLayout()
         hLayout.addWidget(self.labelView)
@@ -121,15 +122,16 @@ class Ui_MainView(object):
         hLayout.addWidget(self.twoViewButton)
         hLayout.addStretch()
         hLayout.setAlignment(QtCore.Qt.AlignLeft)
-        self.gridLayout.addLayout(hLayout, 2, 0, 1, 1)
+        self.gridLayout.addLayout(hLayout, 3, 0, 1, 1)
+        # self.gridLayout.setColumnStretch(0, 2)
         self.gridLayout.setColumnStretch(1, 1)
 
         widgetImage = QtWidgets.QWidget()
         widgetImage2 = QtWidgets.QWidget()
         widgetImage.setLayout(self.imagehandleview.gridLayout)
         widgetImage2.setLayout(self.imagehandleview2.gridLayout)
-        self.gridLayout.addWidget(widgetImage, 0, 1, 1, 1)
-        self.gridLayout.addWidget(widgetImage2, 0, 2, 1, 1)
+        self.gridLayout.addWidget(widgetImage, 0, 1, 2, 1)
+        self.gridLayout.addWidget(widgetImage2, 0, 2, 2, 1)
 
         MainView.setCentralWidget(self.centralwidget)
         widgetImage2.hide()
@@ -138,7 +140,9 @@ class Ui_MainView(object):
         self.menubar.setObjectName("menubar")
         self.menuFile.setObjectName("menuFile")
         self.actionOpen.setObjectName("actionOpen")
-        self.menuProcess.setObjectName("menuProcess")
+        self.actionRegistrationSelection.setObjectName("actionRegistrationSelection")
+        self.actionRegistrationCoordinates.setObjectName("actionRegistrationCoordinates")
+        self.menuRegistration.setObjectName("menuRegistration")
         self.menuSegmentation.setObjectName("menuSegmentation")
         self.menuAnalyze.setObjectName("menuAnalyze")
         self.menuHelp.setObjectName("menuHelp")
@@ -153,12 +157,42 @@ class Ui_MainView(object):
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionExit)
 
+        self.menuRegistration.addAction(self.actionRegistrationSelection)
+        self.menuRegistration.addAction(self.actionRegistrationCoordinates)
+
         self.menubar.addAction(self.menuFile.menuAction())
-        self.menubar.addAction(self.menuProcess.menuAction())
         self.menubar.addAction(self.menuSegmentation.menuAction())
+        self.menubar.addAction(self.menuRegistration.menuAction())
         self.menubar.addAction(self.menuAnalyze.menuAction())
         self.menubar.addAction(self.menuHelp.menuAction())
 
+
+    def initialize_frame(self, FrameName):
+        qframe = QFrame()
+        content_frame = FrameName()
+        content_frame.setupUi(qframe)
+        content_frame.retranslateUi(qframe)
+        content_frame.parent = qframe
+        return content_frame
+
+    def set_frame(self, frame):
+        self.qframe.layout().addWidget(frame.parent)
+        for i in range(self.qframe.layout().count()):
+            item = self.qframe.layout().itemAt(i)
+            widget = item.widget()
+            self.qframe.layout().removeWidget(widget)
+        self.qframe.setMinimumWidth(frame.parent.width()+1)
+        print(frame.parent.width())
+
+    def show_run(self):
+        self.label.show()
+        self.progressBar.show()
+        self.stopButton.show()
+
+    def hide_run(self):
+        self.label.hide()
+        self.progressBar.hide()
+        self.stopButton.hide()
 
     def show_second_view(self):
         self.gridLayout.setColumnStretch(2, 1)
@@ -185,10 +219,13 @@ class Ui_MainView(object):
 
         self.menuFile.setTitle(_translate("MainView", "File"))
 
-        self.menuProcess.setTitle(_translate("MainView", "Process"))
+        self.menuRegistration.setTitle(_translate("MainView", "Registration"))
         self.menuSegmentation.setTitle(_translate("MainView", "Segmentation"))
         self.menuAnalyze.setTitle(_translate("MainView", "Analyze"))
         self.menuHelp.setTitle(_translate("MainView", "Help"))
         self.actionOpen.setText(_translate("MainView", "Open"))
         self.actionSave.setText(_translate("MainView", "Save Nifti"))
         self.actionExit.setText(_translate("MainView", "Exit"))
+
+        self.actionRegistrationSelection.setText(_translate("MainView", "Fiducials - Selection"))
+        self.actionRegistrationCoordinates.setText(_translate("MainView", "Fiducials - Coordinates"))
