@@ -41,7 +41,8 @@ class ScatterPlotItemDirac(pg.ScatterPlotItem):
             p = QtGui.QPainter(self.picture)
             p.setPen(self.pen)
             for x, y in zipped:
-                p.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, y))
+                if y > 0:
+                    p.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, y))
         else:
             p = QtGui.QPainter(self.selectedPicture)
             p.setPen(self.selectedPen)
