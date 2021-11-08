@@ -3,6 +3,7 @@ import numpy as np
 import qtawesome as qta
 from esmraldi.msimage import MSImage, MSImageImplementation
 from esmraldi.sparsematrix import SparseMatrix
+import esmraldi.imzmlio as io
 from collections import OrderedDict
 from PyQt5 import Qt, QtWidgets
 
@@ -24,7 +25,7 @@ class ImageHandleController:
 
 
         self.imagehandleview.combobox.activated[str].connect(self.choose_image)
-        self.imagehandleview.trashButton.clicked.connect(lambda : self.remove_image(self.current_name(self.img_data), manual=True))
+        self.imagehandleview.trashButton.clicked.connect(lambda : self.remove_image(self.current_name, manual=True))
 
         self.imagehandleview.editButton.clicked.connect(self.edit_name)
 
@@ -116,8 +117,8 @@ class ImageHandleController:
         self.imagehandleview.combobox.addItem(name)
         image_with_metadata = image
         self.images[name] = image_with_metadata
-        img_data_name = self.current_name(self.img_data)
-        self.metadata[name] = self.metadata[img_data_name] if img_data_name in self.metadata else None
+        self.current_name = name
+        self.metadata[name] = self.metadata[name] if name in self.metadata else None
 
     def current_name(self, image):
         list_keys = list(self.images.keys())
@@ -139,7 +140,7 @@ class ImageHandleController:
             self.imagehandleview.editButton.setIcon(fa_check)
         else:
             self.imagehandleview.combobox.update()
-            old_name = self.current_name(self.img_data)
+            old_name = self.current_name
             new_name = self.imagehandleview.combobox.currentText()
             if old_name != "No image":
                 self.change_name(old_name, new_name)
@@ -161,8 +162,8 @@ class ImageHandleController:
         current_index = self.imagehandleview.combobox.currentIndex()
         count = self.imagehandleview.combobox.count() - 1
         new_index = max(0, min(current_index + value, count))
-        name = self.imagehandleview.combobox.itemText(new_index)
-        self.choose_image(name)
+        self.current_name = self.imagehandleview.combobox.itemText(new_index)
+        self.choose_image(self.current_name)
 
     def remove_image(self,  name, manual=False):
         if name in self.metadata:
@@ -200,6 +201,7 @@ class ImageHandleController:
             xvals = self.images[name].mzs
         except AttributeError:
             xvals = None
+        self.current_name = name
         self.imageview.setImage(self.images[name], xvals=xvals)
 
     def image_to_visualization(self, img):

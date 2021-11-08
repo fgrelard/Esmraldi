@@ -173,16 +173,23 @@ class Ui_MainView(object):
         content_frame.setupUi(qframe)
         content_frame.retranslateUi(qframe)
         content_frame.parent = qframe
+        content_frame.width = qframe.width()+10
         return content_frame
 
     def set_frame(self, frame):
+        self.clear_frame()
+        frame.parent.setVisible(True)
+        self.qframe.setMinimumWidth(frame.width)
         self.qframe.layout().addWidget(frame.parent)
+
+    def clear_frame(self):
+        width = self.qframe.width()
         for i in range(self.qframe.layout().count()):
             item = self.qframe.layout().itemAt(i)
             widget = item.widget()
             self.qframe.layout().removeWidget(widget)
-        self.qframe.setMinimumWidth(frame.parent.width()+1)
-        print(frame.parent.width())
+            widget.setVisible(False)
+
 
     def show_run(self):
         self.label.show()

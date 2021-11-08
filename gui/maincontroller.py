@@ -112,10 +112,6 @@ class MainController:
         self.mainview.actionOpen.triggered.connect(self.open)
         self.mainview.actionSave.triggered.connect(self.save)
 
-        self.registrationselectioncontroller = RegistrationSelectionController(self.mainview.registrationselectionview)
-
-        self.mainview.actionRegistrationSelection.triggered.connect(lambda event: self.mainview.set_frame(self.mainview.registrationselectionview))
-
 
         self.imagehandlecontroller = ImageHandleController(self.mainview.imagehandleview)
         self.imagehandlecontroller2 = ImageHandleController(self.mainview.imagehandleview2)
@@ -127,14 +123,26 @@ class MainController:
         self.mainview.stopButton.clicked.connect(self.abort_computation)
 
         imageview = self.mainview.imagehandleview.imageview
+        imageview2 = self.mainview.imagehandleview2.imageview
         imageview.signal_progress_export.connect(self.update_progressbar)
         imageview.signal_start_export.connect(self.mainview.show_run)
         imageview.signal_end_export.connect(self.mainview.hide_run)
+
+        self.mainview.actionRegistrationSelection.triggered.connect(self.start_registration_selection)
+
+        self.registrationselectioncontroller = RegistrationSelectionController(self.mainview.registrationselectionview, imageview, imageview2)
+        self.registrationselectioncontroller.trigger_compute.signal.connect(self.compute_registration_selection)
+        self.registrationselectioncontroller.trigger_end.signal.connect(self.mainview.clear_frame)
+
 
         self.config = config
         self.threads = []
 
         self.mainview.hide_run()
+
+
+        self.open_file("/mnt/d/CouplageMSI-Immunofluo/test_registration/reference.png")
+        self.open_file("/mnt/d/CouplageMSI-Immunofluo/test_registration/target.png")
 
 
     def open(self):
@@ -147,7 +155,9 @@ class MainController:
             return
 
         self.config['default']["imzmldir"] = filename
+        self.open_file(filename)
 
+    def open_file(self, filename):
         worker = WorkerOpen(path=filename)
         thread = QThread()
         worker.moveToThread(thread)
@@ -194,6 +204,21 @@ class MainController:
         else:
             self.mainview.hide_second_view()
 
+    def start_registration_selection(self, event):
+        self.imagehandlecontroller.choose_image("reference")
+
+        self.mainview.show_second_view()
+        self.registrationselectioncontroller.start()
+        self.mainview.set_frame(self.mainview.registrationselectionview)
+
+    def compute_registration_selection(self):
+        def end_computation(registered):
+            name = self.imagehandlecontroller2.current_name
+            new_name = "registered_" + name
+            self.end_open(registered, new_name)
+        self.registrationselectioncontroller.worker.signal_end.connect(end_computation)
+        self.registrationselectioncontroller.thread.start()
+        self.threads.append((self.registrationselectioncontroller.thread, self.registrationselectioncontroller.worker))
 
     def abort_computation(self):
         """

@@ -10,7 +10,7 @@ import numbers
 import esmraldi.spectraprocessing as sp
 from gui.viewboxdirac import ViewBoxDirac
 from gui.scatterplotitemdirac import ScatterPlotItemDirac
-from gui.crosshair import CrosshairDrawing
+from gui.crosshair import Crosshair, CrosshairDrawing
 
 #Allows to use QThreads without freezing
 #the main application
@@ -207,7 +207,7 @@ class ImageViewExtended(pg.ImageView):
         self.plot = ScatterPlotItemDirac(pen="w")
 
         self.clickedPen = pg.mkPen("b")
-        self.lastPointsClicked = []
+        self.points = []
 
         self.winPlot.setMaximumHeight(100)
         self.winPlot.addItem(self.plot)
@@ -220,7 +220,7 @@ class ImageViewExtended(pg.ImageView):
 
         self.build_roi_group()
 
-        # self.winPlot.setVisible(False)
+        self.winPlot.setVisible(False)
 
     def build_roi_group(self):
         self.ui.roiButtonGroup = QtWidgets.QButtonGroup(self.ui.normGroup)
@@ -357,12 +357,22 @@ class ImageViewExtended(pg.ImageView):
             self.drawAt(pos, ev)
 
 
+    def resetCross(self):
+        children = self.imageItem.getViewBox().allChildren()
+        self.points = []
+        for child in children:
+            if isinstance(child, Crosshair):
+                self.imageItem.getViewBox().removeItem(child)
+        self.crossdrawer = CrosshairDrawing()
+
 
     def mouseDoubleClickEventImageItem(self, ev):
         pg.ImageItem.mouseClickEvent(self.imageItem, ev)
         pos = ev.pos()
-        if not self.is_clickable:
-            cross = self.crossdrawer.get_drawable_crosshair(pos.x(), pos.y())
+        if self.is_clickable:
+            x, y = pos.x(), pos.y()
+            self.points.append([x, y])
+            cross = self.crossdrawer.get_drawable_crosshair(x, y)
             self.imageItem.getViewBox().addItem(cross)
 
 
@@ -431,7 +441,6 @@ class ImageViewExtended(pg.ImageView):
             self.buildPlot()
             self.plot.getViewBox().setXLink(self.timeLine.getViewBox())
             self.timeLine.show()
-            self.winPlot.show()
             self.winPlot.autoRange()
 
         self.imageCopy = self.imageDisp.copy()
@@ -880,6 +889,7 @@ class ImageViewExtended(pg.ImageView):
 
     def spectraToggled(self):
         self.winPlot.setVisible(self.ui.spectraBtn.isChecked())
+        self.winPlot.autoRange()
 
     def draggedSpectra(self, event):
         ViewBoxDirac.mouseDragEvent(self.plot.getViewBox(), event)
