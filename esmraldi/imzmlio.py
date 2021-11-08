@@ -137,10 +137,16 @@ def get_spectra(imzml, pixel_numbers=[]):
         collection of spectra
     """
     spectra = []
-    for i, (x, y, z) in enumerate(imzml.coordinates):
-        if (len(pixel_numbers) > 0 and i in pixel_numbers) or len(pixel_numbers) == 0:
-            mz, ints = imzml.getspectrum(i)
-            spectra.append([mz, ints])
+    coordinates = []
+    for i in pixel_numbers:
+        coordinates.append(imzml.coordinates[i])
+
+    if len(pixel_numbers) == 0:
+        coordinates = imzml.coordinates.copy()
+
+    for i, (x, y, z) in enumerate(coordinates):
+        mz, ints = imzml.getspectrum(i)
+        spectra.append([mz, ints])
     if spectra and not all(len(l[0]) == len(spectra[0][0]) for l in spectra):
         return np.array(spectra, dtype=object)
     return np.array(spectra)

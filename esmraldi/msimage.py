@@ -258,7 +258,7 @@ class MSImageImplementation:
         copy = self.image.copy()
         return MSImageImplementation(self.spectra, copy, self.mzs, self.tolerance, self.is_maybe_densify, self.spectral_axis, self.mean_spectra)
 
-    def view(self, dtype):
+    def view(self, dtype=np.float64):
         copy = self.copy()
         copy.is_maybe_densify = True
         return copy
