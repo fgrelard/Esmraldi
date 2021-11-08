@@ -6,7 +6,7 @@ import SimpleITK as sitk
 
 import esmraldi.registration as reg
 
-from skimage.color import rgb2gray
+from skimage.color import rgb2gray, rgba2rgb, gray2rgb
 
 class WorkerRegistrationSelection(QtCore.QObject):
 
@@ -22,17 +22,41 @@ class WorkerRegistrationSelection(QtCore.QObject):
 
     @QtCore.pyqtSlot()
     def work(self):
-        print("starting")
-        self.fixed = rgb2gray(self.fixed)
-        self.moving = rgb2gray(self.moving)
+        fixed_shape = ((2,) if self.fixed.ndim == 3 else ()) + (0, 1)
+        moving_shape = ((2,) if self.moving.ndim == 3 else ()) + (0, 1)
+        self.fixed = np.transpose(self.fixed, fixed_shape)
+        self.moving = np.transpose(self.moving, moving_shape)
+
         fixed_itk = sitk.GetImageFromArray(self.fixed)
         moving_itk = sitk.GetImageFromArray(self.moving)
         landmark_transform = sitk.LandmarkBasedTransformInitializer(sitk.AffineTransform(2), self.points_fixed, self.points_moving)
 
-        resampler = reg.initialize_resampler(fixed_itk, landmark_transform)
-        deformed_itk = resampler.Execute(moving_itk)
+        dim_fixed = fixed_itk.GetDimension()
+        if dim_fixed == 2:
+            resampler = reg.initialize_resampler(fixed_itk, landmark_transform)
+        if dim_fixed == 3:
+            resampler = reg.initialize_resampler(fixed_itk[:,:,0], landmark_transform)
+
+        size = moving_itk.GetSize()
+        dim = moving_itk.GetDimension()
+
+        if dim == 2:
+            deformed_itk = resampler.Execute(moving_itk)
+        elif dim == 3:
+            pixel_type = moving_itk.GetPixelID()
+            fixed_size = fixed_itk.GetSize()
+            deformed_itk = sitk.Image(fixed_size[0], fixed_size[1], size[2], pixel_type )
+
+            for i in range(size[2]):
+                img_slice  = moving_itk[:, :, i]
+                img_slice.SetSpacing([1, 1])
+                out_slice = resampler.Execute(img_slice)
+                out_slice = sitk.JoinSeries(out_slice)
+                deformed_itk = sitk.Paste(deformed_itk, out_slice, out_slice.GetSize(), destinationIndex=[0, 0, i])
+
         deformed = sitk.GetArrayFromImage(deformed_itk)
-        print(deformed.dtype)
+        if dim == 3:
+            deformed = np.transpose(deformed, np.roll(moving_shape, 1))
         self.signal_end.emit(deformed)
 
     def abort(self):
@@ -72,7 +96,6 @@ class RegistrationSelectionController:
         self.imageview2.resetCross()
 
     def compute_transformation(self):
-        print("compute transfo")
         fixed = self.imageview.imageItem.image
         moving = self.imageview2.imageItem.image
         list1 = [c for p in self.imageview.points for c in p]
