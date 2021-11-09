@@ -193,7 +193,6 @@ class MainController:
     def end_open(self, image, filename):
         self.mainview.hide_run()
         self.imagehandlecontroller.image_to_view(image, filename)
-        self.imagehandlecontroller2.image_to_view(image, filename)
         self.mainview.progressBar.setMaximum(100)
 
 
