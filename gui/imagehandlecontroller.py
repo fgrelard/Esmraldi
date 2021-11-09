@@ -114,7 +114,8 @@ class ImageHandleController:
         name: str
             combobox name
         """
-        self.imagehandleview.combobox.addItem(name)
+        if name not in self.images:
+            self.imagehandleview.combobox.addItem(name)
         image_with_metadata = image
         self.images[name] = image_with_metadata
         self.current_name = name
@@ -165,7 +166,7 @@ class ImageHandleController:
         self.current_name = self.imagehandleview.combobox.itemText(new_index)
         self.choose_image(self.current_name)
 
-    def remove_image(self,  name, manual=False):
+    def remove_image(self, name, manual=False):
         if name in self.metadata:
             del self.metadata[name]
         if name in self.images:
