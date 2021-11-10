@@ -5,7 +5,8 @@ Conversion to numpy array
 """
 
 import pyimzml.ImzMLWriter as imzmlwriter
-import pyimzml.ImzMLParser as imzmlparser
+# import pyimzml.ImzMLParser as imzmlparser
+import esmraldi.imzmlparsermmapped as imzmlparser
 import numpy as np
 import nibabel as nib
 import os
@@ -37,7 +38,7 @@ def open_imzml(filename, only_metadata=False):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         ibd_file = None if only_metadata else imzmlparser.INFER_IBD_FROM_IMZML
-        return imzmlparser.ImzMLParser(filename, ibd_file=ibd_file)
+        return imzmlparser.ImzMLParserMMapped(filename, ibd_file=ibd_file)
 
 
 
