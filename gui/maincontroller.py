@@ -7,7 +7,8 @@ import qtawesome as qta
 
 from PyQt5 import Qt, QtWidgets, QtCore
 from PyQt5.Qt import QVBoxLayout
-from PyQt5.QtWidgets import QApplication, QTableWidget, QTableWidgetItem, QFrame
+from PyQt5.QtWidgets import QApplication, QTableWidget, QTableWidgetItem, QFrame, QShortcut
+from PyQt5.QtGui import QKeySequence
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 
 from collections import OrderedDict
@@ -141,9 +142,13 @@ class MainController:
         self.registrationselectioncontroller.trigger_compute.signal.connect(self.compute_registration_selection)
         self.registrationselectioncontroller.trigger_end.signal.connect(self.mainview.clear_frame)
 
+        #shortcuts
+        shortcut_link = QShortcut(QKeySequence('Ctrl+L'), self.mainview.parent)
+        shortcut_link.activated.connect(self.link_views)
 
         self.config = config
         self.threads = []
+        self.is_linked = False
 
         self.mainview.hide_run()
 
@@ -244,6 +249,17 @@ class MainController:
         self.registrationselectioncontroller.worker.signal_end.connect(end_computation)
         self.registrationselectioncontroller.thread.start()
         self.threads.append((self.registrationselectioncontroller.thread, self.registrationselectioncontroller.worker))
+
+    def link_views(self):
+        self.is_linked = not self.is_linked
+        iview1 = self.imagehandlecontroller.imagehandleview.imageview
+        iview2 = self.imagehandlecontroller2.imagehandleview.imageview
+        if self.is_linked:
+            iview1.view.setXLink(iview2.view)
+            iview1.view.setYLink(iview2.view)
+        else:
+            iview1.view.setXLink(None)
+            iview1.view.setYLink(None)
 
     def abort_computation(self):
         """
