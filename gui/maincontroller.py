@@ -17,6 +17,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvas, NavigationToolbar2Q
 from matplotlib.figure import Figure
 
 import SimpleITK as sitk
+import cv2
 
 import esmraldi.imzmlio as io
 import esmraldi.spectraprocessing as sp
@@ -60,7 +61,10 @@ class WorkerOpen(QObject):
         return img_data
 
     def open_other_formats(self):
-        im_itk = sitk.ReadImage(self.path)
+        try:
+            im_itk = sitk.ReadImage(self.path)
+        except:
+            return cv2.imread(self.path)
         return sitk.GetArrayFromImage(im_itk)
 
     @pyqtSlot()
@@ -273,13 +277,8 @@ class MainController:
         imageview2 = self.mainview.imagehandleview2.imageview
         imageview2.signal_abort.emit()
 
-        for thread, worker in self.threads:
-            thread.quit()
-            thread.wait()
-        for thread, worker in imageview.threads:
-            thread.quit()
-            thread.wait()
-        for thread, worker in imageview2.threads:
+        all_threads = self.threads + imageview.threads + imageview2.threads
+        for thread, worker in all_threads:
             thread.quit()
             thread.wait()
         self.mainview.hide_run()
