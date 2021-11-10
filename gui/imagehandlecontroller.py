@@ -10,6 +10,10 @@ from PyQt5 import Qt, QtWidgets
 
 
 class ImageHandleController:
+
+    images = OrderedDict()
+    metadata = OrderedDict()
+
     def __init__(self, imagehandleview):
         self.locale = Qt.QLocale(Qt.QLocale.English)
         Qt.QLocale.setDefault(self.locale)
@@ -23,7 +27,6 @@ class ImageHandleController:
         self.imagehandleview.lineEditTol.textEdited.connect(self.change_tolerance)
         self.imagehandleview.lineEditTol.returnPressed.connect(self.update_tolerance)
 
-
         self.imagehandleview.combobox.activated[str].connect(self.choose_image)
         self.imagehandleview.trashButton.clicked.connect(lambda : self.remove_image(self.current_name, manual=True))
 
@@ -33,17 +36,12 @@ class ImageHandleController:
         self.imageview.signal_image_change.connect(self.change_image_combobox)
         self.imageview.signal_mz_change.connect(lambda mz: self.imagehandleview.lineEdit.setText("{:.4f}".format(mz)))
 
-
         self.is_edit = False
         self.is_text_editing = False
-
         self.current_mz = 1.0
         self.tolerance = 0.003
 
         self.img_data = None
-
-        self.images = OrderedDict()
-        self.metadata = OrderedDict()
 
         nb = 2000
         mzs = (np.arange(nb)+1)
@@ -149,6 +147,7 @@ class ImageHandleController:
                 self.imagehandleview.combobox.addItems(list(self.images.keys()))
                 index = self.imagehandleview.combobox.findText(new_name)
                 self.imagehandleview.combobox.setCurrentIndex(index)
+                self.current_name = new_name
             fa_edit = qta.icon('fa.edit')
             self.imagehandleview.editButton.setIcon(fa_edit)
         self.imagehandleview.combobox.setEditable(self.is_edit)
@@ -156,8 +155,12 @@ class ImageHandleController:
 
     def change_name(self, old_name, new_name):
         if old_name in self.images:
-            self.images = OrderedDict([(new_name, v) if k == old_name else (k, v) for k, v in self.images.items()])
-            self.metadata = OrderedDict([(new_name, v) if k == old_name else (k, v) for k, v in self.metadata.items()])
+            for _ in range(len(self.images)):
+                k, v = self.images.popitem(False)
+                self.images[new_name if old_name == k else k] = v
+            for _ in range(len(self.metadata)):
+                k, v = self.metadata.popitem(False)
+                self.metadata[new_name if old_name == k else k] = v
 
     def change_image_combobox(self, value):
         current_index = self.imagehandleview.combobox.currentIndex()

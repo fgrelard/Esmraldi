@@ -5,7 +5,7 @@ import webbrowser
 import numpy as np
 import qtawesome as qta
 
-from PyQt5 import Qt, QtWidgets
+from PyQt5 import Qt, QtWidgets, QtCore
 from PyQt5.Qt import QVBoxLayout
 from PyQt5.QtWidgets import QApplication, QTableWidget, QTableWidgetItem, QFrame
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
@@ -116,6 +116,13 @@ class MainController:
         self.imagehandlecontroller = ImageHandleController(self.mainview.imagehandleview)
         self.imagehandlecontroller2 = ImageHandleController(self.mainview.imagehandleview2)
 
+        handle1 = self.imagehandlecontroller
+        handle2 = self.imagehandlecontroller2
+        combobox1 = handle1.imagehandleview.combobox
+        combobox2 = handle2.imagehandleview.combobox
+        combobox1.currentIndexChanged[str].connect(lambda i: self.on_combo_changed(i, handle1, handle2))
+        combobox2.currentIndexChanged[str].connect(lambda i: self.on_combo_changed(i, handle2, handle1))
+
         self.mainview.oneViewButton.clicked.connect(lambda event: self.update_number_view(1))
 
         self.mainview.twoViewButton.clicked.connect(lambda event: self.update_number_view(2))
@@ -193,6 +200,7 @@ class MainController:
     def end_open(self, image, filename):
         self.mainview.hide_run()
         self.imagehandlecontroller.image_to_view(image, filename)
+        self.imagehandlecontroller2.image_to_view(image, filename)
         self.mainview.progressBar.setMaximum(100)
 
 
@@ -202,6 +210,24 @@ class MainController:
             self.mainview.show_second_view()
         else:
             self.mainview.hide_second_view()
+
+    def on_combo_changed(self, index, handle1, handle2):
+        if index == "":
+            return
+        combobox1 = handle1.imagehandleview.combobox
+        combobox2 = handle2.imagehandleview.combobox
+
+        combobox1.blockSignals(True)
+        combobox2.blockSignals(True)
+        items = [combobox1.itemText(i) for i in range(combobox1.count())]
+        combobox2.clear()
+        combobox2.addItems(items)
+        current_index = combobox2.findText(handle2.current_name)
+        if current_index == -1:
+            current_index = combobox2.findText(index)
+        combobox2.setCurrentIndex(current_index)
+        combobox1.blockSignals(False)
+        combobox2.blockSignals(False)
 
     def start_registration_selection(self, event):
         self.imagehandlecontroller.choose_image("reference")
