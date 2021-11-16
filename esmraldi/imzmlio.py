@@ -5,8 +5,8 @@ Conversion to numpy array
 """
 
 import pyimzml.ImzMLWriter as imzmlwriter
-# import pyimzml.ImzMLParser as imzmlparser
-import esmraldi.imzmlparsermmapped as imzmlparser
+import pyimzml.ImzMLParser as imzmlparser
+# import esmraldi.imzmlparsermmapped as imzmlparser
 import numpy as np
 import nibabel as nib
 import os
@@ -15,7 +15,8 @@ import warnings
 import bisect
 import matplotlib.pyplot as plt
 
-
+from mmappickle.dict import mmapdict
+from mmappickle.stubs import EmptyNDArray
 
 from esmraldi.sparsematrix import SparseMatrix
 from sparse import COO
@@ -38,7 +39,7 @@ def open_imzml(filename, only_metadata=False):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         ibd_file = None if only_metadata else imzmlparser.INFER_IBD_FROM_IMZML
-        return imzmlparser.ImzMLParserMMapped(filename, ibd_file=ibd_file)
+        return imzmlparser.ImzMLParser(filename, ibd_file=ibd_file)
 
 
 
@@ -152,6 +153,85 @@ def get_spectra(imzml, pixel_numbers=[]):
         return np.array(spectra, dtype=object)
     return np.array(spectra)
 
+
+def get_spectra_mmap(imzml, mdict, pixel_numbers=[]):
+    coordinates = []
+    for i in pixel_numbers:
+        coordinates.append(imzml.coordinates[i])
+    if len(pixel_numbers) == 0:
+        coordinates = imzml.coordinates.copy()
+
+    max_x = max(coordinates, key=lambda item:item[0])[0]
+    max_y = max(coordinates, key=lambda item:item[1])[1]
+    max_z = max(coordinates, key=lambda item:item[2])[2]
+
+    mdict["spectra"] = EmptyNDArray((max_x*max_y*max_z, 2,), dtype=object)
+    for i, (x, y, z) in enumerate(coordinates):
+        mz, ints = imzml.getspectrum(i)
+        mdict["spectra"][i, 0] = mz
+        mdict["spectra"][i, 1] = ints
+
+def get_filename_mmap(imzml):
+    filename = imzml.filename
+    root, ext = os.path.splitext(filename)
+    mmap_name = root + ".mmap"
+    return mmap_name
+
+def load_mmap(imzml):
+    mmap_name = get_filename_mmap(imzml)
+    mdict = mmapdict(mmap_name)
+    return mdict
+
+def build_mmap(imzml):
+    mdict = load_mmap(imzml)
+    get_spectra_mmap(imzml, mdict)
+    get_full_spectra_mmap(imzml, mdict)
+
+def get_full_spectra_mmap(imzml, mdict):
+    max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
+    max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
+    max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
+    mzs, ints = imzml.getspectrum(0)
+    number_points = len(ints)
+    zeros_ints = [0 for i in range(number_points)]
+
+    mzs = mdict["spectra"][:, 0]
+    unique_mzs = np.unique(np.hstack(mzs))
+    number_points = len(unique_mzs)
+    mdict["full_spectra"] = EmptyNDArray((max_x*max_y*max_z, 2, number_points))
+    for i, (x, y, z) in enumerate(imzml.coordinates):
+        real_index = (x-1) + (y-1) * max_x + (z-1) * max_x * max_y
+        mz, ints = imzml.getspectrum(i)
+        mdict["full_spectra"][real_index, 0] = mz
+        mdict["full_spectra"][real_index, 1] = ints
+
+def get_images_from_spectra_mmap(spectra, shape):
+    """
+    Extracts image as a numpy array from
+    spectra intensities and the shape of the image,
+    i.e the tuple (width, height)
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        spectra as numpy array [mz*I]
+    shape: tuple
+        shape of the image
+
+    Returns
+    ----------
+    np.ndarray
+        image
+    """
+    intensities = spectra[:, 1, :]
+    new_shape = shape
+    if shape[-1] == 1:
+        new_shape = shape[:-1]
+    image = np.reshape(intensities, new_shape + (intensities.shape[-1],), order='F')
+    return image
+
+
+
 def get_spectra_intensities(imzml, pixel_numbers=[]):
     """
     Extracts spectra intensities from imzML
@@ -195,8 +275,6 @@ def get_spectra_mzs(imzml, pixel_numbers=[]):
             mz, ints = imzml.getspectrum(i)
             spectra[i] = mz.astype("float32")
     return spectra
-
-
 
 
 def get_spectra_from_images(images, full=False):
