@@ -24,14 +24,13 @@ imzml = imzmlio.open_imzml(inputname)
 print("Building mmap")
 imzmlio.build_mmap(imzml)
 
-max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
-max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
-max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
 
 print("Loading imzML")
-mdict = imzmlio.load_mmap(imzml)
+# mdict = imzmlio.load_mmap(imzml)
+mdict = mmapdict(imzmlio.get_filename_mmap(inputname))
+mzs = mdict["spectra"][:, 0]
 
-print(type(mdict["coordinates"]))
+
 full_spectra = SparseMatrix(mdict["coordinates"], mdict["data"], mdict["shape"], sorted=True, has_duplicates=False)
 print(mdict.keys())
 print(type(full_spectra))

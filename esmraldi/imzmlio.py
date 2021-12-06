@@ -25,8 +25,10 @@ import time
 import math
 from functools import reduce
 
+import gc
 
 MAX_MAGNITUDE_ORDER = 6
+MAX_NUMBER = int(1e6)
 
 def open_imzml(filename, only_metadata=False):
     """
@@ -162,40 +164,42 @@ def get_spectra(imzml, pixel_numbers=[]):
     return np.array(spectra)
 
 
-def get_filename_mmap(imzml):
-    filename = imzml.filename
+def get_filename_mmap(filename):
     base = os.path.basename(filename)
     root, ext = os.path.splitext(base)
     mmap_name = "/tmp/" + root + ".mmap"
     return mmap_name
 
-def get_filename_h5(imzml):
-    filename = imzml.filename
+def get_filename_h5(filename):
     base = os.path.basename(filename)
     root, ext = os.path.splitext(base)
     h5_name = "/tmp/" + root + ".h5"
     return h5_name
 
 def build_h5(imzml):
-    h5_name = get_filename_h5(imzml)
+    filename = imzml.filename
+    h5_name = get_filename_h5(filename)
     f = h5py.File(h5_name, "w")
     get_full_spectra_h5(imzml, f)
     return f
 
 def load_h5(imzml):
-    h5_name = get_filename_h5(imzml)
+    filename = imzml.filename
+    h5_name = get_filename_h5(filename)
     f = h5py.File(h5_name, "r")
     return f
 
 def load_mmap(imzml):
-    mmap_name = get_filename_mmap(imzml)
+    filename = imzml.filename
+    mmap_name = get_filename_mmap(filename)
     mdict = mmapdict(mmap_name)
     return mdict
 
 def build_mmap(imzml):
     # mdict = load_mmap(imzml)
     # mdict.vacuum()
-    mmap_name = get_filename_mmap(imzml)
+    filename = imzml.filename
+    mmap_name = get_filename_mmap(filename)
     mdict = mmapdict(mmap_name, readonly=False)
     get_full_spectra_mmap(imzml, mdict)
 
@@ -211,28 +215,34 @@ def get_spectra_mmap(imzml, mdict, pixel_numbers=[]):
     max_y = max(coordinates, key=lambda item:item[1])[1]
     max_z = max(coordinates, key=lambda item:item[2])[2]
 
-    mdict["spectra"] = EmptyNDArray((max_x*max_y*max_z, 2), dtype=object)
+    max_len = max(imzml.intensityLengths)
+    mdict["spectra"] = EmptyNDArray((max_x*max_y*max_z, 2, max_len))
     for i, (x, y, z) in enumerate(coordinates):
         mz, ints = imzml.getspectrum(i)
-        mdict["spectra"][i, 0] = mz
-        mdict["spectra"][i, 1] = ints
-
+        mdict["spectra"][i, 0, -len(mz):] = mz
+        mdict["spectra"][i, 1, -len(mz):] = ints
 
 def chunk_process(array, fn, max_iter, chunk_size, **kwds):
-    i = 0
+    out_axis = None
+    if "out_axis" in kwds:
+        has_out_axis = True
+        out_axis = kwds["out_axis"]
+    in_ind_current = 0
+    out_ind_current = 0
     incr = chunk_size
-    while i < max_iter:
-        next_index = min(max_iter, i + chunk_size)
-        res = fn(array, i, next_index, max_iter, **kwds)
-        if len(res) == 3:
-            index, out, incr = res
-        else:
-            index, out = res
-        i += incr
+    while in_ind_current < max_iter:
+        in_ind_next = min(max_iter, in_ind_current + chunk_size)
+        res = fn(array, in_ind_current, in_ind_next, out_ind_current, max_iter, **kwds)
+        index, out = res
         array[index] = out
 
+        in_ind_current += chunk_size
+        if out_axis is not None:
+            index = index[out_axis]
+        out_ind_current = index.stop
 
-def fn_coordinates(array, i, next_index, max_iter, **kwds):
+
+def fn_coordinates(array, i, next_index, out_i, max_iter, **kwds):
     N = max_iter//2
     slice_index = (slice(None), slice(i, next_index, 1))
     pixel_numbers = kwds["pixel_numbers"]
@@ -240,41 +250,144 @@ def fn_coordinates(array, i, next_index, max_iter, **kwds):
     out = np.array([(pixel_numbers[j-(j//N)*N], j//N, indices_mzs[j-(j//N)*N]) for j in range(i, next_index)]).T
     return slice_index, out
 
-def fn_pixel_numbers(array, i, next_index, max_iter, **kwds):
-    mzs = kwds["mzs"]
-    sum_len = sum(len(l) for l in mzs[i:next_index])
-    slice_index = slice(i, next_index*sum_len, 1)
-    out = np.hstack([np.repeat(j, len(mz)) for j, mz in enumerate(mzs[i:next_index])])
+def fn_pixel_numbers(array, i, next_index, out_i, max_iter, **kwds):
+    spectra = kwds["spectra"]
+    current_mzs = spectra[i//spectra.shape[-1]:next_index//spectra.shape[-1], 0, :]
+    slice_index = slice(i, next_index, 1)
+    out = np.hstack([np.repeat(j+i//spectra.shape[-1], len(mz)) for j, mz in enumerate(current_mzs)])
     return slice_index, out
 
-def fn_image(array, i, next_index, max_iter, **kwds):
+def fn_image(array, i, next_index, out_i, max_iter, **kwds):
     intensities = kwds["intensities"]
     new_shape = kwds["new_shape"]
     slice_index = (slice(None), slice(None), slice(i, next_index))
     out = np.reshape(intensities[..., i:next_index], new_shape + (next_index-i, ), order="F")
     return slice_index, out
 
-def fn_unique(array, i, next_index, max_iter, **kwds):
-    flatten = kwds["flatten"]
-    out = np.unique(flatten[i:next_index])
-    chunk_size = out.shape[0]
-    slice_index = slice(i, i+chunk_size, 1)
-    return slice_index, out, chunk_size
+def fn_unique(array, i, next_index, out_i, max_iter, **kwds):
+    spectra = kwds["spectra"]
+    current_mzs = spectra[i//spectra.shape[-1]:next_index//spectra.shape[-1], 0, :]
+    current_mzs = np.hstack(current_mzs)
+    out = np.unique(current_mzs)
+    slice_index = slice(out_i, out_i+out.shape[0], 1)
+    return slice_index, out
 
-def fn_flatten(array, i, next_index, max_iter, **kwds):
+
+def fn_flatten(array, i, next_index, out_i, max_iter, **kwds):
     mzs = kwds["mzs"]
-    previous_index = next_index
-    next_index += len(mzs[i])
-    slice_index = slice(previous_index, next_index, 1)
+    slice_index = slice(out_i, out_i + len(mzs[i]), 1)
     out = np.array(mzs[i])
     return slice_index, out
 
 
-def get_full_spectra_h5(imzml, f):
-    def factors(n):
-        return set(reduce(list.__add__,
-            ([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0)))
+def get_full_spectra_mmap(imzml, mdict):
+    print("Get full")
+    max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
+    max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
+    max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
+    mzs, ints = imzml.getspectrum(0)
 
+    print("Get spectra")
+    get_spectra_mmap(imzml, mdict)
+    print("End Spectra")
+    spectra = mdict["spectra"]
+    print("Get mzs")
+    mzs = spectra[:, 0]
+    print("compute flatten array")
+    len_full_mz = int(np.prod(mzs.shape))
+
+    # mdict["flatten"] = EmptyNDArray((len_full_mz,))
+    # chunk_process(mdict["flatten"], fn_flatten, len(mzs), 1, mzs=mzs)
+    # print(mdict["flatten"])
+
+    magnitude_order = math.floor(math.log(spectra.shape[-1], 10))
+    diff_magnitude = MAX_MAGNITUDE_ORDER - magnitude_order
+    divisors = np.array(sorted(factors(spectra.shape[0])))
+    index_max_divisor = np.where(divisors < 10**diff_magnitude)[0][-1]
+    number_pixels = divisors[index_max_divisor]
+    max_chunk_size = spectra.shape[-1] * number_pixels
+    chunk_size = max(1, min(len_full_mz, max_chunk_size))
+    mdict["unique"] = EmptyNDArray((len_full_mz,))
+    chunk_process(mdict["unique"], fn_unique, len_full_mz, chunk_size, spectra=mdict["spectra"])
+
+    unique_mzs = np.unique(mdict["unique"])
+    indices_mzs = np.searchsorted(unique_mzs, mzs).flatten()
+    number_points = len(unique_mzs)
+
+    if len(spectra.shape) == 3:
+        #different dimensions
+        len_full_mz = sum(len(l) for l in mzs)
+        mdict["pixel_numbers"] = EmptyNDArray((len_full_mz,), dtype=object)
+        previous_index = 0
+        pixel_numbers = mdict["pixel_numbers"]
+        print("pixel numbers")
+        chunk_process(pixel_numbers, fn_pixel_numbers, len_full_mz, chunk_size, spectra=spectra)
+        print(mdict["pixel_numbers"])
+        imsize = max_x*max_y*max_z
+        shape = (imsize, 2, number_points)
+        mdict["coordinates"] = EmptyNDArray((3, len_full_mz*2), dtype=np.int64)
+        coordinates = mdict["coordinates"]
+        print("coordinates")
+        chunk_process(coordinates, fn_coordinates, len_full_mz*2, chunk_size, pixel_numbers=pixel_numbers, indices_mzs=indices_mzs, out_axis=1)
+        mdict["data"] = np.hstack(np.transpose(spectra, (1, 0, 2)).flatten())
+        mdict["shape"] = shape
+        print(type(mdict["spectra"]))
+
+        full_spectra = SparseMatrix(mdict["coordinates"], mdict["data"], mdict["shape"], sorted=False, has_duplicates=False)
+        get_images_from_spectra_mmap(full_spectra, (max_x, max_y, max_z), mdict)
+        # del mdict["spectra"]
+        del mdict["pixel_numbers"]
+        del mdict["unique"]
+        return
+
+    mdict["full_spectra"] = EmptyNDArray((max_x*max_y*max_z, 2, number_points))
+    previous_index = 0
+    for i, (x, y, z) in enumerate(imzml.coordinates):
+        real_index = (x-1) + (y-1) * max_x + (z-1) * max_x * max_y
+        mz, ints = imzml.getspectrum(i)
+        new_index = previous_index + len(mz)
+        indices = indices_mzs[previous_index:new_index]
+        previous_index = new_index
+        mdict["full_spectra"][real_index, 0, indices] = mz
+        mdict["full_spectra"][real_index, 1, indices] = ints
+
+    del mdict["spectra"]
+
+def get_images_from_spectra_mmap(spectra, shape, mdict):
+    """
+    Extracts image as a numpy array from
+    spectra intensities and the shape of the image,
+    i.e the tuple (width, height)
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        spectra as numpy array [mz*I]
+    shape: tuple
+        shape of the image
+
+    Returns
+    ----------
+    np.ndarray
+        image
+    """
+    intensities = spectra[:, 1, :]
+    new_shape = shape
+    if shape[-1] == 1:
+        new_shape = shape[:-1]
+    mdict["image"] = EmptyNDArray(new_shape + (spectra.shape[-1], ))
+    image = mdict["image"]
+    step = max(1, MAX_NUMBER//np.prod(new_shape))
+    chunk_process(image, fn_image, spectra.shape[-1], step, intensities=intensities, new_shape=new_shape, out_axis=-1)
+    print("end images")
+    return
+
+
+def factors(n):
+    return set(reduce(list.__add__,
+                      ([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0)))
+
+def get_full_spectra_h5(imzml, f):
     print("spectra h5")
     max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
     max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
@@ -332,28 +445,21 @@ def get_full_spectra_h5(imzml, f):
 
     number_points = len(unique_mzs)
 
-    full_spectra = f.create_dataset("full_spectra", (prod_shape, 2, 0), maxshape=(prod_shape, 2, number_points), chunks=(prod_shape, 2, 1,))
-    print(full_spectra.size, full_spectra.chunks)
-    for i in range(1, full_spectra.maxshape[-1], full_spectra.chunks[-1]):
-        if i%100000==0:
-            print(i)
-        current_mz = unique_mzs[i]
-        mz_indices = np.argwhere(mzs == current_mz)
-        mzs_array = np.repeat(current_mz, prod_shape)
-        ints_array = intensities[mz_indices[:, 0], mz_indices[:, 1]]
-        full_spectra.resize(i+1, axis=2)
-        full_spectra[:, 0, i] = mzs_array
-        full_spectra[:, 1, i] = np.zeros((prod_shape,))
-        full_spectra[mz_indices[:, 0], 1, i] = ints_array
+    # full_spectra = f.create_dataset("full_spectra", (prod_shape, 2, 0), maxshape=(prod_shape, 2, number_points), chunks=(prod_shape, 2, 1,))
+    # print(full_spectra.size, full_spectra.chunks)
+    # for i in range(1, full_spectra.maxshape[-1], full_spectra.chunks[-1]):
+    #     if i%100000==0:
+    #         print(i)
+    #     current_mz = unique_mzs[i]
+    #     mz_indices = np.argwhere(mzs == current_mz)
+    #     mzs_array = np.repeat(current_mz, prod_shape)
+    #     ints_array = intensities[mz_indices[:, 0], mz_indices[:, 1]]
+    #     full_spectra.resize(i+1, axis=2)
+    #     full_spectra[:, 0, i] = mzs_array
+    #     full_spectra[:, 1, i] = np.zeros((prod_shape,))
+    #     full_spectra[mz_indices[:, 0], 1, i] = ints_array
 
 
-    print(unique_mzs[0], mzs.shape)
-    mz = np.argwhere(mzs == unique_mzs[10000])
-    print(mz)
-    print()
-
-    indices_mzs = indices_mzs.flatten()
-    indices_2D = np.unravel_index(mz_indices.flatten(), (max_x, max_y))
 
 
     imsize = max_x*max_y*max_z
@@ -366,8 +472,7 @@ def get_full_spectra_h5(imzml, f):
         current_mzs = spectra[i//spectra.shape[-1]:(i+step)//spectra.shape[-1], 0, :]
         pixel_numbers[i:i+step] = np.hstack([np.repeat(j+i//spectra.shape[-1], len(mz)) for j, mz in enumerate(current_mzs)])
 
-    image = f.create_dataset("image", (0,), maxshape=(max_x, max_y, number_points), chunks=(2,))
-
+    print(indices_mzs)
 
     coordinates = f.create_dataset("coordinates", (3, len_full_mz*2), chunks=(3, chunk_size,))
     N = len_full_mz
@@ -387,103 +492,6 @@ def get_full_spectra_h5(imzml, f):
 
     # full_spectra_sparse = SparseMatrix(coordinates, np.hstack(spectra.T.flatten()), shape)
     return full_spectra_sparse
-
-def get_full_spectra_mmap(imzml, mdict):
-    print("Get full")
-    max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
-    max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
-    max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
-    mzs, ints = imzml.getspectrum(0)
-    number_points = len(ints)
-
-    print("Get spectra")
-    get_spectra_mmap(imzml, mdict)
-    print("End Spectra")
-    spectra = mdict["spectra"]
-    print("Get mzs")
-    mzs = spectra[:, 0]
-
-    print("compute flatten array")
-    len_full_mz = sum(len(l) for l in mzs)
-    mdict["flatten"] = EmptyNDArray((len_full_mz,))
-    chunk_process(mdict["flatten"], fn_flatten, len(mzs), 1, mzs=mzs)
-
-    mdict["unique"] = EmptyNDArray((len_full_mz,))
-    print("compute unique")
-    chunk_process(mdict["unique"], fn_unique, len_full_mz, MAX_NUMBER, flatten=mdict["flatten"])
-    unique_mzs, indices_mzs = np.unique(mdict["unique"], return_inverse=True)
-    print("unique", type(unique_mzs))
-    number_points = len(unique_mzs)
-
-    if len(spectra.shape) == 2:
-        #different dimensions
-        len_full_mz = sum(len(l) for l in mzs)
-        mdict["pixel_numbers"] = EmptyNDArray((len_full_mz,), dtype=object)
-        previous_index = 0
-        pixel_numbers = mdict["pixel_numbers"]
-        print("pixel numbers")
-        chunk_process(pixel_numbers, fn_pixel_numbers, len(mzs), MAX_NUMBER, mzs=mzs)
-        imsize = max_x*max_y*max_z
-        shape = (imsize, 2, number_points)
-        mdict["coordinates"] = EmptyNDArray((3, len_full_mz*2), dtype=np.int64)
-        coordinates = mdict["coordinates"]
-        print("coordinates")
-        chunk_process(coordinates, fn_coordinates, len(pixel_numbers)*2, MAX_NUMBER, pixel_numbers=pixel_numbers, indices_mzs=indices_mzs)
-        mdict["data"] = np.hstack(spectra.T.flatten())
-        mdict["shape"] = shape
-        print(type(mdict["spectra"]))
-
-        full_spectra = SparseMatrix(mdict["coordinates"], mdict["data"], mdict["shape"], sorted=True, has_duplicates=False)
-        get_images_from_spectra_mmap(full_spectra, (max_x, max_y, max_z), mdict)
-        del mdict["spectra"]
-        del mdict["pixel_numbers"]
-        del mdict["unique"]
-        del mdict["flatten"]
-        return
-
-    mdict["full_spectra"] = EmptyNDArray((max_x*max_y*max_z, 2, number_points))
-    previous_index = 0
-    for i, (x, y, z) in enumerate(imzml.coordinates):
-        real_index = (x-1) + (y-1) * max_x + (z-1) * max_x * max_y
-        mz, ints = imzml.getspectrum(i)
-        new_index = previous_index + len(mz)
-        indices = indices_mzs[previous_index:new_index]
-        previous_index = new_index
-        mdict["full_spectra"][real_index, 0, indices] = mz
-        mdict["full_spectra"][real_index, 1, indices] = ints
-
-    del mdict["spectra"]
-
-def get_images_from_spectra_mmap(spectra, shape, mdict):
-    """
-    Extracts image as a numpy array from
-    spectra intensities and the shape of the image,
-    i.e the tuple (width, height)
-
-    Parameters
-    ----------
-    spectra: np.ndarray
-        spectra as numpy array [mz*I]
-    shape: tuple
-        shape of the image
-
-    Returns
-    ----------
-    np.ndarray
-        image
-    """
-    intensities = spectra[:, 1, :]
-    new_shape = shape
-    if shape[-1] == 1:
-        new_shape = shape[:-1]
-    mdict["image"] = EmptyNDArray(new_shape + (spectra.shape[-1], ))
-    image = mdict["image"]
-    step = max(1, MAX_NUMBER//np.prod(new_shape))
-    chunk_process(image, fn_image, spectra.shape[-1], step, intensities=intensities, new_shape=new_shape)
-    print("end images")
-    return
-
-
 
 def get_spectra_intensities(imzml, pixel_numbers=[]):
     """
@@ -585,7 +593,6 @@ def get_images_from_spectra(spectra, shape):
 
     """
     intensities = spectra[:, 1, :]
-    print(type(intensities))
     new_shape = shape
     if shape[-1] == 1:
         new_shape = shape[:-1]
