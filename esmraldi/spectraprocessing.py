@@ -14,6 +14,7 @@ import scipy.signal as signal
 import numpy as np
 import bisect
 from functools import reduce
+from esmraldi.utils import progress
 
 def spectra_sum(spectra):
     """
@@ -630,6 +631,43 @@ def closest_peak(num, indices_to_width):
     mz = min(indices_to_width.keys(), key=lambda k: abs(k-num))
     width = indices_to_width[mz]
     return mz, width
+
+def min_step(mzs, max_len, starting_step=0.0005, incr_step=0.0005):
+    i = starting_step
+    incr = incr_step
+    print("beginning min step", max_len, starting_step, incr_step)
+    previous_len = np.inf
+    while i < 1:
+        group = index_groups(mzs, i)
+        current_len = len(group)
+        if current_len < max_len:
+            break
+        factor = max(1, current_len/max_len)
+        incr = incr_step
+        if previous_len - current_len < 0.01*previous_len:
+            incr = 2 * incr
+        previous_len = len(group)
+        i += incr
+        print(i, incr, current_len, previous_len, max_len)
+    return i, len(group)
+
+def realign_reducing(out_spectra, spectra, step=0.0005):
+    mzs = spectra[0, 0]
+    groups = index_groups(mzs, step)
+    peaks = peak_reference_indices_median(groups)
+    current_ind = 0
+    next_ind = 0
+    for i in range(len(groups)):
+        progress(i, len(groups), "Realign")
+        g = groups[i]
+        peak = peaks[i]
+        next_ind += len(g)
+        subset_mz = spectra[:, 0, current_ind:next_ind]
+        subset_i = spectra[:, 1, current_ind:next_ind]
+        out_spectra[:, 0, i] = peak
+        for j in range(subset_i.shape[0]):
+            out_spectra[j, 1, i] = np.mean(subset_i[j])
+        current_ind = next_ind
 
 
 def realign_wrt_peaks_mzs(spectra, aligned_mzs, full_mzs, indices_to_width):
