@@ -231,7 +231,7 @@ class Ui_MainView(object):
         self.menuAnalyze.setTitle(_translate("MainView", "Analyze"))
         self.menuHelp.setTitle(_translate("MainView", "Help"))
         self.actionOpen.setText(_translate("MainView", "Open"))
-        self.actionSave.setText(_translate("MainView", "Save Nifti"))
+        self.actionSave.setText(_translate("MainView", "Save"))
         self.actionExit.setText(_translate("MainView", "Exit"))
 
         self.actionRegistrationSelection.setText(_translate("MainView", "Fiducials - Selection"))

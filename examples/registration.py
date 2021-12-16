@@ -18,6 +18,7 @@ import esmraldi.registration as reg
 import esmraldi.segmentation as segmentation
 import esmraldi.spectraprocessing as sp
 import esmraldi.imageutils as utils
+import esmraldi.utils as ut
 
 from esmraldi.sliceviewer import SliceViewer
 
@@ -175,20 +176,12 @@ def read_image_to_register(registername, is_imzml, to_flip, moving):
 
     return register, mz
 
-def walklevel(some_dir, level=1):
-    some_dir = some_dir.rstrip(os.path.sep)
-    assert os.path.isdir(some_dir)
-    num_sep = some_dir.count(os.path.sep)
-    for root, dirs, files in os.walk(some_dir):
-        yield root, dirs, files
-        num_sep_this = root.count(os.path.sep)
-        if num_sep + level <= num_sep_this:
-            del dirs[:]
+
 
 def extract_image_from_directories(path, pattern, level=2):
     list_image_names = []
     re_pattern = re.compile(pattern)
-    for root, dirs, files in walklevel(path, level):
+    for root, dirs, files in ut.walklevel(path, level):
         for f in files:
             if re_pattern.match(f):
                 list_image_names.append(os.path.join(root, f))

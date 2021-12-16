@@ -42,23 +42,22 @@ class ImageHandleController:
         self.tolerance = 0.003
 
         self.img_data = None
-
-        nb = 2000
-        mzs = (np.arange(nb)+1)
-
-        x = np.random.random((10, 100, nb))
-        x[x < 0.9] = 0  # fill most of the array with zeros
-        x_r = x.reshape((np.prod(x.shape[:-1]), x.shape[-1]))
-        spectra = np.stack((np.tile(mzs, (np.prod(x.shape[:-1]),1)), x_r), axis=1)
-        sm = SparseMatrix(x, is_maybe_densify=False)
-        mzs = SparseMatrix(spectra, is_maybe_densify=False)
-        mss = MSImage(spectra, sm, tolerance=0.0003)
-        mss.spectral_axis = 0
-        mss = mss.transpose((2,1,0))
-        self.img_data = mss
-        self.add_image(self.img_data, "test")
-        self.choose_image("test")
-        self.filename = "test"
+        self.current_name = None
+        # nb = 2000
+        # mzs = (np.arange(nb)+1)
+        # x = np.random.random((10, 100, nb))
+        # x[x < 0.9] = 0  # fill most of the array with zeros
+        # x_r = x.reshape((np.prod(x.shape[:-1]), x.shape[-1]))
+        # spectra = np.stack((np.tile(mzs, (np.prod(x.shape[:-1]),1)), x_r), axis=1)
+        # sm = SparseMatrix(x, is_maybe_densify=False)
+        # mzs = SparseMatrix(spectra, is_maybe_densify=False)
+        # mss = MSImage(spectra, sm, tolerance=0.0003)
+        # mss.spectral_axis = 0
+        # mss = mss.transpose((2,1,0))
+        # self.img_data = mss
+        # self.add_image(self.img_data, "test")
+        # self.choose_image("test")
+        # self.filename = "test"
 
     def image_to_view(self, image, filename):
         self.img_data = image
@@ -119,18 +118,6 @@ class ImageHandleController:
         self.current_name = name
         self.metadata[name] = self.metadata[name] if name in self.metadata else None
 
-    def current_name(self, image):
-        list_keys = list(self.images.keys())
-        list_values = list(self.images.values())
-        try:
-            key = [np.all(image == array) for array in list_values].index(True)
-        except Exception as e:
-            key = -1
-        if len(list_keys) > 0:
-            img_data_name = list_keys[key]
-        else:
-            img_data_name = "No image"
-        return img_data_name
 
     def edit_name(self):
         self.is_edit = not self.is_edit

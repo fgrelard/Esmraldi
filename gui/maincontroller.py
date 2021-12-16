@@ -80,6 +80,53 @@ class WorkerOpen(QObject):
     def abort(self):
         self.is_abort = True
 
+class WorkerSave(QObject):
+
+    signal_start = pyqtSignal()
+    signal_end = pyqtSignal()
+    signal_progress = pyqtSignal(int)
+
+    def __init__(self, image, path):
+        """
+        Parameters
+        ----------
+        ive: ImageViewExtended
+            the image view
+        path: str
+            path to the filename
+        """
+        super().__init__()
+        self.image = image
+        self.path = path
+        self.is_abort = False
+
+    def save_imzML(self):
+        image = self.image.transpose((2, 1, 0))
+        mz = self.image.spectra[:, 0]
+        I, coordinates = io.get_spectra_from_images(image)
+        io.write_imzml(mz, I, coordinates, self.path)
+
+    def save_other_formats(self):
+        try:
+            if self.image.shape[-1] == 3:
+                sitk.WriteImage(sitk.GetImageFromArray(self.image, isVector=True), self.path)
+            else:
+                sitk.WriteImage(sitk.GetImageFromArray(self.image), self.path)
+        except:
+            cv2.imwrite(self.path, self.image)
+
+    @pyqtSlot()
+    def work(self):
+        self.signal_start.emit()
+        if self.path.lower().endswith(".imzml"):
+            self.save_imzML()
+        else:
+            self.save_other_formats()
+        self.signal_end.emit()
+
+    def abort(self):
+        self.is_abort = True
+
 class MainController:
     """
     Main controller connecting all controllers and events
@@ -157,10 +204,6 @@ class MainController:
         self.mainview.hide_run()
 
 
-        self.open_file("/mnt/d/CouplageMSI-Immunofluo/test_registration/reference.png")
-        self.open_file("/mnt/d/CouplageMSI-Immunofluo/test_registration/target.png")
-
-
     def open(self):
         """
         Opens Bruker directory
@@ -191,7 +234,26 @@ class MainController:
 
 
     def save(self):
-        pass
+        filename, ext = QtWidgets.QFileDialog.getSaveFileName(self.mainview.centralwidget, "Select image filename", self.config['default']["imzmldir"])
+        if not filename:
+            return
+        self.save_file(filename)
+
+    def save_file(self, filename):
+        worker = WorkerSave(image=self.imagehandlecontroller.img_data, path=filename)
+        thread = QThread()
+        worker.moveToThread(thread)
+        worker.signal_start.connect(self.mainview.show_run)
+        worker.signal_end.connect(lambda:self.mainview.hide_run())
+        worker.signal_progress.connect(self.update_progressbar)
+
+        self.update_progressbar(0)
+        self.mainview.progressBar.setMaximum(0)
+        self.sig_abort_workers.signal.connect(worker.abort)
+        thread.started.connect(worker.work)
+        thread.start()
+
+        self.threads.append((thread, worker))
 
 
     def exit_app(self, ev=None):
@@ -239,8 +301,6 @@ class MainController:
         combobox2.blockSignals(False)
 
     def start_registration_selection(self, event):
-        self.imagehandlecontroller.choose_image("reference")
-
         self.mainview.show_second_view()
         self.registrationselectioncontroller.start()
         self.mainview.set_frame(self.mainview.registrationselectionview)

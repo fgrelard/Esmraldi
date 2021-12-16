@@ -300,6 +300,7 @@ class ImageViewExtended(pg.ImageView):
         self.ui.plotSpectraButton.clicked.connect(self.plotSpectraROI)
         self.ui.resetROIButton.clicked.connect(self.resetROI)
         self.roiRadioChanged()
+        self.roiClicked()
 
     def hide_win_roi(self, ev):
         ev.ignore()

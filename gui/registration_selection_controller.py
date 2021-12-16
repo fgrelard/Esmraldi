@@ -83,9 +83,6 @@ class RegistrationSelectionController:
 
     def start(self):
         self.set_clickable(True)
-        self.imageview.points = [[41, 44], [525, 48], [533, 409]]
-        self.imageview2.points = [[177, 34], [354, 213], [224, 348]]
-        self.compute_transformation()
 
     def set_clickable(self, clickable):
         self.imageview.setClickable(clickable)
