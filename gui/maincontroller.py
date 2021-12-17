@@ -203,6 +203,10 @@ class MainController:
 
         self.mainview.hide_run()
 
+        self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/immunofluo.png")
+
+        self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/synthetic.imzML")
+
 
     def open(self):
         """
@@ -268,10 +272,12 @@ class MainController:
         self.app.quit()
 
 
-    def end_open(self, image, filename):
+    def end_open(self, image, filename, first=None):
         self.mainview.hide_run()
-        self.imagehandlecontroller.image_to_view(image, filename)
-        self.imagehandlecontroller2.image_to_view(image, filename)
+        if first == True or first is None:
+            self.imagehandlecontroller.image_to_view(image, filename)
+        elif first == False or first is None:
+            self.imagehandlecontroller2.image_to_view(image, filename)
         self.mainview.progressBar.setMaximum(100)
 
 
@@ -301,15 +307,21 @@ class MainController:
         combobox2.blockSignals(False)
 
     def start_registration_selection(self, event):
+        self.imagehandlecontroller.choose_image("immunofluo")
+        self.imagehandlecontroller2.choose_image("synthetic")
+
         self.mainview.show_second_view()
         self.registrationselectioncontroller.start()
         self.mainview.set_frame(self.mainview.registrationselectionview)
 
     def compute_registration_selection(self):
-        def end_computation(registered):
+        def end_computation(fixed_cropped, registered):
+            name_cropped = self.imagehandlecontroller.current_name
+            new_name_cropped = "registered_" + name_cropped
             name = self.imagehandlecontroller2.current_name
             new_name = "registered_" + name
-            self.end_open(registered, new_name)
+            self.end_open(fixed_cropped, new_name_cropped, first=True)
+            self.end_open(registered, new_name, first=False)
         self.registrationselectioncontroller.worker.signal_end.connect(end_computation)
         self.registrationselectioncontroller.thread.start()
         self.threads.append((self.registrationselectioncontroller.thread, self.registrationselectioncontroller.worker))

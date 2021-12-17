@@ -435,7 +435,7 @@ class ImageViewExtended(pg.ImageView):
         max_t = self.imageDisp.shape[0]
         self.normRgn.setRegion((1, max_t//2))
 
-        if self.image is None or not self.hasTimeAxis():
+        if self.image is None or not hasattr(self.image, "mean_spectra"):
             self.timeLine.hide()
             self.winPlot.hide()
         else:
