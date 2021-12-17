@@ -11,7 +11,6 @@ from esmraldi.msimage import MSImage, MSImageImplementation
 
 from skimage.color import rgb2gray, rgba2rgb, gray2rgb
 
-import pprofile
 
 class WorkerRegistrationSelection(QtCore.QObject):
 

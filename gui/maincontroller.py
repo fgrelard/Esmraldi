@@ -104,6 +104,8 @@ class WorkerSave(QObject):
         image = self.image.transpose((2, 1, 0))
         mz = self.image.spectra[:, 0]
         I, coordinates = io.get_spectra_from_images(image)
+        if len(mz) != len(I):
+            mz = np.tile(self.image.mzs, (len(I), 1))
         io.write_imzml(mz, I, coordinates, self.path)
 
     def save_other_formats(self):

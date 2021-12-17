@@ -13,7 +13,6 @@ import esmraldi.imzmlio as io
 from esmraldi.sparsematrix import SparseMatrix
 from abc import ABC, abstractmethod
 
-
 class MSImage:
     def __new__(cls, spectra, image=None, mzs=None, coordinates=None, tolerance=0, mean_spectra=None, dtype=float, buffer=None, offset=0, strides=None, order=None):
         if image is None:
@@ -187,7 +186,6 @@ class MSImageImplementation:
     def __getitem__(self, key):
         is_array = isinstance(key, tuple) and any([isinstance(elem, (collections.abc.Iterable, slice)) for elem in key])
         is_still_image = isinstance(key, numbers.Number)
-
         if isinstance(key, tuple):
             L = [isinstance(k, numbers.Number) for k in key]
             i = iter(L)
@@ -231,7 +229,8 @@ class MSImageImplementation:
         return self.average_image(indices)
 
     def average_image(self, indices):
-        average_image = np.mean(np.take(self.image, indices.flatten(), axis=self.spectral_axis), axis=self.spectral_axis)
+        image_indices = [slice(None) if i != self.spectral_axis else indices.flatten() for i in range(self.image.ndim)]
+        average_image = np.mean(self.image[image_indices], axis=self.spectral_axis)
         try:
             average_image = average_image.todense()
         except:
