@@ -322,7 +322,11 @@ class MainController:
             new_name = "registered_" + name
             self.end_open(fixed_cropped, new_name_cropped, first=True)
             self.end_open(registered, new_name, first=False)
+            self.mainview.hide_run()
+        self.mainview.show_run()
         self.registrationselectioncontroller.worker.signal_end.connect(end_computation)
+        self.registrationselectioncontroller.worker.signal_progress.connect(self.update_progressbar)
+        self.sig_abort_workers.signal.connect(self.registrationselectioncontroller.worker.abort)
         self.registrationselectioncontroller.thread.start()
         self.threads.append((self.registrationselectioncontroller.thread, self.registrationselectioncontroller.worker))
 

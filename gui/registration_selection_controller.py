@@ -1,72 +1,121 @@
 import numpy as np
 from PyQt5 import QtCore
+from PyQt5.QtWidgets import QApplication
 from gui.signal import Signal
 
 import SimpleITK as sitk
 
 import esmraldi.registration as reg
+import esmraldi.imzmlio as imzmlio
+from esmraldi.msimage import MSImage, MSImageImplementation
 
 from skimage.color import rgb2gray, rgba2rgb, gray2rgb
 
+import pprofile
+
 class WorkerRegistrationSelection(QtCore.QObject):
 
-    signal_end = QtCore.pyqtSignal(np.ndarray, np.ndarray)
+    signal_end = QtCore.pyqtSignal(object, object)
+    signal_progress = QtCore.pyqtSignal(int)
 
-    def __init__(self, fixed, moving, input_register, points_fixed, points_moving):
+    def __init__(self, fixed, moving, points_fixed, points_moving):
         super().__init__()
         self.fixed = fixed
         self.moving = moving
-        self.input_register = input_register
         self.points_fixed = points_fixed
         self.points_moving = points_moving
         self.is_abort = False
 
-    @QtCore.pyqtSlot()
-    def work(self):
-        fixed_shape = ((2,) if self.fixed.ndim == 3 else ()) + (0, 1)
-        moving_shape = ((2,) if self.moving.ndim == 3 else ()) + (0, 1)
-        self.fixed = np.transpose(self.fixed, fixed_shape)
-        self.moving = np.transpose(self.moving, moving_shape)
+    def preprocess_image(self, image):
+        is_ms_image = hasattr(image, "image")
+        processed_image = image
+        shape = ((2,) if image.ndim == 3 else ()) + (0, 1)
+        if is_ms_image:
+            processed_image = processed_image.image
+        else:
+            processed_image = np.transpose(image, shape)
+        return processed_image, is_ms_image
 
-        lower = np.amin(self.points_fixed[::2]), np.amin(self.points_fixed[1::2])
-        upper = np.amax(self.points_fixed[::2])+1, np.amax(self.points_fixed[1::2])+1
-        self.fixed = self.fixed[:, lower[1]:upper[1], lower[0]:upper[0]]
-        self.points_fixed = [int(p - lower[i%2]) for i, p in enumerate(self.points_fixed)]
+    def postprocess_image(self, image, ref_ms_image=None):
+        shape = ((2,) if image.ndim == 3 else ()) + (0, 1)
+        print(image.shape)
+        if ref_ms_image is not None:
+            spectra = ref_ms_image.spectra
+            new_image = MSImage(spectra, image, tolerance=0.003)
+            new_image.is_maybe_densify = True
+            new_image.spectral_axis = 0
+            # new_order = (2, 1, 0)
+            # new_image = new_image.transpose(new_order)
+        else:
+            new_image = np.transpose(image, np.roll(shape, 1))
+        return new_image
 
-        fixed_itk = sitk.GetImageFromArray(self.fixed)
-        moving_itk = sitk.GetImageFromArray(self.moving)
-        landmark_transform = sitk.LandmarkBasedTransformInitializer(sitk.AffineTransform(2), self.points_fixed, self.points_moving)
+    def crop_image(self, image, points):
+        lower = round(np.amin(points[::2])), round(np.amin(points[1::2]))
+        upper = round(np.amax(points[::2])+1), round(np.amax(points[1::2])+1)
+        if image.ndim == 2:
+            image = image[lower[1]:upper[1], lower[0]:upper[0]]
+        else:
+            image = image[:, lower[1]:upper[1], lower[0]:upper[0]]
+        new_points = [int(p - lower[i%2]) for i, p in enumerate(points)]
+        return image, new_points
 
+    def apply_registration(self, fixed_itk, register_itk, landmark_transform):
         dim_fixed = fixed_itk.GetDimension()
         if dim_fixed == 2:
             resampler = reg.initialize_resampler(fixed_itk, landmark_transform)
         if dim_fixed == 3:
             resampler = reg.initialize_resampler(fixed_itk[:,:,0], landmark_transform)
 
-        size = moving_itk.GetSize()
-        dim = moving_itk.GetDimension()
+        size = register_itk.GetSize()
+        dim = register_itk.GetDimension()
 
         if dim == 2:
-            deformed_itk = resampler.Execute(moving_itk)
+            deformed_itk = resampler.Execute(register_itk)
         elif dim == 3:
-            pixel_type = moving_itk.GetPixelID()
+            pixel_type = register_itk.GetPixelID()
             fixed_size = fixed_itk.GetSize()
-            deformed_itk = sitk.Image(fixed_size[0], fixed_size[1], size[2], pixel_type )
-
+            slices = []
             for i in range(size[2]):
-                img_slice  = moving_itk[:, :, i]
+                if self.is_abort:
+                    break
+                QApplication.processEvents()
+                img_slice  = register_itk[:, :, i]
                 img_slice.SetSpacing([1, 1])
                 out_slice = resampler.Execute(img_slice)
                 out_slice = sitk.JoinSeries(out_slice)
-                deformed_itk = sitk.Paste(deformed_itk, out_slice, out_slice.GetSize(), destinationIndex=[0, 0, i])
+                slices.append(out_slice)
+                progress = i*100.0/size[2]
+                self.signal_progress.emit(progress)
+            stackmaker = sitk.TileImageFilter()
+            stackmaker.SetLayout([1, 1, 0])
+            deformed_itk = stackmaker.Execute(slices)
+
+        if self.is_abort:
+            return
 
         deformed = sitk.GetArrayFromImage(deformed_itk)
-        print(deformed.shape)
-        if dim == 3:
-            deformed = np.transpose(deformed, np.roll(moving_shape, 1))
-        print(deformed.shape)
-        print(self.input_register.shape)
-        self.signal_end.emit(self.fixed, deformed)
+        return deformed
+
+
+    @QtCore.pyqtSlot()
+    def work(self):
+        fixed, is_ms_fixed = self.preprocess_image(self.fixed)
+        moving, is_ms_moving = self.preprocess_image(self.moving)
+        fixed, self.points_fixed = self.crop_image(fixed, self.points_fixed)
+        fixed_itk = sitk.GetImageFromArray(fixed)
+        moving_itk = sitk.GetImageFromArray(moving)
+
+        landmark_transform = sitk.LandmarkBasedTransformInitializer(sitk.AffineTransform(2), self.points_fixed, self.points_moving)
+
+        deformed = self.apply_registration(fixed_itk, moving_itk, landmark_transform)
+
+        ref_fixed = self.fixed if is_ms_fixed else None
+        ref_deformed = self.moving if is_ms_moving else None
+        fixed = self.postprocess_image(fixed, ref_fixed)
+        deformed = self.postprocess_image(deformed, ref_deformed)
+        print("Fixed", fixed.shape, deformed.shape)
+        self.signal_end.emit(fixed, deformed)
 
     def abort(self):
         self.is_abort = True
@@ -105,12 +154,11 @@ class RegistrationSelectionController:
         self.imageview2.resetCross()
 
     def compute_transformation(self):
-        fixed = self.imageview.imageItem.image
-        moving = self.imageview2.imageItem.image
-        input_register = self.imageview2.image
+        fixed = self.imageview.image
+        moving = self.imageview2.image
         list1 = [c for p in self.imageview.points for c in p]
         list2 = [c for p in self.imageview2.points for c in p]
-        self.worker = WorkerRegistrationSelection(fixed, moving, input_register, list1, list2)
+        self.worker = WorkerRegistrationSelection(fixed, moving, list1, list2)
         self.thread = QtCore.QThread()
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.work)
