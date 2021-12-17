@@ -229,7 +229,7 @@ class MSImageImplementation:
         return self.average_image(indices)
 
     def average_image(self, indices):
-        image_indices = [slice(None) if i != self.spectral_axis else indices.flatten() for i in range(self.image.ndim)]
+        image_indices = tuple([slice(None) if i != self.spectral_axis else indices.flatten() for i in range(self.image.ndim)])
         average_image = np.mean(self.image[image_indices], axis=self.spectral_axis)
         try:
             average_image = average_image.todense()
