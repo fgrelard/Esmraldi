@@ -97,6 +97,19 @@ def normalize(image):
             image_normalized[..., k] = slice2DNorm
     return image_normalized
 
+def get_full_spectra_sparse(spectra, imsize):
+    mzs = spectra[:, 0]
+    unique_mzs, indices_mzs = np.unique(np.hstack(mzs), return_inverse=True)
+    number_points = len(unique_mzs)
+    pixel_numbers = np.hstack([np.repeat(i, len(mzs[i])) for i in range(len(mzs))])
+    shape = (imsize, 2, number_points)
+    coordinates = np.array([(pixel_numbers[i], j, indices_mzs[i]) for j in range(2) for i in range(len(pixel_numbers))]).T
+    if spectra.ndim < 3:
+        spectra = spectra.T.flatten()
+    data = np.hstack(spectra).flatten()
+    full_spectra_sparse = SparseMatrix(coordinates, data, shape)
+    return full_spectra_sparse
+
 def get_full_spectra(imzml):
     max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
     max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
@@ -109,16 +122,9 @@ def get_full_spectra(imzml):
     full_spectra[:,0,:] = mzs
 
     spectra = get_spectra(imzml)
-    mzs = spectra[:, 0]
     if len(spectra.shape) == 2:
-        #different dimensions
-        unique_mzs, indices_mzs = np.unique(np.hstack(mzs), return_inverse=True)
-        number_points = len(unique_mzs)
-        pixel_numbers = np.hstack([np.repeat(i, len(mzs[i])) for i in range(len(mzs))])
         imsize = max_x*max_y*max_z
-        shape = (imsize, 2, number_points)
-        coordinates = np.array([(pixel_numbers[i], j, indices_mzs[i]) for j in range(2) for i in range(len(pixel_numbers))]).T
-        full_spectra_sparse = SparseMatrix(coordinates, np.hstack(spectra.T.flatten()), shape)
+        full_spectra_sparse = get_full_spectra_sparse(spectra, imsize)
         return full_spectra_sparse
 
     for i, (x, y, z) in enumerate(imzml.coordinates):

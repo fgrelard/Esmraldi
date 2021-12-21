@@ -23,7 +23,7 @@ class Ui_RegistrationSelection(object):
         RegistrationSelection.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.textEdit = QtWidgets.QTextEdit(RegistrationSelection)
         self.textEdit.setEnabled(True)
-        self.textEdit.setGeometry(QtCore.QRect(10, 10, 181, 251))
+        self.textEdit.setGeometry(QtCore.QRect(10, 30, 181, 191))
         self.textEdit.setMouseTracking(True)
         self.textEdit.setAcceptDrops(False)
         self.textEdit.setAutoFillBackground(False)

@@ -14,17 +14,22 @@ from esmraldi.sparsematrix import SparseMatrix
 from abc import ABC, abstractmethod
 
 class MSImage:
-    def __new__(cls, spectra, image=None, mzs=None, coordinates=None, tolerance=0, mean_spectra=None, dtype=float, buffer=None, offset=0, strides=None, order=None):
+    def __new__(cls, spectra, image=None, mzs=None, shape=None, coordinates=None, tolerance=0, mean_spectra=None, dtype=float, buffer=None, offset=0, strides=None, order=None):
         if image is None:
-            if coordinates is None:
-                raise ValueError("Coordinates not supplied and image missing.")
-            max_x = max(coordinates, key=lambda item:item[0])[0]
-            max_y = max(coordinates, key=lambda item:item[1])[1]
-            max_z = max(coordinates, key=lambda item:item[2])[2]
-            image = io.get_images_from_spectra(spectra, (max_x, max_y, max_z))
+            if shape is None:
+                shape = cls.determine_shape(cls, coordinates)
+            image = io.get_images_from_spectra(spectra, shape)
             tuple_transpose = [i-1 for i in range(len(image.shape)-1, 0, -1)] + [len(image.shape)-1]
             # image = image.transpose(tuple_transpose)
         return MSImageImplementation(spectra, image, mzs, tolerance, mean_spectra=mean_spectra)
+
+    def determine_shape(cls, coordinates):
+        if coordinates is None:
+            raise ValueError("Shape not supplied and image missing.")
+        max_x = max(coordinates, key=lambda item:item[0])[0]
+        max_y = max(coordinates, key=lambda item:item[1])[1]
+        max_z = max(coordinates, key=lambda item:item[2])[2]
+        return (max_x, max_y, max_z)
 
 
 def concatenate(arrays, axis=0):
@@ -36,22 +41,23 @@ def concatenate(arrays, axis=0):
 
 class MSImageImplementation:
 
-    def __init__(self, spectra, image=None, mzs=None, tolerance=0, is_maybe_densify=False, spectral_axis=-1, mean_spectra=None):
+    def __init__(self, spectra, image=None, mzs=None, tolerance=0, is_maybe_densify=False, spectral_axis=-1, mean_spectra=None, peaks=None):
 
         self._mean_spectra = None
+        self._peaks = None
 
         if image is None and isinstance(spectra, MSImageImplementation):
             image = spectra.copy()
-            self.init_attributes(image.spectra, image.mzs, image.tolerance, image.spectral_axis, image.mean_spectra)
+            self.init_attributes(image.spectra, image.mzs, image.tolerance, image.spectral_axis, image.mean_spectra, image.peaks)
         else:
-            self.init_attributes(spectra, mzs, tolerance, spectral_axis, mean_spectra)
+            self.init_attributes(spectra, mzs, tolerance, spectral_axis, mean_spectra, peaks)
 
         if image.shape:
             self.image = image
         else:
             raise AttributeError("Please a provide a valid image")
 
-    def init_attributes(obj, spectra, mzs, tolerance, spectral_axis, mean_spectra):
+    def init_attributes(obj, spectra, mzs, tolerance, spectral_axis, mean_spectra, peaks):
         if mzs is None:
             all_mzs = spectra[:, 0, ...]
             obj.mzs = np.unique(all_mzs[np.nonzero(all_mzs)])
@@ -61,6 +67,7 @@ class MSImageImplementation:
         obj.tolerance = tolerance
         obj.spectral_axis = spectral_axis
         obj._mean_spectra = mean_spectra
+        obj._peaks = peaks
 
 
     @property
@@ -103,6 +110,14 @@ class MSImageImplementation:
         if self._mean_spectra is None:
             self._mean_spectra = sp.spectra_mean(self.spectra)
         return self._mean_spectra
+
+    @property
+    def peaks(self):
+        return self._peaks
+
+    @peaks.setter
+    def peaks(self, peaks):
+        self._peaks = peaks
 
     @mean_spectra.setter
     def mean_spectra(self, value):
@@ -160,7 +175,7 @@ class MSImageImplementation:
         if isinstance(array_func, MSImageImplementation):
             return MSImageImplementation(array_func)
         try:
-            return MSImageImplementation(self.spectra, array_func, self.mzs, self.tolerance, is_maybe_densify=self.is_maybe_densify, spectral_axis=self.spectral_axis, mean_spectra=self.mean_spectra)
+            return MSImageImplementation(self.spectra, array_func, self.mzs, self.tolerance, is_maybe_densify=self.is_maybe_densify, spectral_axis=self.spectral_axis, mean_spectra=self.mean_spectra, peaks=self.peaks)
         except Exception as ve:
             return array_func
 
@@ -178,7 +193,7 @@ class MSImageImplementation:
         if isinstance(array_ufunc, self.__class__):
             return MSImageImplementation(array_ufunc)
         try:
-            return MSImageImplementation(self.spectra, array_ufunc, self.mzs, self.tolerance, is_maybe_densify=self.is_maybe_densify, spectral_axis=self.spectral_axis, mean_spectra=self.mean_spectra)
+            return MSImageImplementation(self.spectra, array_ufunc, self.mzs, self.tolerance, is_maybe_densify=self.is_maybe_densify, spectral_axis=self.spectral_axis, mean_spectra=self.mean_spectra, peaks=self.peaks)
         except Exception as ve:
             return array_ufunc
 
@@ -240,22 +255,22 @@ class MSImageImplementation:
 
     def astype(self, new_type, casting="unsafe",copy=True):
         ast = self.image.astype(new_type, casting=casting, copy=copy)
-        return MSImageImplementation(self.spectra, ast, self.mzs, self.tolerance, self.is_maybe_densify, self.spectral_axis, self.mean_spectra)
+        return MSImageImplementation(self.spectra, ast, self.mzs, self.tolerance, self.is_maybe_densify, self.spectral_axis, self.mean_spectra, peaks=self.peaks)
 
 
     def transpose(self, axes=None):
         tr = self.image.transpose(axes)
-        return MSImageImplementation(self.spectra, tr, self.mzs, self.tolerance, self.is_maybe_densify, self.spectral_axis, self.mean_spectra)
+        return MSImageImplementation(self.spectra, tr, self.mzs, self.tolerance, self.is_maybe_densify, self.spectral_axis, self.mean_spectra, peaks=self.peaks)
 
 
     def reshape(self, shape, order="C"):
         res = self.image.reshape(shape, order)
-        return MSImageImplementation(self.spectra, res, self.mzs, self.tolerance, self.is_maybe_densify, self.spectral_axis, self.mean_spectra)
+        return MSImageImplementation(self.spectra, res, self.mzs, self.tolerance, self.is_maybe_densify, self.spectral_axis, self.mean_spectra, peaks=self.peaks)
 
 
     def copy(self):
         copy = self.image.copy()
-        return MSImageImplementation(self.spectra, copy, self.mzs, self.tolerance, self.is_maybe_densify, self.spectral_axis, self.mean_spectra)
+        return MSImageImplementation(self.spectra, copy, self.mzs, self.tolerance, self.is_maybe_densify, self.spectral_axis, self.mean_spectra, peaks=self.peaks)
 
     def view(self, dtype=np.float64):
         copy = self.copy()

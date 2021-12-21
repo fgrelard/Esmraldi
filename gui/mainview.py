@@ -10,6 +10,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QFrame, QStackedWidget
 from gui.imagehandleview import Ui_ImageHandleView
 from gui.registration_selection import Ui_RegistrationSelection
+from gui.peak_picking import Ui_PeakPicking
+from gui.spectra_alignment import Ui_SpectraAlignment
 import qtawesome as qta
 
 class Ui_MainView(object):
@@ -27,6 +29,8 @@ class Ui_MainView(object):
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.qframe.setSizePolicy(sizePolicy)
 
+        self.peakpickingview = self.initialize_frame(Ui_PeakPicking)
+        self.spectraalignmentview = self.initialize_frame(Ui_SpectraAlignment)
         self.registrationselectionview = self.initialize_frame(Ui_RegistrationSelection)
 
         self.imagehandleview = Ui_ImageHandleView()
@@ -59,6 +63,11 @@ class Ui_MainView(object):
 
         self.menuHelp = QtWidgets.QMenu(self.menubar)
 
+        self.menuProcess = QtWidgets.QMenu(self.menubar)
+
+        self.actionPeakPicking = QtWidgets.QAction(MainView)
+        self.actionSpectraAlignment = QtWidgets.QAction(MainView)
+
         self.menuSegmentation = QtWidgets.QMenu(self.menubar)
 
         self.menuRegistration = QtWidgets.QMenu(self.menubar)
@@ -66,8 +75,6 @@ class Ui_MainView(object):
         self.menuAnalyze = QtWidgets.QMenu(self.menubar)
 
         self.actionOpen = QtWidgets.QAction(MainView)
-
-        self.actionDenoising_TPC = QtWidgets.QAction(MainView)
 
         self.actionRegistrationSelection = QtWidgets.QAction(MainView)
 
@@ -143,6 +150,9 @@ class Ui_MainView(object):
         self.actionRegistrationSelection.setObjectName("actionRegistrationSelection")
         self.actionRegistrationCoordinates.setObjectName("actionRegistrationCoordinates")
         self.menuRegistration.setObjectName("menuRegistration")
+        self.menuProcess.setObjectName("menuProcess")
+        self.actionPeakPicking.setObjectName("actionPeakPicking")
+        self.actionSpectraAlignment.setObjectName("actionSpectraAlignment")
         self.menuSegmentation.setObjectName("menuSegmentation")
         self.menuAnalyze.setObjectName("menuAnalyze")
         self.menuHelp.setObjectName("menuHelp")
@@ -157,10 +167,14 @@ class Ui_MainView(object):
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionExit)
 
+        self.menuProcess.addAction(self.actionPeakPicking)
+        self.menuProcess.addAction(self.actionSpectraAlignment)
+
         self.menuRegistration.addAction(self.actionRegistrationSelection)
         self.menuRegistration.addAction(self.actionRegistrationCoordinates)
 
         self.menubar.addAction(self.menuFile.menuAction())
+        self.menubar.addAction(self.menuProcess.menuAction())
         self.menubar.addAction(self.menuSegmentation.menuAction())
         self.menubar.addAction(self.menuRegistration.menuAction())
         self.menubar.addAction(self.menuAnalyze.menuAction())
@@ -226,13 +240,18 @@ class Ui_MainView(object):
 
         self.menuFile.setTitle(_translate("MainView", "File"))
 
+        self.menuProcess.setTitle(_translate("MainView", "Process"))
         self.menuRegistration.setTitle(_translate("MainView", "Registration"))
+
         self.menuSegmentation.setTitle(_translate("MainView", "Segmentation"))
         self.menuAnalyze.setTitle(_translate("MainView", "Analyze"))
         self.menuHelp.setTitle(_translate("MainView", "Help"))
         self.actionOpen.setText(_translate("MainView", "Open"))
         self.actionSave.setText(_translate("MainView", "Save"))
         self.actionExit.setText(_translate("MainView", "Exit"))
+
+        self.actionPeakPicking.setText(_translate("MainView", "Peak picking"))
+        self.actionSpectraAlignment.setText(_translate("MainView", "Spectra alignment"))
 
         self.actionRegistrationSelection.setText(_translate("MainView", "Fiducials - Selection"))
         self.actionRegistrationCoordinates.setText(_translate("MainView", "Fiducials - Coordinates"))

@@ -7,6 +7,7 @@ class ScatterPlotItemDirac(pg.ScatterPlotItem):
     def __init__(self, *args, **kwds):
 
         self.selectedPoints = [[], []]
+        self.diracs = [[], []]
 
         if "pen" in kwds:
             self.pen = pg.mkPen(kwds["pen"])
@@ -27,15 +28,16 @@ class ScatterPlotItemDirac(pg.ScatterPlotItem):
     def invalidate(self):
         self.update()
 
-    def addPoints(self, *args, **kwds):
-        pg.ScatterPlotItem.addPoints(self, *args, **kwds)
+    def setDiracs(self, diracs):
+        self.diracs = diracs
+        self.setPoints(x=diracs[0], y=diracs[1], size=0)
         self.generatePicture()
 
     def generatePicture(self, firstRender=True):
         if self.picture is None:
             return
 
-        x_vals, y_vals = self.getData()
+        x_vals, y_vals = self.diracs
         zipped = zip(x_vals, y_vals)
         if firstRender:
             p = QtGui.QPainter(self.picture)
@@ -60,7 +62,7 @@ class ScatterPlotItemDirac(pg.ScatterPlotItem):
     def paint(self, p, *args):
         p.drawPicture(0, 0, self.picture)
         p.drawPicture(0, 0, self.selectedPicture)
-
+        super().paint(p, *args)
 
     def boundingRect(self):
         return QtCore.QRectF(self.picture.boundingRect())

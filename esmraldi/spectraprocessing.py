@@ -220,7 +220,6 @@ def spectra_peak_indices_adaptative_noiselevel(spectra, factor=1, noise_level=1,
         Peaks m/z
     """
     indices = []
-    print(noise_level, factor)
     for spectrum in spectra:
         x, y = spectrum
         indices_current = peak_indices(y, noise_level * factor, wlen)
@@ -450,7 +449,7 @@ def normalization_sic(spectra, indices_peaks, width_peak=10):
         spectra_normalized[i, 1, :] = new_y
     return spectra_normalized
 
-def index_groups(indices, step=1):
+def index_groups(indices, step=1, is_ppm=False):
     """
     Makes groups of indices.
 
@@ -472,8 +471,11 @@ def index_groups(indices, step=1):
     groups = []
     index = 0
     L = []
+    current_step = step
     while index < len(indices) - 1:
         value = indices[index]
+        if is_ppm:
+            current_step = step*value/1e6
         next = indices[index+1]
         L.append(value)
         if abs(value - next) > step:
@@ -651,9 +653,9 @@ def min_step(mzs, max_len, starting_step=0.0005, incr_step=0.0005):
         print(i, incr, current_len, previous_len, max_len)
     return i, len(group)
 
-def realign_reducing(out_spectra, spectra, step=0.0005):
+def realign_reducing(out_spectra, spectra, step=0.0005, is_ppm=False):
     mzs = spectra[0, 0]
-    groups = index_groups(mzs, step)
+    groups = index_groups(mzs, step, is_ppm)
     peaks = peak_reference_indices_median(groups)
     current_ind = 0
     next_ind = 0
@@ -668,6 +670,27 @@ def realign_reducing(out_spectra, spectra, step=0.0005):
         for j in range(subset_i.shape[0]):
             out_spectra[j, 1, i] = np.mean(subset_i[j])
         current_ind = next_ind
+
+
+def realign_wrt_peaks_mzs_generic(spectra, aligned_mzs):
+    realigned_spectra = []
+    current_peaks = np.array(aligned_mzs)
+    for i in range(spectra.shape[0]):
+        mz, ints = spectra[i]
+        mz_unique, indices_mzs = np.unique(mz, return_inverse=True)
+        current_indices = np.clip(np.searchsorted(current_peaks, mz_unique), None, len(current_peaks)-1)
+        new_mzs = current_peaks[np.unique(current_indices)]
+        change = np.concatenate((np.where(np.roll(current_indices,1)!=current_indices)[0], [len(current_indices)]))
+        if change[0] != 0:
+            change = np.concatenate(([0], change))
+        new_ints = []
+        for j in range(len(change)-1):
+            if len(ints[change[j]:change[j+1]])==0:
+                print(change, j, j+1)
+            curr_ints = np.mean(ints[change[j]:change[j+1]])
+            new_ints.append(curr_ints)
+        realigned_spectra.append((new_mzs, new_ints))
+    return realigned_spectra
 
 
 def realign_wrt_peaks_mzs(spectra, aligned_mzs, full_mzs, indices_to_width):
@@ -745,7 +768,7 @@ def realign_wrt_peaks(spectra, aligned_peaks, full_peaks, indices_to_width):
         realigned_spectra.append((x_realigned, y_realigned))
     return realigned_spectra
 
-def realign_indices(spectra, indices, reference="frequence", nb_occurrence=4, step=0.02):
+def realign_indices(spectra, indices, reference="frequence", nb_occurrence=4, step=0.02, is_ppm=False):
     """
     Alignment function.
 
@@ -771,7 +794,7 @@ def realign_indices(spectra, indices, reference="frequence", nb_occurrence=4, st
     step_index = math.ceil(step / min_diff)
     flat_full_indices = np.hstack(indices)
     unique_indices = np.unique(flat_full_indices)
-    groups = index_groups(flat_full_indices, step_index)
+    groups = index_groups(flat_full_indices, step_index, is_ppm)
     groups = [group for group in groups if len(group) > nb_occurrence]
     if reference == "frequence":
         aligned_indices = peak_reference_indices_groups(groups)
@@ -782,7 +805,7 @@ def realign_indices(spectra, indices, reference="frequence", nb_occurrence=4, st
     return np.array(realigned_spectra)
 
 
-def realign_mzs(spectra, mzs, reference="frequence", nb_occurrence=4, step=0.02):
+def realign_mzs(spectra, mzs, reference="frequence", nb_occurrence=4, step=0.02, is_ppm=False):
     """
     Alignment function.
 
@@ -803,9 +826,8 @@ def realign_mzs(spectra, mzs, reference="frequence", nb_occurrence=4, step=0.02)
         realigned spectra
 
     """
-    mz, I = spectra[0]
     flat_full_mzs = np.hstack(mzs)
-    groups = index_groups(flat_full_mzs, step)
+    groups = index_groups(flat_full_mzs, step, is_ppm)
     groups = [group for group in groups if len(group) > nb_occurrence]
     print(len(groups))
     if reference == "frequence":
@@ -816,6 +838,16 @@ def realign_mzs(spectra, mzs, reference="frequence", nb_occurrence=4, step=0.02)
     realigned_spectra = realign_wrt_peaks_mzs(spectra, aligned_mzs, mzs, indices_to_width)
     return np.array(realigned_spectra)
 
+def realign_generic(spectra, mzs, reference="frequence", nb_occurrence=4, step=0.02, is_ppm=False):
+    flat_full_mzs = np.hstack(mzs)
+    groups = index_groups(flat_full_mzs, step, is_ppm)
+    groups = [group for group in groups if len(group) > nb_occurrence]
+    if reference == "frequence":
+        aligned_mzs = peak_reference_indices_groups(groups)
+    else:
+        aligned_mzs = peak_reference_indices_median(groups)
+    realigned_spectra = realign_wrt_peaks_mzs_generic(spectra, aligned_mzs)
+    return np.array(realigned_spectra)
 
 
 def neighbours(index, n, spectra):

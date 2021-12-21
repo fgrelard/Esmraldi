@@ -757,8 +757,8 @@ class ImageViewExtended(pg.ImageView):
             mean_spectra = self.roi_to_mean_spectra(self.imageDisp)
 
         scatter = ScatterPlotItemDirac(pen="w")
-        spots = [{'pos': [self.tVals[i], mean_spectra[i]], 'data': 1} for i in range(len(self.tVals))]
-        scatter.addPoints(spots)
+        # spots = [{'pos': , 'data': 1} for i in range(len(self.tVals))]
+        scatter.setDiracs([self.tVals, mean_spectra])
         plot.addItem(scatter)
         dock.addWidget(plot)
 
@@ -927,9 +927,8 @@ class ImageViewExtended(pg.ImageView):
     def buildPlot(self):
         self.displayed_spectra = self.image.mean_spectra
         x = self.image.mzs
-        spots = [{'pos': [x[i], self.displayed_spectra[i]], 'data': 1} for i in range(len(x))]
         self.plot.clear()
-        self.plot.addPoints(spots)
+        self.plot.setDiracs([x, self.displayed_spectra])
         self.winPlot.autoRange()
 
 

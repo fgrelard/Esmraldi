@@ -8,7 +8,7 @@ import SimpleITK as sitk
 import esmraldi.registration as reg
 import esmraldi.imzmlio as imzmlio
 from esmraldi.msimage import MSImage, MSImageImplementation
-
+from esmraldi.utils import msimage_for_visualization
 from skimage.color import rgb2gray, rgba2rgb, gray2rgb
 
 
@@ -41,10 +41,7 @@ class WorkerRegistrationSelection(QtCore.QObject):
         if ref_ms_image is not None:
             spectra = ref_ms_image.spectra
             new_image = MSImage(spectra, image, tolerance=0.003)
-            new_image.is_maybe_densify = True
-            new_image.spectral_axis = 0
-            # new_order = (2, 1, 0)
-            # new_image = new_image.transpose(new_order)
+            new_image = msimage_for_visualization(new_image, transpose=False)
         else:
             new_image = np.transpose(image, np.roll(shape, 1))
         return new_image
@@ -59,27 +56,28 @@ class WorkerRegistrationSelection(QtCore.QObject):
         new_points = [int(p - lower[i%2]) for i, p in enumerate(points)]
         return image, new_points
 
-    def apply_registration(self, fixed_itk, register_itk, landmark_transform):
-        dim_fixed = fixed_itk.GetDimension()
-        if dim_fixed == 2:
-            resampler = reg.initialize_resampler(fixed_itk, landmark_transform)
-        if dim_fixed == 3:
-            resampler = reg.initialize_resampler(fixed_itk[:,:,0], landmark_transform)
+    def apply_registration(self, fixed, register, landmark_transform):
+        fixed_dim = fixed.ndim
+        dim = register.ndim
+        size = np.array(register.shape)[::-1]
 
-        size = register_itk.GetSize()
-        dim = register_itk.GetDimension()
+        if fixed_dim == 2:
+            fixed_itk = sitk.GetImageFromArray(fixed)
+            resampler = reg.initialize_resampler(fixed_itk, landmark_transform)
+        if fixed_dim == 3:
+            fixed_itk = sitk.GetImageFromArray(fixed[0, ...])
+            resampler = reg.initialize_resampler(fixed_itk, landmark_transform)
 
         if dim == 2:
+            register_itk = sitk.GetImageFromArray(register)
             deformed_itk = resampler.Execute(register_itk)
         elif dim == 3:
-            pixel_type = register_itk.GetPixelID()
-            fixed_size = fixed_itk.GetSize()
             slices = []
             for i in range(size[2]):
                 if self.is_abort:
                     break
                 QApplication.processEvents()
-                img_slice  = register_itk[:, :, i]
+                img_slice = sitk.GetImageFromArray(register[i, ...])
                 img_slice.SetSpacing([1, 1])
                 out_slice = resampler.Execute(img_slice)
                 out_slice = sitk.JoinSeries(out_slice)
@@ -102,12 +100,10 @@ class WorkerRegistrationSelection(QtCore.QObject):
         fixed, is_ms_fixed = self.preprocess_image(self.fixed)
         moving, is_ms_moving = self.preprocess_image(self.moving)
         fixed, self.points_fixed = self.crop_image(fixed, self.points_fixed)
-        fixed_itk = sitk.GetImageFromArray(fixed)
-        moving_itk = sitk.GetImageFromArray(moving)
 
         landmark_transform = sitk.LandmarkBasedTransformInitializer(sitk.AffineTransform(2), self.points_fixed, self.points_moving)
 
-        deformed = self.apply_registration(fixed_itk, moving_itk, landmark_transform)
+        deformed = self.apply_registration(fixed, moving, landmark_transform)
 
         ref_fixed = self.fixed if is_ms_fixed else None
         ref_deformed = self.moving if is_ms_moving else None

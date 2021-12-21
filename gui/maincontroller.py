@@ -4,6 +4,7 @@ import webbrowser
 
 import numpy as np
 import qtawesome as qta
+import pyqtgraph as pg
 
 from PyQt5 import Qt, QtWidgets, QtCore
 from PyQt5.Qt import QVBoxLayout
@@ -25,8 +26,11 @@ import esmraldi.spectraprocessing as sp
 
 from esmraldi.msimage import MSImage, MSImageImplementation
 from esmraldi.sparsematrix import SparseMatrix
+from esmraldi.utils import msimage_for_visualization
 
 from gui.imagehandlecontroller import ImageHandleController
+from gui.peak_picking_controller import PeakPickingController
+from gui.spectraalignmentcontroller import SpectraAlignmentController
 from gui.registration_selection_controller import RegistrationSelectionController
 from gui.signal import Signal
 
@@ -54,10 +58,7 @@ class WorkerOpen(QObject):
         mz, I = imzml.getspectrum(0)
         spectra = io.get_full_spectra(imzml)
         img_data = MSImage(spectra, image=None, coordinates=imzml.coordinates, tolerance=0.003)
-        img_data.is_maybe_densify = True
-        img_data.spectral_axis = 0
-        new_order = (2, 1, 0)
-        img_data = img_data.transpose(new_order)
+        img_data = msimage_for_visualization(img_data)
         return img_data
 
     def open_other_formats(self):
@@ -65,6 +66,7 @@ class WorkerOpen(QObject):
             im_itk = sitk.ReadImage(self.path)
         except:
             return cv2.imread(self.path)
+
         return sitk.GetArrayFromImage(im_itk)
 
     @pyqtSlot()
@@ -110,7 +112,8 @@ class WorkerSave(QObject):
 
     def save_other_formats(self):
         try:
-            if self.image.shape[-1] == 3:
+            print(self.image.shape)
+            if self.image.shape[-1] <= 4:
                 sitk.WriteImage(sitk.GetImageFromArray(self.image, isVector=True), self.path)
             else:
                 sitk.WriteImage(sitk.GetImageFromArray(self.image), self.path)
@@ -188,9 +191,18 @@ class MainController:
         imageview.signal_progress_export.connect(self.update_progressbar)
         imageview.signal_start_export.connect(self.mainview.show_run)
         imageview.signal_end_export.connect(self.mainview.hide_run)
+        self.mainview.actionPeakPicking.triggered.connect(lambda event: self.mainview.set_frame(self.mainview.peakpickingview))
+        self.peakpickingcontroller = PeakPickingController(self.mainview.peakpickingview, imageview)
+        self.peakpickingcontroller.trigger_compute.signal.connect(self.peak_picking)
+        self.peakpickingcontroller.trigger_end.signal.connect(self.mainview.clear_frame)
+
+        self.mainview.actionSpectraAlignment.triggered.connect(lambda event: self.mainview.set_frame(self.mainview.spectraalignmentview))
+        self.spectraalignmentcontroller = SpectraAlignmentController(self.mainview.spectraalignmentview, imageview)
+        self.spectraalignmentcontroller.trigger_compute.signal.connect(self.spectra_alignment)
+        self.spectraalignmentcontroller.trigger_end.signal.connect(self.mainview.clear_frame)
+
 
         self.mainview.actionRegistrationSelection.triggered.connect(self.start_registration_selection)
-
         self.registrationselectioncontroller = RegistrationSelectionController(self.mainview.registrationselectionview, imageview, imageview2)
         self.registrationselectioncontroller.trigger_compute.signal.connect(self.compute_registration_selection)
         self.registrationselectioncontroller.trigger_end.signal.connect(self.mainview.clear_frame)
@@ -205,9 +217,13 @@ class MainController:
 
         self.mainview.hide_run()
 
-        self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/immunofluo.png")
+        # self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/immunofluo.png")
 
-        self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/synthetic.imzML")
+        # self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/synthetic.imzML")
+
+        self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/random.imzML")
+
+        self.mainview.set_frame(self.mainview.peakpickingview)
 
 
     def open(self):
@@ -307,6 +323,43 @@ class MainController:
         combobox2.setCurrentIndex(current_index)
         combobox1.blockSignals(False)
         combobox2.blockSignals(False)
+
+
+    def peak_picking(self):
+        def end_computation(peaks):
+            imageview = self.mainview.imagehandleview.imageview
+            imageview.image.peaks = peaks
+            imageview.winPlot.setVisible(True)
+            unique = np.unique(np.hstack(peaks))
+            intensities = imageview.displayed_spectra
+            mzs = imageview.tVals
+            indices = np.searchsorted(mzs, unique)
+            data = [unique, intensities[indices]]
+            imageview.plot.setPoints(data[0], data[1], size=5, brush=pg.mkBrush("r"))
+            self.mainview.progressBar.setMaximum(100)
+            self.mainview.hide_run()
+        self.update_progressbar(0)
+        self.mainview.progressBar.setMaximum(0)
+        self.mainview.show_run()
+        self.peakpickingcontroller.worker.signal_end.connect(end_computation)
+        self.sig_abort_workers.signal.connect(self.peakpickingcontroller.worker.abort)
+        self.peakpickingcontroller.thread.start()
+        self.threads.append((self.peakpickingcontroller.thread, self.peakpickingcontroller.worker))
+
+    def spectra_alignment(self):
+        def end_computation(image):
+            name = self.imagehandlecontroller.current_name
+            new_name = "aligned_" + name
+            self.end_open(image, new_name, first=True)
+            self.mainview.progressBar.setMaximum(100)
+            self.mainview.hide_run()
+        self.update_progressbar(0)
+        self.mainview.progressBar.setMaximum(0)
+        self.mainview.show_run()
+        self.spectraalignmentcontroller.worker.signal_end.connect(end_computation)
+        self.sig_abort_workers.signal.connect(self.spectraalignmentcontroller.worker.abort)
+        self.spectraalignmentcontroller.thread.start()
+        self.threads.append((self.spectraalignmentcontroller.thread, self.spectraalignmentcontroller.worker))
 
     def start_registration_selection(self, event):
         self.imagehandlecontroller.choose_image("immunofluo")

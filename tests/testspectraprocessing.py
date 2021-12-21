@@ -86,6 +86,17 @@ class TestSpectraProcessing(unittest.TestCase):
         sum_after = sp.spectra_sum(s)
         nptest.assert_equal(x[0], self.spectra[0][0][18])
 
+    def test_realign_wrt_peaks_mzs_generic(self):
+        indices = sp.spectra_peak_mzs_adaptative(self.spectra, 0.5)
+        realigned = sp.realign_wrt_peaks_mzs_generic(self.spectra, indices)
+        print(realigned)
+
+
+    def test_realign_generic(self):
+        indices = sp.spectra_peak_mzs_adaptative(self.spectra, 0.5)
+        realigned = sp.realign_generic(self.spectra, indices)
+        print(realigned)
+
 
     def test_neighbours(self):
         L = [[10.2, 10.], [11, 23.], [12.23, 11.25],
