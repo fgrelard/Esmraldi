@@ -15,6 +15,7 @@ import time
 import scipy.signal as signal
 import scipy.ndimage as ndimage
 from treelib import Node, Tree
+from treelib.exceptions import NodeIDAbsentError
 
 def create_groups(mzs, intensities, indices):
     new_mzs, new_intensities = [], []
@@ -57,26 +58,44 @@ def update_delete_indices(indices, group):
 def create_tree(group_hierarchy):
     levels = len(group_hierarchy)
     tree = Tree()
-    tree.create_node(None, identifier="-1,0")
+    data = type('DataElement', (object,), {'mz':None, 'I':0})()
+    tree.create_node(None, identifier="-1,0", data=data)
     cumsumlen = np.array([])
     for level in range(levels):
         print(level)
         G = group_hierarchy[levels-level-1]
         current_group, I = G
+        print(current_group, I)
         arange = np.arange(len(current_group))
         parents = np.searchsorted(cumsumlen, arange)
         print(current_group, parents)
         incr = 0
         for i, group in enumerate(current_group):
             for j, elem in enumerate(group):
-                tree.create_node(identifier=str(level)+","+str(incr), parent=str(level-1)+","+str(i), data=elem)
+                data = type('DataElement', (object,), {'mz':elem, 'I': I[i]})()
+                tree.create_node(identifier=str(level)+","+str(incr), parent=str(level-1)+","+str(i), data=data)
                 incr += 1
-        tree.show()
         cumsumlen = np.concatenate(([0], np.cumsum([len(g) for g in current_group])))
-    tree.show()
+    return tree
 
 
 
+def find_peaks_tree(tree, threshold_tolerance):
+    ignored_nodes = []
+    peaks = []
+    for node in tree.expand_tree(mode=Tree.DEPTH):
+        if any([tree.is_ancestor(ignored_node, node) for ignored_node in ignored_nodes]):
+            continue
+        children = tree.children(node)
+        mzs = [child.data.mz for child in children]
+        differences  = np.diff(mzs)
+        average_diff = np.mean(differences)
+        if average_diff < threshold_tolerance and tree.level(node) != tree.depth():
+            print(average_diff, node)
+            peaks += [tree.get_node(node).data.mz]
+            ignored_nodes.append(node)
+    return peaks
+    # tree.show()
 
 def find_peaks(peak_hierarchy, group_hierarchy, threshold_tolerance):
     levels = len(group_hierarchy)
@@ -144,10 +163,13 @@ while len(I) > 1:
     # plt.plot(m, I, "o")
     # plt.show()
 
-create_tree(super_groups)
-new_mzs, new_intensities = find_peaks(super_peaks, super_groups, 3.5)
+print(super_peaks)
+print(super_groups)
+tree = create_tree(super_groups)
+tree.show(data_property="mz")
+peaks = find_peaks_tree(tree, 3.5)
 plt.plot(original_m, original_I)
-plt.plot(new_mzs, new_intensities, "o")
+plt.plot(peaks, [0 for i in range(len(peaks))], "o")
 plt.show()
 # associated_groups_sublevel(super_groups, 1, 0)
 
