@@ -31,7 +31,7 @@ def create_groups(mzs, intensities, indices):
             if is_closest_previous:
                 second += 1
         new_mzs.append(mzs[first:second])
-        new_intensities.append(np.mean(intensities[first:second]))
+        new_intensities.append(intensities[first:second])
         first = second
     groups = [new_mzs, new_intensities]
     return groups
@@ -72,7 +72,7 @@ def create_tree(group_hierarchy):
         incr = 0
         for i, group in enumerate(current_group):
             for j, elem in enumerate(group):
-                data = type('DataElement', (object,), {'mz':elem, 'I': I[i]})()
+                data = type('DataElement', (object,), {'mz':elem, 'I': I[i][j]})()
                 tree.create_node(identifier=str(level)+","+str(incr), parent=str(level-1)+","+str(i), data=data)
                 incr += 1
         cumsumlen = np.concatenate(([0], np.cumsum([len(g) for g in current_group])))
@@ -83,6 +83,7 @@ def create_tree(group_hierarchy):
 def find_peaks_tree(tree, threshold_tolerance):
     ignored_nodes = []
     peaks = []
+    I = []
     for node in tree.expand_tree(mode=Tree.DEPTH):
         if any([tree.is_ancestor(ignored_node, node) for ignored_node in ignored_nodes]):
             continue
@@ -90,11 +91,13 @@ def find_peaks_tree(tree, threshold_tolerance):
         mzs = [child.data.mz for child in children]
         differences  = np.diff(mzs)
         average_diff = np.mean(differences)
-        if average_diff < threshold_tolerance and tree.level(node) != tree.depth():
-            print(average_diff, node)
+        if average_diff < threshold_tolerance and tree.level(node) < tree.depth():
+            leaves = [leaf.data.mz for leaf in tree.leaves(node)]
             peaks += [tree.get_node(node).data.mz]
+            # I += [tree.get_node(node).data.I]
+            I += [np.mean([leaf.data.I for leaf in tree.leaves(node)])]
             ignored_nodes.append(node)
-    return peaks
+    return peaks, I
     # tree.show()
 
 def find_peaks(peak_hierarchy, group_hierarchy, threshold_tolerance):
@@ -130,13 +133,32 @@ args = parser.parse_args()
 inputname = args.input
 
 print("Open imzML")
-mdict = mmapdict(inputname)
-mean_spectra = mdict["mean_spectra"]
-mzs = np.unique(mdict["unique"])
+# mdict = mmapdict(inputname)
+# mean_spectra = mdict["mean_spectra"]
+# mzs = np.unique(mdict["unique"])
 
-peak_indices = sp.peak_indices(mean_spectra, prominence=0, wlen=1000)
-m, I = mzs[peak_indices], mean_spectra[peak_indices]
-print(m.shape, I.shape)
+# peak_indices = sp.peak_indices(mean_spectra, prominence=0, wlen=1000)
+# m, I = mzs[peak_indices], mean_spectra[peak_indices]
+# print(m.shape, I.shape)
+n=23
+original_I = np.arange(n)%10+1
+original_I[::4] *= 2
+spectra = np.array( [
+    [np.arange(n), np.zeros((n,))+np.random.rand(n)/10],
+    [np.arange(n)+0.1, original_I],
+    [np.arange(n)+0.2, np.zeros((n,))+np.random.rand(n)/10]
+    ] )
+I = spectra[:, 1].T.flatten()
+print(I)
+
+mzs = np.unique(spectra[:, 0])
+# plt.plot(mzs, spectra[:, 1].T.flatten())
+# plt.show()
+realigned = sp.realign_tree(spectra, mzs, I, 0.15)
+exit(0)
+plt.plot(realigned[:, 0].T, realigned[:, 1].T)
+plt.show()
+exit(0)
 
 original_m = np.arange(100)+0.1
 original_I = np.arange(100)%10
@@ -167,9 +189,14 @@ print(super_peaks)
 print(super_groups)
 tree = create_tree(super_groups)
 tree.show(data_property="mz")
-peaks = find_peaks_tree(tree, 3.5)
+peaks, I = find_peaks_tree(tree, 3.5)
+
+mzs_spectrum = np.arange(100)
+indices = np.searchsorted(peaks, mzs_spectrum)
+print(np.array(peaks)[indices])
+print(indices)
 plt.plot(original_m, original_I)
-plt.plot(peaks, [0 for i in range(len(peaks))], "o")
+plt.plot(peaks, I, "o")
 plt.show()
 # associated_groups_sublevel(super_groups, 1, 0)
 

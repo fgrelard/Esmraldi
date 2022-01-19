@@ -13,6 +13,7 @@ import sys
 import scipy.signal as signal
 import numpy as np
 import bisect
+from treelib import Node, Tree
 from functools import reduce
 from esmraldi.utils import progress
 
@@ -670,6 +671,106 @@ def realign_reducing(out_spectra, spectra, step=0.0005, is_ppm=False):
         for j in range(subset_i.shape[0]):
             out_spectra[j, 1, i] = np.mean(subset_i[j])
         current_ind = next_ind
+
+def create_groups(mzs, intensities, indices):
+    new_mzs, new_intensities = [], []
+    for i in range(len(indices)):
+        if i == 0:
+            first = 0
+        second = indices[i]
+        if second != len(mzs):
+            previous_second = mzs[second-1]
+            next_second = mzs[second+1]
+            current_second = mzs[second]
+            is_closest_previous = abs(previous_second-current_second) < abs(next_second-current_second)
+            if is_closest_previous:
+                second += 1
+        new_mzs.append(mzs[first:second])
+        new_intensities.append(intensities[first:second])
+        first = second
+    print("NEW", new_mzs, indices)
+    import matplotlib.pyplot as plt
+    plt.plot(np.hstack(new_mzs), np.hstack(new_intensities))
+    plt.show()
+    groups = [new_mzs, new_intensities]
+    return groups
+
+def create_group_hierarchy(mzs, mean_spectra):
+    group_hierarchy = []
+    m, I = mzs, mean_spectra
+    while len(I) > 1:
+        ind = signal.argrelextrema(I, np.greater)[0]
+        ind_min = signal.argrelextrema(I, np.less_equal)[0]
+        print(ind_min)
+        if I[0] > I[1]:
+            ind = np.insert(ind, 0, 0)
+            # ind_min = np.insert(ind_min, 0, 0)
+        if I[-1] > I[-2]:
+            ind = np.append(ind, len(I)-1)
+            # ind_min = np.append(ind_min, len(I)-1)
+        ind_min = np.append(ind_min, len(m))
+        groups = create_groups(m, I, ind_min)
+        group_hierarchy.append(groups)
+        m, I = m[ind], I[ind]
+    return group_hierarchy
+
+def create_tree(group_hierarchy):
+    levels = len(group_hierarchy)
+    tree = Tree()
+    data = type('DataElement', (object,), {'mz':None, 'I':0})()
+    tree.create_node(None, identifier="-1,0", data=data)
+    cumsumlen = np.array([])
+    for level in range(levels):
+        G = group_hierarchy[levels-level-1]
+        current_group, I = G
+        arange = np.arange(len(current_group))
+        parents = np.searchsorted(cumsumlen, arange)
+        incr = 0
+        for i, group in enumerate(current_group):
+            for j, elem in enumerate(group):
+                data = type('DataElement', (object,), {'mz':elem, 'I': I[i][j]})()
+                tree.create_node(identifier=str(level)+","+str(incr), parent=str(level-1)+","+str(i), data=data)
+                incr += 1
+        cumsumlen = np.concatenate(([0], np.cumsum([len(g) for g in current_group])))
+    tree.show(data_property="mz")
+    return tree
+
+def find_peaks_tree(tree, threshold_tolerance):
+    ignored_nodes = []
+    peaks = []
+    I = []
+    for node in tree.expand_tree(mode=Tree.DEPTH):
+        if any([tree.is_ancestor(ignored_node, node) for ignored_node in ignored_nodes]):
+            continue
+        children = tree.children(node)
+        mzs = [child.data.mz for child in children]
+        differences  = np.diff(mzs)
+        average_diff = np.mean(differences)
+        if average_diff <= threshold_tolerance and tree.level(node) < tree.depth():
+            peaks += [tree.get_node(node).data.mz]
+            I += [tree.get_node(node).data.I]
+            ignored_nodes.append(node)
+    return np.array(peaks), np.array(I)
+
+
+def realign_tree(spectra, mzs, mean_spectra, step=0.0005, is_ppm=False):
+    group_hierarchy = create_group_hierarchy(mzs, mean_spectra)
+    print(group_hierarchy)
+    tree = create_tree(group_hierarchy)
+    exit(0)
+    peaks, I = find_peaks_tree(tree, step)
+    print(len(peaks))
+    out_spectra = np.zeros(spectra.shape[:-1] + (len(peaks),))
+    print(out_spectra.shape)
+    for i, spectrum in enumerate(spectra):
+        mz, I = spectrum
+        print(len(mz), len(peaks))
+        indices = np.argmin(np.abs(peaks[:, np.newaxis] - mz), axis=0)
+        new_mz, new_I = mz[indices], I[indices]
+        out_spectra[i, 0] = new_mz
+        out_spectra[i, 1] = new_I
+
+    return out_spectra
 
 
 def realign_wrt_peaks_mzs_generic(spectra, aligned_mzs):
