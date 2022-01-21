@@ -674,11 +674,10 @@ def realign_reducing(out_spectra, spectra, step=0.0005, is_ppm=False):
 
 def create_groups(mzs, intensities, indices):
     new_mzs, new_intensities = [], []
-    for i in range(len(indices)):
-        if i == 0:
-            first = 0
-        second = indices[i]
-        if second != len(mzs):
+    first = indices[0]
+    for i in range(len(indices)-1):
+        second = indices[i+1]
+        if second < len(mzs)-1:
             previous_second = mzs[second-1]
             next_second = mzs[second+1]
             current_second = mzs[second]
@@ -688,39 +687,50 @@ def create_groups(mzs, intensities, indices):
         new_mzs.append(mzs[first:second])
         new_intensities.append(intensities[first:second])
         first = second
-    print("NEW", new_mzs, indices)
-    import matplotlib.pyplot as plt
-    plt.plot(np.hstack(new_mzs), np.hstack(new_intensities))
-    plt.show()
+    # print("NEW", mzs, indices, new_mzs, indices)
+    # import matplotlib.pyplot as plt
+    # plt.plot(np.hstack(new_mzs), np.hstack(new_intensities))
+    # plt.show()
     groups = [new_mzs, new_intensities]
     return groups
+
+def local_minima(intensities):
+    return ((intensities <= np.roll(intensities, -1)) &
+            (intensities < np.roll(intensities, 1)))
 
 def create_group_hierarchy(mzs, mean_spectra):
     group_hierarchy = []
     m, I = mzs, mean_spectra
     while len(I) > 1:
         ind = signal.argrelextrema(I, np.greater)[0]
-        ind_min = signal.argrelextrema(I, np.less_equal)[0]
-        print(ind_min)
+        ind_min = np.where(local_minima(I))[0]
         if I[0] > I[1]:
             ind = np.insert(ind, 0, 0)
             # ind_min = np.insert(ind_min, 0, 0)
         if I[-1] > I[-2]:
-            ind = np.append(ind, len(I)-1)
-            # ind_min = np.append(ind_min, len(I)-1)
-        ind_min = np.append(ind_min, len(m))
+            ind = np.append(ind, len(m)-1)
+            # ind_min = np.append(ind_min, len(I))
+        if ind_min[0] != 0:
+            ind_min = np.insert(ind_min, 0, 0)
+        if ind_min[-1] == len(m) - 1:
+            ind_min[-1] = len(m)
+        else:
+            ind_min = np.append(ind_min, len(m))
+        # if len(I) <= 2:
+        #     ind_min = np.array([0, len(I)])
         groups = create_groups(m, I, ind_min)
         group_hierarchy.append(groups)
         m, I = m[ind], I[ind]
     return group_hierarchy
 
 def create_tree(group_hierarchy):
+    print(np.array(group_hierarchy)[:, 0])
     levels = len(group_hierarchy)
     tree = Tree()
     data = type('DataElement', (object,), {'mz':None, 'I':0})()
     tree.create_node(None, identifier="-1,0", data=data)
     cumsumlen = np.array([])
-    for level in range(levels):
+    for level in range(levels-1):
         G = group_hierarchy[levels-level-1]
         current_group, I = G
         arange = np.arange(len(current_group))
@@ -732,42 +742,72 @@ def create_tree(group_hierarchy):
                 tree.create_node(identifier=str(level)+","+str(incr), parent=str(level-1)+","+str(i), data=data)
                 incr += 1
         cumsumlen = np.concatenate(([0], np.cumsum([len(g) for g in current_group])))
-    tree.show(data_property="mz")
+    # tree.show(data_property="mz")
     return tree
 
+
+def min_diff(group_hierarchy):
+    min_diff = np.zeros(len(group_hierarchy))
+    for current_group, I in group_hierarchy:
+        pass
+
+
+def find_search_level(tree, threshold_tolerance):
+    level = tree.depth()
+    while level > 0:
+        leaves = tree.leaves()
+        diff = np.diff([leaf.data.mz for leaf in leaves])
+        average_diff = np.mean(diff)
+        if average_diff >= threshold_tolerance:
+            break
+        else:
+            for leaf in leaves:
+                print(leaf)
+                tree.remove_node(leaf.identifier)
+            level -= 1
+    return level
+
 def find_peaks_tree(tree, threshold_tolerance):
-    ignored_nodes = []
+    ignored_node = np.inf
     peaks = []
     I = []
-    for node in tree.expand_tree(mode=Tree.DEPTH):
-        if any([tree.is_ancestor(ignored_node, node) for ignored_node in ignored_nodes]):
+    search_level = find_search_level(tree, threshold_tolerance)
+    for node in tree.expand_tree(mode=Tree.DEPTH, sorting=False):
+        print(node)
+        if tree.level() != search_level - 1 or tree.level(node) == tree.depth():
             continue
         children = tree.children(node)
+        if len(children) == 0:
+            continue
         mzs = [child.data.mz for child in children]
         differences  = np.diff(mzs)
         average_diff = np.mean(differences)
-        if average_diff <= threshold_tolerance and tree.level(node) < tree.depth():
-            peaks += [tree.get_node(node).data.mz]
+        if average_diff <= threshold_tolerance:
+            peaks += mzs
             I += [tree.get_node(node).data.I]
-            ignored_nodes.append(node)
+            ignored_node = node
     return np.array(peaks), np.array(I)
 
 
 def realign_tree(spectra, mzs, mean_spectra, step=0.0005, is_ppm=False):
+    print("Creating group hierarchy")
     group_hierarchy = create_group_hierarchy(mzs, mean_spectra)
-    print(group_hierarchy)
+    print("Creating tree")
     tree = create_tree(group_hierarchy)
-    exit(0)
+    print("Finding peaks")
     peaks, I = find_peaks_tree(tree, step)
-    print(len(peaks))
-    out_spectra = np.zeros(spectra.shape[:-1] + (len(peaks),))
-    print(out_spectra.shape)
+    print("Found", len(peaks), "peaks")
+    n = len(peaks)
+    out_spectra = np.zeros(spectra.shape[:-1] + (n,))
+    print("Realigning")
     for i, spectrum in enumerate(spectra):
         mz, I = spectrum
-        print(len(mz), len(peaks))
         indices = np.argmin(np.abs(peaks[:, np.newaxis] - mz), axis=0)
-        new_mz, new_I = mz[indices], I[indices]
-        out_spectra[i, 0] = new_mz
+        print(indices)
+        counts = np.unique(indices, return_counts=True)
+        new_I = np.zeros(n)
+        new_I[indices] += I[np.arange(len(I), dtype=int)]
+        out_spectra[i, 0] = peaks
         out_spectra[i, 1] = new_I
 
     return out_spectra

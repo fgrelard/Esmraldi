@@ -127,10 +127,11 @@ def find_peaks(peak_hierarchy, group_hierarchy, threshold_tolerance):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input mmap")
-parser.add_argument("-t", "--threshold", help="Threshold in spectral resolution")
+parser.add_argument("-t", "--threshold", help="Threshold in spectral resolution", default=0.005)
 
 args = parser.parse_args()
 inputname = args.input
+threshold  = float(args.threshold)
 
 print("Open imzML")
 # mdict = mmapdict(inputname)
@@ -148,15 +149,32 @@ spectra = np.array( [
     [np.arange(n)+0.1, original_I],
     [np.arange(n)+0.2, np.zeros((n,))+np.random.rand(n)/10]
     ] )
-I = spectra[:, 1].T.flatten()
-print(I)
 
-mzs = np.unique(spectra[:, 0])
-# plt.plot(mzs, spectra[:, 1].T.flatten())
+
+# imzml = imzmlio.open_imzml(inputname)
+# mz, I = imzml.getspectrum(0)
+# spectra = imzmlio.get_spectra(imzml)
+# spectra = spectra[:100, ...]
+
+all_mzs = np.hstack(spectra[:, 0])
+I = np.hstack(spectra[:, 1])
+mzs, unique_indices = np.unique(all_mzs, return_inverse=True)
+indices_mzs = np.searchsorted(mzs, all_mzs)
+counts = np.zeros(len(mzs))
+new_I = np.zeros(len(mzs))
+for i, ind in enumerate(indices_mzs):
+    new_I[ind] += I[i]
+    counts[ind] += 1
+
+new_I /= counts
+
+print(len(new_I), len(mzs))
+# plt.plot(mzs, mean_spectra)
 # plt.show()
-realigned = sp.realign_tree(spectra, mzs, I, 0.15)
-exit(0)
-plt.plot(realigned[:, 0].T, realigned[:, 1].T)
+realigned = sp.realign_tree(spectra, mzs, new_I, threshold)
+print(realigned)
+plt.plot(mzs, new_I)
+plt.plot(realigned[0, 0].T, sp.spectra_mean(realigned).T)
 plt.show()
 exit(0)
 
