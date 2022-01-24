@@ -691,7 +691,7 @@ def create_groups(mzs, intensities, indices):
     # import matplotlib.pyplot as plt
     # plt.plot(np.hstack(new_mzs), np.hstack(new_intensities))
     # plt.show()
-    groups = [new_mzs, new_intensities]
+    groups = [np.array(new_mzs, dtype=object), np.array(new_intensities, dtype=object)]
     return groups
 
 def local_minima(intensities):
@@ -721,7 +721,7 @@ def create_group_hierarchy(mzs, mean_spectra):
         groups = create_groups(m, I, ind_min)
         group_hierarchy.append(groups)
         m, I = m[ind], I[ind]
-    return group_hierarchy
+    return np.array(group_hierarchy, dtype=object)
 
 def create_tree(group_hierarchy):
     print(np.array(group_hierarchy)[:, 0])
@@ -746,10 +746,80 @@ def create_tree(group_hierarchy):
     return tree
 
 
-def min_diff(group_hierarchy):
-    min_diff = np.zeros(len(group_hierarchy))
-    for current_group, I in group_hierarchy:
-        pass
+def find_levels_threshold(group_hierarchy, threshold_tolerance):
+    levels = len(group_hierarchy)
+    min_diff = np.zeros(levels)
+    diffs = {}
+    for i, (current_group, _) in enumerate(group_hierarchy):
+        current_level = levels-i-1
+        current_diffs = []
+        for mz in current_group:
+            average_diff = np.mean(np.diff(mz))
+            current_diffs.append(average_diff)
+        if min(current_diffs) <= threshold_tolerance:
+            diffs[current_level] = current_diffs
+    if not diffs:
+        diffs[levels-1] = current_diffs
+    diffs = dict(sorted(diffs.items()))
+    return diffs
+
+def counts_indices(group_hierarchy, diffs_threshold):
+    print(group_hierarchy)
+    levels = len(group_hierarchy)
+    counts = {}
+    for k, v in diffs_threshold.items():
+        index = levels-1-k
+        group_index = group_hierarchy[index, 0]
+        counts[k] = np.concatenate(([0], np.cumsum([len(g) for g in group_index])))
+    return counts
+
+def not_indices(indices, length):
+    mask = np.ones(length, dtype=bool)
+    mask[indices] = False
+    full_indices = np.arange(length, dtype=int)
+    return full_indices[mask]
+
+def update_hierarchy(group_hierarchy, level, indices_to_remove):
+    levels = len(group_hierarchy)
+    new_hierarchy = group_hierarchy.copy()
+    next_indices = indices_to_remove
+    for i, (current_group, I) in enumerate(new_hierarchy[:-1:-1]):
+        current_level = i
+        if current_level >= level:
+            print(current_level, level, current_group)
+            N = np.sum([len(g) for g in current_group])
+            print(N)
+            keep_indices = not_indices(next_indices, N)
+            print(keep_indices)
+            print(current_group[np.array([], dtype=int)])
+            new_mzs = current_group[keep_indices]
+            new_I = I[keep_indices]
+            new_hierarchy[current_level+1] = [new_mzs, new_I]
+    # print("new hiera", new_hierarchy)
+    exit(0)
+    return new_hierarchy
+
+
+def find_peaks_group_hierarchy(group_hierarchy, diffs_threshold, threshold_tolerance):
+    counts = counts_indices(group_hierarchy, diffs_threshold)
+    print(counts)
+    new_hierarchy = group_hierarchy.copy()
+    levels = len(group_hierarchy)
+    peaks = []
+    for k,v in diffs_threshold.items():
+        print(k)
+        index = levels-1-k
+        group_index = new_hierarchy[index, 0]
+        counts_index = counts[k]
+        to_remove = []
+        for i, elem in enumerate(v):
+            if elem <= threshold_tolerance:
+                print(group_index[i])
+                peaks += group_index[i].tolist()
+                to_remove += list(range(counts_index[i], counts_index[i+1]))
+        new_hierarchy = update_hierarchy(new_hierarchy, k, to_remove)
+    print(peaks)
+    return peaks
 
 
 def find_search_level(tree, threshold_tolerance):
@@ -792,6 +862,11 @@ def find_peaks_tree(tree, threshold_tolerance):
 def realign_tree(spectra, mzs, mean_spectra, step=0.0005, is_ppm=False):
     print("Creating group hierarchy")
     group_hierarchy = create_group_hierarchy(mzs, mean_spectra)
+    print("Min diff")
+    diff_threshold = find_levels_threshold(group_hierarchy, step)
+    print("Finding peaks")
+    peaks = find_peaks_group_hierarchy(group_hierarchy, diff_threshold, step)
+    exit(0)
     print("Creating tree")
     tree = create_tree(group_hierarchy)
     print("Finding peaks")

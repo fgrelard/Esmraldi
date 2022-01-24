@@ -13,16 +13,6 @@ from typing import Callable
 
 from itertools import product, repeat
 
-npasarray = np.asarray
-
-def asarray(a, dtype=None, order=None, like=None):
-    if isinstance(a, np.memmap):
-        return a
-    return npasarray(a, dtype, order, like=like)
-
-np.asarray = asarray
-np.asanyarray = asarray
-
 def _find_start_end(mask):
     signed_mask = np.array(mask, dtype=int)
     signed_mask[signed_mask==False] = -1
