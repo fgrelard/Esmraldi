@@ -264,7 +264,7 @@ def spectra_peak_mzs_adaptative_noiselevel(spectra, factor=1, noise_level=1, wle
     return np.array(mzs, dtype=object)
 
 
-def peak_indices(data, prominence, wlen):
+def peak_indices(data, prominence, wlen, distance=1):
     """
     Estimates and extracts significant peaks
     in the spectrum,
@@ -289,7 +289,7 @@ def peak_indices(data, prominence, wlen):
     peak_indices, _ = signal.find_peaks(tuple(data),
                                          prominence=prominence,
                                          wlen=wlen,
-                                         distance=1)
+                                         distance=distance)
     return peak_indices
 
 def peak_indices_cwt(data, factor, widths):
@@ -745,6 +745,15 @@ def create_tree(group_hierarchy):
     # tree.show(data_property="mz")
     return tree
 
+def update_diffs(current_group):
+    current_diffs = []
+    for mz in current_group:
+        average_diff = np.mean(np.diff(mz))
+        current_diffs.append(average_diff)
+    return current_diffs
+
+def update_counts(current_group):
+    return np.concatenate(([int(0)], np.cumsum([len(g) for g in current_group])))
 
 def find_levels_threshold(group_hierarchy, threshold_tolerance):
     levels = len(group_hierarchy)
@@ -752,15 +761,14 @@ def find_levels_threshold(group_hierarchy, threshold_tolerance):
     diffs = {}
     for i, (current_group, _) in enumerate(group_hierarchy):
         current_level = levels-i-1
-        current_diffs = []
-        for mz in current_group:
-            average_diff = np.mean(np.diff(mz))
-            current_diffs.append(average_diff)
+        current_diffs = update_diffs(current_group)
         if min(current_diffs) <= threshold_tolerance:
+            print(min(current_diffs))
             diffs[current_level] = current_diffs
     if not diffs:
         diffs[levels-1] = current_diffs
     diffs = dict(sorted(diffs.items()))
+    print(diffs)
     return diffs
 
 def counts_indices(group_hierarchy, diffs_threshold):
@@ -770,7 +778,7 @@ def counts_indices(group_hierarchy, diffs_threshold):
     for k, v in diffs_threshold.items():
         index = levels-1-k
         group_index = group_hierarchy[index, 0]
-        counts[k] = np.concatenate(([0], np.cumsum([len(g) for g in group_index])))
+        counts[k] = update_counts(group_index)
     return counts
 
 def not_indices(indices, length):
@@ -779,45 +787,55 @@ def not_indices(indices, length):
     full_indices = np.arange(length, dtype=int)
     return full_indices[mask]
 
-def update_hierarchy(group_hierarchy, level, indices_to_remove):
+def update_hierarchy(group_hierarchy, level, counts, indices_to_remove):
     levels = len(group_hierarchy)
     new_hierarchy = group_hierarchy.copy()
     next_indices = indices_to_remove
-    for i, (current_group, I) in enumerate(new_hierarchy[:-1:-1]):
+    for i, (current_group, I) in enumerate(new_hierarchy[:0:-1]):
         current_level = i
+        index_hierarchy = levels-1-current_level
         if current_level >= level:
-            print(current_level, level, current_group)
             N = np.sum([len(g) for g in current_group])
-            print(N)
             keep_indices = not_indices(next_indices, N)
-            print(keep_indices)
-            print(current_group[np.array([], dtype=int)])
             new_mzs = current_group[keep_indices]
             new_I = I[keep_indices]
-            new_hierarchy[current_level+1] = [new_mzs, new_I]
-    # print("new hiera", new_hierarchy)
-    exit(0)
+            new_hierarchy[index_hierarchy-1] = [new_mzs, new_I]
+            if current_level+1 in counts:
+                current_counts = counts[current_level+1]
+                next_indices = [list(range(current_counts[ind], current_counts[ind+1])) for ind in next_indices]
+                next_indices = [item for sublist in next_indices for item in sublist]
     return new_hierarchy
 
 
 def find_peaks_group_hierarchy(group_hierarchy, diffs_threshold, threshold_tolerance):
-    counts = counts_indices(group_hierarchy, diffs_threshold)
-    print(counts)
     new_hierarchy = group_hierarchy.copy()
     levels = len(group_hierarchy)
     peaks = []
-    for k,v in diffs_threshold.items():
-        print(k)
-        index = levels-1-k
-        group_index = new_hierarchy[index, 0]
-        counts_index = counts[k]
+    for i, (current_group, I) in enumerate(new_hierarchy[::-1]):
+        counts = update_counts(current_group)
+        diffs = update_diffs(current_group)
         to_remove = []
-        for i, elem in enumerate(v):
+        for i, elem in enumerate(diffs):
             if elem <= threshold_tolerance:
-                print(group_index[i])
-                peaks += group_index[i].tolist()
-                to_remove += list(range(counts_index[i], counts_index[i+1]))
-        new_hierarchy = update_hierarchy(new_hierarchy, k, to_remove)
+                peaks += current_group.tolist()
+                to_remove += list(range(counts[i], counts[i+1]))
+        new_hierarchy = update_hierarchy(new_hierarchy, k, counts, to_remove)
+        # print(counts, diffs)
+    # for k,v in diffs_threshold.items():
+    #     print(k)
+    #     index = levels-1-k
+    #     group_index = new_hierarchy[index, 0]
+    #     counts_index = counts[k]
+    #     to_remove = []
+    #     for i, elem in enumerate(v):
+    #         if elem <= threshold_tolerance:
+    #             print(group_index[i])
+    #             peaks += group_index[i].tolist()
+    #             to_remove += list(range(counts_index[i], counts_index[i+1]))
+    #     new_hierarchy = update_hierarchy(new_hierarchy, k, counts, to_remove)
+    #     counts = update_counts(current_group)
+    #     diffs = update_diffs(current_group)
+    #     print(counts)
     print(peaks)
     return peaks
 
