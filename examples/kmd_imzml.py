@@ -17,15 +17,19 @@
 import os
 import io
 import argparse
-import numpy as np
 import matplotlib
 #to get blending effects
 matplotlib.use("module://mplcairo.qt")
+
+import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
-from mplcairo import operator_t
-from mpldatacursor import datacursor
+
 import esmraldi.imzmlio as imzmlio
 import esmraldi.spectraprocessing as sp
+
+from mplcairo import operator_t
+from mpldatacursor import datacursor
 
 def display_onclick(x=None, y=None, s=None, z=None, label=None, **kwargs):
     annotation = kwargs["point_label"]
@@ -74,11 +78,34 @@ def onclick(event, datacursors):
         if dc:
             dc.hide()
 
+def off_in_sample(annotation_files):
+    annotation = []
+    off_peaks, in_peaks = [], []
+    for annotation_file in annotation_files:
+        data = pd.read_csv(annotation_file, header=2, delimiter=",")
+        mzs_annotated = data.mz
+        molecule_names = data.moleculeNames
+        off_sample = data.offSample
+        intensities_annotated = data.totalIntensity
+        for i in range(len(off_sample)):
+            mz = mzs_annotated[i]
+            if mz in annotation:
+                continue
+            molecule_name = molecule_names[i].split(", ")
+            off = off_sample[i]
+            if off:
+                off_peaks.append({"mz": mzs_annotated[i], "name": molecule_name[:3], "intensity": intensities_annotated[i]})
+            else:
+                in_peaks.append({"mz": mzs_annotated[i], "name": molecule_name[:3], "intensity": intensities_annotated[i]})
+            annotation.append(mz)
+    return annotation, off_peaks, in_peaks
+
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input .imzML")
 parser.add_argument("-r", "--r_exact_mass", help="Exact mass of group (default m_CH2=14.0156)", default=14.0156)
-parser.add_argument("-a", "--annotation", help="Annotation file provided by METASPACE (.csv)")
+parser.add_argument("-a", "--annotation", help="Annotation file provided by METASPACE (.csv)", nargs="+", type=str, default=[])
 parser.add_argument("-c", "--cut_off", help="Cut-off to discard lowest intensities in resulting Kendrick's plot. Expressed as a percentage to compute a threshold = cut_off * max_intensity.", default=0)
 parser.add_argument("-s", "--size_factor", help="Size factor for points in the Kendricks plot", default=20)
 args = parser.parse_args()
@@ -96,13 +123,10 @@ if not os.path.isfile(inputname + ".npy"):
     I = np.hstack(spectra[:, 1])
     mzs, unique_indices = np.unique(imzml_mzs, return_inverse=True)
     indices_mzs = np.searchsorted(mzs, imzml_mzs)
-    counts = np.zeros(len(mzs))
     mean_spectra = np.zeros(len(mzs))
     N = spectra.shape[0]
-    print(N)
     for i, ind in enumerate(indices_mzs):
         mean_spectra[ind] += I[i]
-        # counts[ind] += 1
 
     mean_spectra /= N
     mz_spectra = np.array([mzs, mean_spectra])
@@ -149,28 +173,13 @@ imzml_peaks = []
 for i, peak in enumerate(peaks):
     imzml_peaks.append({"mz": peak, "name": peak, "intensity": peak_intensities[i]})
 
-annotation_dict = {}
 if annotation:
-    import pandas as pd
-    data = pd.read_csv(annotation, header=2, delimiter=",")
-    mzs_annotated = data.mz
-    molecule_names = data.moleculeNames
-    off_sample = data.offSample
-    intensities_annotated = data.totalIntensity
-    off_peaks, in_peaks = [], []
-    for i in range(len(off_sample)):
-        mz = mzs_annotated[i]
+    annotation_mzs, off_peaks, in_peaks = off_in_sample(annotation)
+    for mz in annotation_mzs:
         tol = mz * step
-        molecule_name = molecule_names[i].split(", ")
-        off = off_sample[i]
         idx = np.where((peaks > mz - tol) & (peaks < mz + tol))
         peaks = np.delete(peaks, idx)
         peak_intensities = np.delete(peak_intensities, idx)
-        if off:
-            off_peaks.append({"mz": mzs_annotated[i], "name": molecule_name[:3], "intensity": intensities_annotated[i]})
-        else:
-            in_peaks.append({"mz": mzs_annotated[i], "name": molecule_name[:3], "intensity": intensities_annotated[i]})
-
 
 
 fig, ax = plt.subplots()
