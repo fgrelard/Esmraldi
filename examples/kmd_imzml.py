@@ -115,12 +115,16 @@ def kendricks_plot(ax, peak_maps, r, cut_off, **kwargs):
     global color_index
     color =  kwargs["color"] if "color" in kwargs else None
     label = kwargs["label"] if "label" in kwargs else None
+    alpha =  kwargs["alpha"] if "alpha" in kwargs else 1
+    size_factor = kwargs["size_factor"] if "size_factor" in kwargs else 1
+    size_intensities = kwargs["size_intensities"] if "size_intensities" in kwargs else None
     if not color:
         color = plt.rcParams['axes.prop_cycle'].by_key()['color'][color_index]
-    size_factor = kwargs["size_factor"] if "size_factor" in kwargs else 1
+
     intensities = np.array([peak_map["intensity"] for peak_map in peak_maps])
     if intensities.size == 0:
         return
+    intensities[intensities==0] = np.finfo(float).eps
 
     mzs, kendrick_mass_defect = compute_kendrick_mass_defect(peak_maps, r)
     threshold = np.max(intensities) * cut_off if cut_off > 0 else 1
@@ -128,18 +132,20 @@ def kendricks_plot(ax, peak_maps, r, cut_off, **kwargs):
 
     annotation = np.array([peak_map["name"] for peak_map in peak_maps], dtype=object)
 
-    #Min clipping to avoid 0 valued sizes
-    size_intensities = np.clip(log_intensities, np.finfo(float).eps, None)
+    if not size_intensities:
+        #Min clipping to avoid 0 valued sizes
+        size_intensities = np.clip(log_intensities, np.finfo(float).eps, None)
 
-    #Mask for low intensities
-    mask = size_intensities != np.finfo(float).eps
-    mzs = mzs[mask]
-    kendrick_mass_defect = kendrick_mass_defect[mask]
-    size_intensities = np.log10(intensities)[mask]
-    annotation = annotation[mask]
-    size_intensities *= size_factor
+        #Mask for low intensities
+        mask = size_intensities != np.finfo(float).eps
+        mzs = mzs[mask]
+        kendrick_mass_defect = kendrick_mass_defect[mask]
+        size_intensities = np.log10(intensities)[mask]
+        annotation = annotation[mask]
 
-    pc = ax.scatter(mzs, kendrick_mass_defect, s=size_intensities, c=color, picker=True, ec=None, label=label, alpha=0.5)
+        size_intensities *= size_factor
+
+    pc = ax.scatter(mzs, kendrick_mass_defect, s=size_intensities, c=color, picker=True, ec="k", label=label, alpha=alpha)
     #picking events
     dc = datacursor(pc, tolerance=2, formatter=display_onclick, display="single", point_labels=annotation, bbox=None)
     color_index += 1
@@ -185,7 +191,7 @@ def off_in_sample(annotation_files):
     return annotation, off_peaks, in_peaks
 
 
-def imzml_to_mean_spectra(inputname):
+def imzml_to_mean_spectra(inputname, is_save):
     """
     Opens imzML file and outputs the mean spectrum
     and associated unique m/z ratios
@@ -203,8 +209,9 @@ def imzml_to_mean_spectra(inputname):
             mean_spectra[ind] += I[i]
 
         mean_spectra /= N
-        mz_spectra = np.array([mzs, mean_spectra])
-        np.save(inputname, mz_spectra)
+        if is_save:
+            mz_spectra = np.array([mzs, mean_spectra])
+            np.save(inputname, mz_spectra)
     else:
         mzs, mean_spectra = np.load(inputname+".npy")
     return mzs, mean_spectra
@@ -228,23 +235,44 @@ def extract_peaks(mzs, mean_spectra, step_ppm, factor_prominence, n_pieces=20):
     print("wlen", wlen, "peak len", len(peak_indices))
     return peak_indices
 
-def align_peaks(mzs, mean_spectra, peak_indices, step_ppm):
+def not_indices(indices, length):
+    """
+    Compute the complementary of
+    the indices in a range of size "length"
+    """
+    mask = np.ones(length, dtype=bool)
+    mask[indices] = False
+    full_indices = np.arange(length, dtype=int)
+    return full_indices[mask]
+
+def align_peaks(mzs, intensities, reference_peaks, step_ppm, keep_mzs=True):
     """
     Align mzs in the spectra within a tolerance window
     (defined by the step in ppm) on detected peaks
+
+    The alignment can be done without keeping the "mzs"
+    which are not in within a tolerance window of
+    "reference_peaks" (keep_mzs=False),
+    or by keeping them (keep_mzs=True)
     """
     peaks, peak_intensities = [], []
-    for i in peak_indices:
-        peak = mzs[i]
+    indices_peaks_found = np.array([], dtype=int)
+    for peak in reference_peaks:
         tolerance = step_ppm / 1e6 * peak
         begin = peak-tolerance
         end = peak+tolerance
         indices = np.where((mzs > begin) & (mzs < end))[0]
-        intensity = np.sum(mean_spectra[indices])
+        intensity = np.sum(intensities[indices])
         peaks += [peak]
         peak_intensities += [intensity]
-    peaks = np.array(peaks)
-    peak_intensities = np.array(peak_intensities)
+        indices_peaks_found = np.concatenate((indices_peaks_found, indices))
+    if keep_mzs:
+        keep_indices = not_indices(indices_peaks_found, len(mzs))
+        peaks = np.concatenate((peaks, mzs[keep_indices]))
+        peak_intensities = np.concatenate((peak_intensities, intensities[keep_indices]))
+    else:
+        peaks = np.array(peaks)
+        peak_intensities = np.array(peak_intensities)
     return peaks, peak_intensities
 
 def delete_duplicate_peaks(peaks, peak_intensities, annotation_mzs, step_ppm):
@@ -271,7 +299,7 @@ def display_peaks(mzs, mean_spectra, peak_indices):
     fig1.show()
 
 
-def kendricks_plot_with_annotation(inputname, annotation, ax, r, cut_off, label, step_ppm=14, factor_prominence=100, display=True):
+def kendricks_plot_with_annotation(ax, inputname, annotation, previous_peak_maps, step_ppm=14, factor_prominence=100, **kwargs):
     """
     Kendrick's plot from the imzML file to the final display:
     1. Peak detection
@@ -279,9 +307,19 @@ def kendricks_plot_with_annotation(inputname, annotation, ax, r, cut_off, label,
     3. Annotation handling
     4. Kendricks plot
     """
-    mzs, mean_spectra = imzml_to_mean_spectra(inputname)
+    r = kwargs["r"] if "r" in kwargs else 14.0156
+    cut_off = kwargs["cut_off"] if "cut_off" in kwargs else 0
+    label = kwargs["label"] if "label" in kwargs else ""
+    display = kwargs["display"] if "display" in kwargs else False
+    is_save = kwargs["is_save"] if "is_save" in kwargs else False
+
+    mzs, mean_spectra = imzml_to_mean_spectra(inputname, is_save)
     peak_indices = extract_peaks(mzs, mean_spectra, step_ppm=step_ppm, factor_prominence=factor_prominence)
-    peaks, peak_intensities = align_peaks(mzs, mean_spectra, peak_indices, step_ppm)
+    peaks, peak_intensities = align_peaks(mzs, mean_spectra, mzs[peak_indices], step_ppm, keep_mzs=False)
+
+    #Align with peaks from other datasets, if they exist
+    previous_mzs = np.array([peak_map["mz"] for peak_map in previous_peak_maps])
+    peaks, peak_intensities = align_peaks(peaks, peak_intensities, previous_mzs, step_ppm)
 
     if display:
         display_peaks(mzs, mean_spectra, peak_indices)
@@ -292,9 +330,9 @@ def kendricks_plot_with_annotation(inputname, annotation, ax, r, cut_off, label,
     if annotation:
         annotation_mzs, off_peaks, in_peaks = off_in_sample(annotation)
 
-    dc_imzml = kendricks_plot(ax, imzml_peaks, r, cut_off, label=label, size_factor=size_factor)
+    dc_imzml = kendricks_plot(ax, imzml_peaks, r, cut_off, label=label, size_factor=size_factor, alpha=0.5)
 
-    return dc_imzml, off_peaks, in_peaks
+    return dc_imzml, imzml_peaks, off_peaks, in_peaks
 
 
 
@@ -305,6 +343,8 @@ parser.add_argument("-a", "--annotation", help="Annotation file provided by META
 parser.add_argument("-c", "--cut_off", help="Cut-off to discard lowest intensities in resulting Kendrick's plot. Expressed as a percentage to compute a threshold = cut_off * max_intensity.", default=0)
 parser.add_argument("-s", "--size_factor", help="Size factor for points in the Kendricks plot", default=20)
 parser.add_argument("-f", "--factor_prominence", help="Prominence factor to determine peaks, i.e. the prominence threshold is this value multiplied by the signal baseline", default=100)
+parser.add_argument("-p", "--step_ppm", help="Tolerance step in ppm", default=14)
+parser.add_argument("--save", help="Save mean spectrum as .npy file to avoid parsing the full imzML file", action="store_true")
 args = parser.parse_args()
 
 input_names = args.input
@@ -313,6 +353,8 @@ annotation_names = args.annotation
 cut_off = float(args.cut_off)
 size_factor = float(args.size_factor)
 factor_prominence = float(args.factor_prominence)
+is_save = args.save
+step_ppm = float(args.step_ppm)
 
 color_index = 0
 
@@ -326,16 +368,18 @@ ax.patch.set(alpha=0)
 datacursors = []
 off_peaks, in_peaks = [], []
 
+previous_peaks = []
 for i, input_name in enumerate(input_names):
     name = os.path.splitext(os.path.basename(input_name))[0]
     annotation_name = annotation_names if len(annotation_names) == 0 or type(annotation_names[i]) != list else annotation_names[i]
-    dc_imzml, off_current, in_current = kendricks_plot_with_annotation(input_name, annotation_name, ax, r, cut_off, name, step_ppm=14, factor_prominence=factor_prominence)
+    dc_imzml, imzml_current, off_current, in_current = kendricks_plot_with_annotation(ax, input_name, annotation_name, previous_peaks, step_ppm=step_ppm, factor_prominence=factor_prominence, r=r, cut_off=cut_off, label=name, is_save=is_save, display=True)
+    previous_peaks += imzml_current
     off_peaks += off_current
     in_peaks += in_current
     datacursors.append(dc_imzml)
 
-dc_off = kendricks_plot(ax, off_peaks, r, cut_off, label="Off-sample", size_factor=size_factor)
-dc_in = kendricks_plot(ax, in_peaks, r, cut_off, label="In-sample", size_factor=size_factor)
+dc_off = kendricks_plot(ax, off_peaks, r, cut_off, label="Off-sample",  color="tab:gray", size_intensities=3**2)
+dc_in = kendricks_plot(ax, in_peaks, r, cut_off, label="In-sample", color="k", size_intensities=3**2)
 
 datacursors += [dc_off, dc_in]
 
