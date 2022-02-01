@@ -168,6 +168,9 @@ def off_in_sample(annotation_files):
     """
     Separate the annotation from METASPACE
     between off- and in-sample.
+
+    Remove duplicate annotation
+    from different databases
     """
     annotation = []
     off_peaks, in_peaks = [], []
@@ -177,12 +180,11 @@ def off_in_sample(annotation_files):
         molecule_names = data.moleculeNames
         off_sample = data.offSample
         intensities_annotated = data.totalIntensity
-        for i in range(len(off_sample)):
+        for i, off in enumerate(off_sample):
             mz = mzs_annotated[i]
             if mz in annotation:
                 continue
             molecule_name = molecule_names[i].split(", ")
-            off = off_sample[i]
             if off:
                 off_peaks.append({"mz": mzs_annotated[i], "name": molecule_name[:3], "intensity": intensities_annotated[i]})
             else:
@@ -257,18 +259,27 @@ def align_peaks(mzs, intensities, reference_peaks, step_ppm, keep_mzs=True):
     """
     peaks, peak_intensities = [], []
     indices_peaks_found = np.array([], dtype=int)
+    diffs = np.zeros_like(mzs)
     for peak in reference_peaks:
         tolerance = step_ppm / 1e6 * peak
         begin = peak-tolerance
         end = peak+tolerance
         indices = np.where((mzs > begin) & (mzs < end))[0]
+        diffs[indices] = peak - mzs[indices]
         intensity = np.sum(intensities[indices])
         peaks += [peak]
         peak_intensities += [intensity]
         indices_peaks_found = np.concatenate((indices_peaks_found, indices))
     if keep_mzs:
         keep_indices = not_indices(indices_peaks_found, len(mzs))
-        peaks = np.concatenate((peaks, mzs[keep_indices]))
+        if indices_peaks_found.size > 0:
+            indices_closest = np.searchsorted(mzs[indices_peaks_found], mzs[keep_indices])
+            diffs[keep_indices] = diffs[indices_peaks_found[indices_closest]]
+            print(diffs[keep_indices])
+            shift_mzs = mzs[keep_indices] + diffs[keep_indices]
+        else:
+            shift_mzs = mzs[keep_indices]
+        peaks = np.concatenate((peaks, shift_mzs))
         peak_intensities = np.concatenate((peak_intensities, intensities[keep_indices]))
     else:
         peaks = np.array(peaks)
