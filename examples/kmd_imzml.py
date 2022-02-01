@@ -273,9 +273,9 @@ def align_peaks(mzs, intensities, reference_peaks, step_ppm, keep_mzs=True):
     if keep_mzs:
         keep_indices = not_indices(indices_peaks_found, len(mzs))
         if indices_peaks_found.size > 0:
+            #Find the closest shift and apply it to each remaining peak
             indices_closest = np.searchsorted(mzs[indices_peaks_found], mzs[keep_indices])
             diffs[keep_indices] = diffs[indices_peaks_found[indices_closest]]
-            print(diffs[keep_indices])
             shift_mzs = mzs[keep_indices] + diffs[keep_indices]
         else:
             shift_mzs = mzs[keep_indices]
