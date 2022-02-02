@@ -93,7 +93,7 @@ def get_spectra(imzml, pixel_numbers=[]):
         return np.array(spectra, dtype=object)
     return np.array(spectra)
 
-def find_peak_indices(data, prominence, wlen, distance=1):
+def find_peak_indices(data, prominence, width=None):
     """
     Find peak indices based on prominence,
     i.e. the height of the peak relative to
@@ -101,9 +101,9 @@ def find_peak_indices(data, prominence, wlen, distance=1):
     """
     intensities = np.ma.masked_invalid(data)
     peak_indices, _ = signal.find_peaks(tuple(data),
-                                         prominence=prominence,
-                                         wlen=wlen,
-                                         distance=distance)
+                                        prominence=prominence,
+                                        width=width,
+                                        rel_height=1)
     return peak_indices
 
 
@@ -143,6 +143,7 @@ def kendricks_plot(ax, peak_maps, r, cut_off, **kwargs):
         size_intensities = np.log10(intensities)[mask]
         annotation = annotation[mask]
 
+        size_intensities = size_intensities ** 2
         size_intensities *= size_factor
 
     pc = ax.scatter(mzs, kendrick_mass_defect, s=size_intensities, c=color, picker=True, ec="k", label=label, alpha=alpha)
@@ -198,7 +199,7 @@ def imzml_to_mean_spectra(inputname, is_save):
     Opens imzML file and outputs the mean spectrum
     and associated unique m/z ratios
     """
-    if not os.path.isfile(inputname + ".npy"):
+    if is_save or not os.path.isfile(inputname + ".npy"):
         imzml = open_imzml(inputname)
         spectra = get_spectra(imzml)
         imzml_mzs = np.hstack(spectra[:, 0])
@@ -206,11 +207,14 @@ def imzml_to_mean_spectra(inputname, is_save):
         mzs, unique_indices = np.unique(imzml_mzs, return_inverse=True)
         indices_mzs = np.searchsorted(mzs, imzml_mzs)
         mean_spectra = np.zeros(len(mzs))
+        counts = np.ones(len(mzs))
         N = spectra.shape[0]
         for i, ind in enumerate(indices_mzs):
             mean_spectra[ind] += I[i]
+            # counts[ind] += 1
 
         mean_spectra /= N
+        # mean_spectra /= counts
         if is_save:
             mz_spectra = np.array([mzs, mean_spectra])
             np.save(inputname, mz_spectra)
@@ -218,23 +222,20 @@ def imzml_to_mean_spectra(inputname, is_save):
         mzs, mean_spectra = np.load(inputname+".npy")
     return mzs, mean_spectra
 
-def extract_peaks(mzs, mean_spectra, step_ppm, factor_prominence, n_pieces=20):
+def extract_peaks(mzs, mean_spectra, step_ppm, factor_prominence):
     """
     Extracts the peaks in the mean spectrum
     Based on the prominence from the baseline signal
-    The baseline signal is estimated as median+stddev
-    of the intensities over several computation windows
+    The baseline signal is estimated as median
+    of the intensities
     """
-    diff = np.amin(np.diff(mzs))
     step = step_ppm / 1e6
-    wlen = int(step * mzs[0] / diff)
+    widths = widths_peak_mass_resolution(mzs, step)
     size = mean_spectra.shape[0]
-    piece = wlen*10
-    stddev_piecewise = np.median([np.nanstd(mean_spectra[max(0,i-piece) : min(i+piece, size-1)]) for i in range(piece*n_pieces)])
-    median_piecewise = np.median([np.median(mean_spectra[max(0,i-piece) : min(i+piece, size-1)]) for i in range(piece*n_pieces)])
-    threshold_prominence = (median_piecewise + stddev_piecewise) * factor_prominence
-    peak_indices = find_peak_indices(mean_spectra, prominence=threshold_prominence, wlen=wlen, distance=wlen)
-    print("wlen", wlen, "peak len", len(peak_indices))
+    median_signal = np.median(mean_spectra)
+    threshold_prominence = median_signal * factor_prominence
+    peak_indices = find_peak_indices(mean_spectra, prominence=threshold_prominence, width=(widths,None))
+    print("peak len", len(peak_indices))
     return peak_indices
 
 def not_indices(indices, length):
@@ -246,6 +247,12 @@ def not_indices(indices, length):
     mask[indices] = False
     full_indices = np.arange(length, dtype=int)
     return full_indices[mask]
+
+def fill_zeros_with_last(arr):
+    prev = np.arange(len(arr))
+    prev[arr == 0] = 0
+    prev = np.maximum.accumulate(prev)
+    return arr[prev]
 
 def align_peaks(mzs, intensities, reference_peaks, step_ppm, keep_mzs=True):
     """
@@ -271,14 +278,9 @@ def align_peaks(mzs, intensities, reference_peaks, step_ppm, keep_mzs=True):
         peak_intensities += [intensity]
         indices_peaks_found = np.concatenate((indices_peaks_found, indices))
     if keep_mzs:
+        diffs = fill_zeros_with_last(diffs)
         keep_indices = not_indices(indices_peaks_found, len(mzs))
-        if indices_peaks_found.size > 0:
-            #Find the closest shift and apply it to each remaining peak
-            indices_closest = np.searchsorted(mzs[indices_peaks_found], mzs[keep_indices])
-            diffs[keep_indices] = diffs[indices_peaks_found[indices_closest]]
-            shift_mzs = mzs[keep_indices] + diffs[keep_indices]
-        else:
-            shift_mzs = mzs[keep_indices]
+        shift_mzs = mzs[keep_indices] + diffs[keep_indices]
         peaks = np.concatenate((peaks, shift_mzs))
         peak_intensities = np.concatenate((peak_intensities, intensities[keep_indices]))
     else:
@@ -286,19 +288,6 @@ def align_peaks(mzs, intensities, reference_peaks, step_ppm, keep_mzs=True):
         peak_intensities = np.array(peak_intensities)
     return peaks, peak_intensities
 
-def delete_duplicate_peaks(peaks, peak_intensities, annotation_mzs, step_ppm):
-    """
-    Remove peaks in "peaks" and "peak_intensities"
-    that are already in annotation_mzs
-    """
-    peak_curated = peaks.copy()
-    peak_intensities_curated = peak_intensities.copy()
-    for mz in annotation_mzs:
-        tol = mz * step_ppm / 1e6
-        idx = np.where((peaks > mz - tol) & (peaks < mz + tol))
-        peaks = np.delete(peaks, idx)
-        peak_intensities = np.delete(peak_intensities, idx)
-    return peaks, peak_intensities
 
 def display_peaks(mzs, mean_spectra, peak_indices):
     """
@@ -345,7 +334,30 @@ def kendricks_plot_with_annotation(ax, inputname, annotation, previous_peak_maps
 
     return dc_imzml, imzml_peaks, off_peaks, in_peaks
 
-
+def widths_peak_mass_resolution(mzs, step):
+    """
+    Finds the widths of peaks (in number of samples)
+    for each mz, using the mass resolution (step).
+    The width of a peak in mz is expressed as step*mz.
+    It is converted to a number of samples by computing
+    the minimum number of points required to obtain
+    such a width.
+    """
+    widths = np.zeros_like(mzs, dtype=int)
+    diffs = np.diff(mzs)
+    min_range = np.amin(diffs)
+    median_range = np.median(diffs)
+    for i, mz in enumerate(mzs):
+        tol = step * mz
+        wlen = int(tol / min_range)
+        end = min(len(mzs), i+wlen)
+        current_diffs = np.cumsum(diffs[i:end])
+        ind = np.where(current_diffs < tol)[0]
+        if ind.size == 0:
+            widths[i] = int(tol / median_range)
+        else:
+            widths[i] = ind[-1]
+    return widths
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input .imzML", action="append", type=str, default=[])
@@ -355,7 +367,7 @@ parser.add_argument("-c", "--cut_off", help="Cut-off to discard lowest intensiti
 parser.add_argument("-s", "--size_factor", help="Size factor for points in the Kendricks plot", default=20)
 parser.add_argument("-f", "--factor_prominence", help="Prominence factor to determine peaks, i.e. the prominence threshold is this value multiplied by the signal baseline", default=100)
 parser.add_argument("-p", "--step_ppm", help="Tolerance step in ppm", default=14)
-parser.add_argument("--save", help="Save mean spectrum as .npy file to avoid parsing the full imzML file", action="store_true")
+parser.add_argument("--save", help="Recompute and save mean spectrum as .npy file to avoid parsing the full imzML file", action="store_true")
 args = parser.parse_args()
 
 input_names = args.input
