@@ -772,7 +772,6 @@ def find_levels_threshold(group_hierarchy, threshold_tolerance):
     return diffs
 
 def counts_indices(group_hierarchy, diffs_threshold):
-    print(group_hierarchy)
     levels = len(group_hierarchy)
     counts = {}
     for k, v in diffs_threshold.items():
@@ -789,16 +788,19 @@ def not_indices(indices, length):
 
 def update_hierarchy(group_hierarchy, level, counts, indices_to_remove):
     levels = len(group_hierarchy)
+    if len(indices_to_remove) == 0:
+        return group_hierarchy
     new_hierarchy = group_hierarchy.copy()
-    next_indices = indices_to_remove
+    next_indices = indices_to_remove.copy()
     for i, (current_group, I) in enumerate(new_hierarchy[:0:-1]):
         current_level = i
         index_hierarchy = levels-1-current_level
         if current_level >= level:
             N = np.sum([len(g) for g in current_group])
             keep_indices = not_indices(next_indices, N)
-            new_mzs = current_group[keep_indices]
-            new_I = I[keep_indices]
+            next_group, next_I = new_hierarchy[index_hierarchy-1]
+            new_mzs = next_group[keep_indices]
+            new_I = next_I[keep_indices]
             new_hierarchy[index_hierarchy-1] = [new_mzs, new_I]
             if current_level+1 in counts:
                 current_counts = counts[current_level+1]
@@ -811,32 +813,18 @@ def find_peaks_group_hierarchy(group_hierarchy, diffs_threshold, threshold_toler
     new_hierarchy = group_hierarchy.copy()
     levels = len(group_hierarchy)
     peaks = []
-    for i, (current_group, I) in enumerate(new_hierarchy[::-1]):
+    for i in range(len(new_hierarchy[::-1])):
+        level  = levels-1-i
+        current_group, I = new_hierarchy[level]
         counts = update_counts(current_group)
         diffs = update_diffs(current_group)
         to_remove = []
-        for i, elem in enumerate(diffs):
+        for j, elem in enumerate(diffs):
             if elem <= threshold_tolerance:
-                peaks += current_group.tolist()
-                to_remove += list(range(counts[i], counts[i+1]))
-        new_hierarchy = update_hierarchy(new_hierarchy, k, counts, to_remove)
-        # print(counts, diffs)
-    # for k,v in diffs_threshold.items():
-    #     print(k)
-    #     index = levels-1-k
-    #     group_index = new_hierarchy[index, 0]
-    #     counts_index = counts[k]
-    #     to_remove = []
-    #     for i, elem in enumerate(v):
-    #         if elem <= threshold_tolerance:
-    #             print(group_index[i])
-    #             peaks += group_index[i].tolist()
-    #             to_remove += list(range(counts_index[i], counts_index[i+1]))
-    #     new_hierarchy = update_hierarchy(new_hierarchy, k, counts, to_remove)
-    #     counts = update_counts(current_group)
-    #     diffs = update_diffs(current_group)
-    #     print(counts)
-    print(peaks)
+                peaks += current_group[j].tolist()
+                to_remove += list(range(counts[j], counts[j+1]))
+        new_hierarchy = update_hierarchy(new_hierarchy, i, counts, to_remove)
+    print("PEAKS", peaks)
     return peaks
 
 
