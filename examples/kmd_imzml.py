@@ -317,6 +317,11 @@ def kendricks_plot_with_annotation(ax, inputname, annotation, previous_peak_maps
     peak_indices = extract_peaks(mzs, mean_spectra, step_ppm=step_ppm, factor_prominence=factor_prominence)
     peaks, peak_intensities = align_peaks(mzs, mean_spectra, mzs[peak_indices], step_ppm, keep_mzs=False)
 
+
+    df = pd.DataFrame({"mzs" : peaks, "intensities" : peak_intensities})
+    inputcsv = os.path.splitext(inputname)[0]
+    df.to_csv(inputcsv+".csv", index=False)
+
     #Align with peaks from other datasets, if they exist
     previous_mzs = np.array([peak_map["mz"] for peak_map in previous_peak_maps])
     peaks, peak_intensities = align_peaks(peaks, peak_intensities, previous_mzs, step_ppm)
