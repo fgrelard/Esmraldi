@@ -24,9 +24,9 @@ class WorkerSpectraAlignment(QtCore.QObject):
     def work(self):
         image_size = self.msimage.shape[1:][::-1]
         if self.msimage.peaks is not None:
-            realigned_spectra = sp.realign_generic(self.msimage.spectra, self.msimage.peaks, reference="median", nb_occurrence=self.number, step=self.step, is_ppm=self.is_ppm)
+            realigned_spectra = sp.realign_generic(self.msimage.spectra, self.msimage.peaks)
         else:
-            realigned_spectra = sp.realign_generic(self.msimage.spectra, self.msimage.spectra[:, 0], reference="median", nb_occurrence=self.number, step=self.step, is_ppm=self.is_ppm)
+            realigned_spectra = sp.realign_generic(self.msimage.spectra, self.msimage.spectra[:, 0])
 
         full_spectra_sparse = imzmlio.get_full_spectra_sparse(realigned_spectra, np.prod(image_size))
         image = MSImage(full_spectra_sparse, image=None, shape=image_size, tolerance=0.003)

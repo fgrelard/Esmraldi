@@ -30,6 +30,7 @@ from esmraldi.utils import msimage_for_visualization
 
 from gui.imagehandlecontroller import ImageHandleController
 from gui.peak_picking_controller import PeakPickingController
+from gui.peak_picking_mean_spectrum_controller import PeakPickingMeanSpectrumController
 from gui.spectraalignmentcontroller import SpectraAlignmentController
 from gui.registration_selection_controller import RegistrationSelectionController
 from gui.signal import Signal
@@ -196,6 +197,11 @@ class MainController:
         self.peakpickingcontroller.trigger_compute.signal.connect(self.peak_picking)
         self.peakpickingcontroller.trigger_end.signal.connect(self.mainview.clear_frame)
 
+        self.mainview.actionPeakPickingMeanSpectrum.triggered.connect(lambda event: self.mainview.set_frame(self.mainview.peakpickingmeanspectrumview))
+        self.peakpickingmeanspectrumcontroller = PeakPickingMeanSpectrumController(self.mainview.peakpickingmeanspectrumview, imageview)
+        self.peakpickingmeanspectrumcontroller.trigger_compute.signal.connect(self.peak_picking_mean_spectrum)
+        self.peakpickingcontroller.trigger_end.signal.connect(self.mainview.clear_frame)
+
         self.mainview.actionSpectraAlignment.triggered.connect(lambda event: self.mainview.set_frame(self.mainview.spectraalignmentview))
         self.spectraalignmentcontroller = SpectraAlignmentController(self.mainview.spectraalignmentview, imageview)
         self.spectraalignmentcontroller.trigger_compute.signal.connect(self.spectra_alignment)
@@ -336,6 +342,8 @@ class MainController:
             indices = np.searchsorted(mzs, unique)
             data = [unique, intensities[indices]]
             imageview.plot.setPoints(data[0], data[1], size=5, brush=pg.mkBrush("r"))
+            self.mainview.peakpickingview.label_peaks.setEnabled(True)
+            self.mainview.peakpickingview.label_peaks.setText(str(len(indices)) + " peaks found.")
             self.mainview.progressBar.setMaximum(100)
             self.mainview.hide_run()
         self.update_progressbar(0)
@@ -345,6 +353,24 @@ class MainController:
         self.sig_abort_workers.signal.connect(self.peakpickingcontroller.worker.abort)
         self.peakpickingcontroller.thread.start()
         self.threads.append((self.peakpickingcontroller.thread, self.peakpickingcontroller.worker))
+
+    def peak_picking_mean_spectrum(self):
+        def end_computation(peaks, intensities):
+            imageview = self.mainview.imagehandleview.imageview
+            imageview.image.peaks = peaks
+            imageview.winPlot.setVisible(True)
+            imageview.plot.setPoints(peaks, intensities, size=5, brush=pg.mkBrush("r"))
+            self.mainview.peakpickingmeanspectrumview.label_peaks.setEnabled(True)
+            self.mainview.peakpickingmeanspectrumview.label_peaks.setText(str(len(peaks)) + " peaks found.")
+            self.mainview.progressBar.setMaximum(100)
+            self.mainview.hide_run()
+        self.update_progressbar(0)
+        self.mainview.progressBar.setMaximum(0)
+        self.mainview.show_run()
+        self.peakpickingmeanspectrumcontroller.worker.signal_end.connect(end_computation)
+        self.sig_abort_workers.signal.connect(self.peakpickingmeanspectrumcontroller.worker.abort)
+        self.peakpickingmeanspectrumcontroller.thread.start()
+        self.threads.append((self.peakpickingmeanspectrumcontroller.thread, self.peakpickingmeanspectrumcontroller.worker))
 
     def spectra_alignment(self):
         def end_computation(image):

@@ -27,7 +27,10 @@ import matplotlib.pyplot as plt
 import pyimzml.ImzMLParser as imzmlparser
 import scipy.signal as signal
 
+import esmraldi.imzmlio as io
+
 from mpldatacursor import datacursor
+from esmraldi.peakdetectionmeanspectrum import PeakDetectionMeanSpectrum
 
 def display_onclick(x=None, y=None, s=None, z=None, label=None, **kwargs):
     """
@@ -63,48 +66,6 @@ def compute_kendrick_mass_defect(peak_maps, r):
     kendrick_mass = mzs * round(r) / r
     kendrick_mass_defect = kendrick_mass - np.floor(kendrick_mass)
     return mzs, kendrick_mass_defect
-
-def open_imzml(filename):
-    """
-    Opening an .imzML file
-    with the pyimzml library
-    """
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        ibd_file = imzmlparser.INFER_IBD_FROM_IMZML
-        return imzmlparser.ImzMLParser(filename, ibd_file=ibd_file)
-
-def get_spectra(imzml, pixel_numbers=[]):
-    """
-    Get spectra from pyimzml.ImzMLParser
-    """
-    spectra = []
-    coordinates = []
-    for i in pixel_numbers:
-        coordinates.append(imzml.coordinates[i])
-
-    if len(pixel_numbers) == 0:
-        coordinates = imzml.coordinates.copy()
-
-    for i, (x, y, z) in enumerate(coordinates):
-        mz, ints = imzml.getspectrum(i)
-        spectra.append([mz, ints])
-    if spectra and not all(len(l[0]) == len(spectra[0][0]) for l in spectra):
-        return np.array(spectra, dtype=object)
-    return np.array(spectra)
-
-def find_peak_indices(data, prominence, width=None):
-    """
-    Find peak indices based on prominence,
-    i.e. the height of the peak relative to
-    the nearest higher peak
-    """
-    intensities = np.ma.masked_invalid(data)
-    peak_indices, _ = signal.find_peaks(tuple(data),
-                                        prominence=prominence,
-                                        width=width,
-                                        rel_height=1)
-    return peak_indices
 
 
 def kendricks_plot(ax, peak_maps, r, cut_off, **kwargs):
@@ -200,8 +161,8 @@ def imzml_to_mean_spectra(inputname, is_save):
     and associated unique m/z ratios
     """
     if is_save or not os.path.isfile(inputname + ".npy"):
-        imzml = open_imzml(inputname)
-        spectra = get_spectra(imzml)
+        imzml = io.open_imzml(inputname)
+        spectra = io.get_spectra(imzml)
         imzml_mzs = np.hstack(spectra[:, 0])
         I = np.hstack(spectra[:, 1])
         mzs, unique_indices = np.unique(imzml_mzs, return_inverse=True)
@@ -222,21 +183,6 @@ def imzml_to_mean_spectra(inputname, is_save):
         mzs, mean_spectra = np.load(inputname+".npy")
     return mzs, mean_spectra
 
-def extract_peaks(mzs, mean_spectra, step_ppm, factor_prominence):
-    """
-    Extracts the peaks in the mean spectrum
-    Based on the prominence from the baseline signal
-    The baseline signal is estimated as median
-    of the intensities
-    """
-    step = step_ppm / 1e6
-    widths = widths_peak_mass_resolution(mzs, step)
-    size = mean_spectra.shape[0]
-    median_signal = np.median(mean_spectra)
-    threshold_prominence = median_signal * factor_prominence
-    peak_indices = find_peak_indices(mean_spectra, prominence=threshold_prominence, width=(widths,None))
-    print("peak len", len(peak_indices))
-    return peak_indices
 
 def not_indices(indices, length):
     """
@@ -314,7 +260,8 @@ def kendricks_plot_with_annotation(ax, inputname, annotation, previous_peak_maps
     is_save = kwargs["is_save"] if "is_save" in kwargs else False
 
     mzs, mean_spectra = imzml_to_mean_spectra(inputname, is_save)
-    peak_indices = extract_peaks(mzs, mean_spectra, step_ppm=step_ppm, factor_prominence=factor_prominence)
+    peak_detection = PeakDetectionMeanSpectrum(mzs, mean_spectra, factor_prominence, step_ppm)
+    peak_indices = peak_detection.extract_peaks()
     peaks, peak_intensities = align_peaks(mzs, mean_spectra, mzs[peak_indices], step_ppm, keep_mzs=False)
 
 
@@ -339,30 +286,6 @@ def kendricks_plot_with_annotation(ax, inputname, annotation, previous_peak_maps
 
     return dc_imzml, imzml_peaks, off_peaks, in_peaks
 
-def widths_peak_mass_resolution(mzs, step):
-    """
-    Finds the widths of peaks (in number of samples)
-    for each mz, using the mass resolution (step).
-    The width of a peak in mz is expressed as step*mz.
-    It is converted to a number of samples by computing
-    the minimum number of points required to obtain
-    such a width.
-    """
-    widths = np.zeros_like(mzs, dtype=int)
-    diffs = np.diff(mzs)
-    min_range = np.amin(diffs)
-    median_range = np.median(diffs)
-    for i, mz in enumerate(mzs):
-        tol = step * mz
-        wlen = int(tol / min_range)
-        end = min(len(mzs), i+wlen)
-        current_diffs = np.cumsum(diffs[i:end])
-        ind = np.where(current_diffs < tol)[0]
-        if ind.size == 0:
-            widths[i] = int(tol / median_range)
-        else:
-            widths[i] = ind[-1]
-    return widths
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input .imzML", action="append", type=str, default=[])

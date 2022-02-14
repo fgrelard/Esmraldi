@@ -16,6 +16,7 @@ import bisect
 from treelib import Node, Tree
 from functools import reduce
 from esmraldi.utils import progress
+from esmraldi.peakdetectiontree import PeakDetectionTree
 
 def spectra_sum(spectra):
     """
@@ -57,6 +58,19 @@ def spectra_mean(spectra):
         spectra_mean = np.add(spectra_mean, y)
     spectra_mean /= len(spectra)
     return spectra_mean
+
+def spectra_mean_centroided(spectra):
+    imzml_mzs = np.hstack(spectra[:, 0])
+    I = np.hstack(spectra[:, 1])
+    mzs, unique_indices = np.unique(imzml_mzs, return_inverse=True)
+    indices_mzs = np.searchsorted(mzs, imzml_mzs)
+    mean_spectra = np.zeros(len(mzs))
+    N = spectra.shape[0]
+    for i, ind in enumerate(indices_mzs):
+        mean_spectra[ind] += I[i]
+
+    mean_spectra /= N
+    return mean_spectra
 
 def spectra_max(spectra):
     """
@@ -479,7 +493,7 @@ def index_groups(indices, step=1, is_ppm=False):
             current_step = step*value/1e6
         next = indices[index+1]
         L.append(value)
-        if abs(value - next) > step:
+        if abs(value - next) > current_step:
             groups.append(L)
             if index == len(indices) - 2:
                 groups.append([next])
@@ -672,206 +686,10 @@ def realign_reducing(out_spectra, spectra, step=0.0005, is_ppm=False):
             out_spectra[j, 1, i] = np.mean(subset_i[j])
         current_ind = next_ind
 
-def create_groups(mzs, intensities, indices):
-    new_mzs, new_intensities = [], []
-    first = indices[0]
-    for i in range(len(indices)-1):
-        second = indices[i+1]
-        if second < len(mzs)-1:
-            previous_second = mzs[second-1]
-            next_second = mzs[second+1]
-            current_second = mzs[second]
-            is_closest_previous = abs(previous_second-current_second) < abs(next_second-current_second)
-            if is_closest_previous:
-                second += 1
-        new_mzs.append(mzs[first:second])
-        new_intensities.append(intensities[first:second])
-        first = second
-    # print("NEW", mzs, indices, new_mzs, indices)
-    # import matplotlib.pyplot as plt
-    # plt.plot(np.hstack(new_mzs), np.hstack(new_intensities))
-    # plt.show()
-    groups = [np.array(new_mzs, dtype=object), np.array(new_intensities, dtype=object)]
-    return groups
-
-def local_minima(intensities):
-    return ((intensities <= np.roll(intensities, -1)) &
-            (intensities < np.roll(intensities, 1)))
-
-def create_group_hierarchy(mzs, mean_spectra):
-    group_hierarchy = []
-    m, I = mzs, mean_spectra
-    while len(I) > 1:
-        ind = signal.argrelextrema(I, np.greater)[0]
-        ind_min = np.where(local_minima(I))[0]
-        if I[0] > I[1]:
-            ind = np.insert(ind, 0, 0)
-            # ind_min = np.insert(ind_min, 0, 0)
-        if I[-1] > I[-2]:
-            ind = np.append(ind, len(m)-1)
-            # ind_min = np.append(ind_min, len(I))
-        if ind_min[0] != 0:
-            ind_min = np.insert(ind_min, 0, 0)
-        if ind_min[-1] == len(m) - 1:
-            ind_min[-1] = len(m)
-        else:
-            ind_min = np.append(ind_min, len(m))
-        # if len(I) <= 2:
-        #     ind_min = np.array([0, len(I)])
-        groups = create_groups(m, I, ind_min)
-        group_hierarchy.append(groups)
-        m, I = m[ind], I[ind]
-    return np.array(group_hierarchy, dtype=object)
-
-def create_tree(group_hierarchy):
-    print(np.array(group_hierarchy)[:, 0])
-    levels = len(group_hierarchy)
-    tree = Tree()
-    data = type('DataElement', (object,), {'mz':None, 'I':0})()
-    tree.create_node(None, identifier="-1,0", data=data)
-    cumsumlen = np.array([])
-    for level in range(levels-1):
-        G = group_hierarchy[levels-level-1]
-        current_group, I = G
-        arange = np.arange(len(current_group))
-        parents = np.searchsorted(cumsumlen, arange)
-        incr = 0
-        for i, group in enumerate(current_group):
-            for j, elem in enumerate(group):
-                data = type('DataElement', (object,), {'mz':elem, 'I': I[i][j]})()
-                tree.create_node(identifier=str(level)+","+str(incr), parent=str(level-1)+","+str(i), data=data)
-                incr += 1
-        cumsumlen = np.concatenate(([0], np.cumsum([len(g) for g in current_group])))
-    # tree.show(data_property="mz")
-    return tree
-
-def update_diffs(current_group):
-    current_diffs = []
-    for mz in current_group:
-        average_diff = np.mean(np.diff(mz))
-        current_diffs.append(average_diff)
-    return current_diffs
-
-def update_counts(current_group):
-    return np.concatenate(([int(0)], np.cumsum([len(g) for g in current_group])))
-
-def find_levels_threshold(group_hierarchy, threshold_tolerance):
-    levels = len(group_hierarchy)
-    min_diff = np.zeros(levels)
-    diffs = {}
-    for i, (current_group, _) in enumerate(group_hierarchy):
-        current_level = levels-i-1
-        current_diffs = update_diffs(current_group)
-        if min(current_diffs) <= threshold_tolerance:
-            print(min(current_diffs))
-            diffs[current_level] = current_diffs
-    if not diffs:
-        diffs[levels-1] = current_diffs
-    diffs = dict(sorted(diffs.items()))
-    print(diffs)
-    return diffs
-
-def counts_indices(group_hierarchy, diffs_threshold):
-    levels = len(group_hierarchy)
-    counts = {}
-    for k, v in diffs_threshold.items():
-        index = levels-1-k
-        group_index = group_hierarchy[index, 0]
-        counts[k] = update_counts(group_index)
-    return counts
-
-def not_indices(indices, length):
-    mask = np.ones(length, dtype=bool)
-    mask[indices] = False
-    full_indices = np.arange(length, dtype=int)
-    return full_indices[mask]
-
-def update_hierarchy(group_hierarchy, level, counts, indices_to_remove):
-    levels = len(group_hierarchy)
-    if len(indices_to_remove) == 0:
-        return group_hierarchy
-    new_hierarchy = group_hierarchy.copy()
-    next_indices = indices_to_remove.copy()
-    for i, (current_group, I) in enumerate(new_hierarchy[:0:-1]):
-        current_level = i
-        index_hierarchy = levels-1-current_level
-        if current_level >= level:
-            N = np.sum([len(g) for g in current_group])
-            keep_indices = not_indices(next_indices, N)
-            next_group, next_I = new_hierarchy[index_hierarchy-1]
-            new_mzs = next_group[keep_indices]
-            new_I = next_I[keep_indices]
-            new_hierarchy[index_hierarchy-1] = [new_mzs, new_I]
-            if current_level+1 in counts:
-                current_counts = counts[current_level+1]
-                next_indices = [list(range(current_counts[ind], current_counts[ind+1])) for ind in next_indices]
-                next_indices = [item for sublist in next_indices for item in sublist]
-    return new_hierarchy
-
-
-def find_peaks_group_hierarchy(group_hierarchy, diffs_threshold, threshold_tolerance):
-    new_hierarchy = group_hierarchy.copy()
-    levels = len(group_hierarchy)
-    peaks = []
-    for i in range(len(new_hierarchy[::-1])):
-        level  = levels-1-i
-        current_group, I = new_hierarchy[level]
-        counts = update_counts(current_group)
-        diffs = update_diffs(current_group)
-        to_remove = []
-        for j, elem in enumerate(diffs):
-            if elem <= threshold_tolerance:
-                peaks += current_group[j].tolist()
-                to_remove += list(range(counts[j], counts[j+1]))
-        new_hierarchy = update_hierarchy(new_hierarchy, i, counts, to_remove)
-    print("PEAKS", peaks)
-    return peaks
-
-
-def find_search_level(tree, threshold_tolerance):
-    level = tree.depth()
-    while level > 0:
-        leaves = tree.leaves()
-        diff = np.diff([leaf.data.mz for leaf in leaves])
-        average_diff = np.mean(diff)
-        if average_diff >= threshold_tolerance:
-            break
-        else:
-            for leaf in leaves:
-                print(leaf)
-                tree.remove_node(leaf.identifier)
-            level -= 1
-    return level
-
-def find_peaks_tree(tree, threshold_tolerance):
-    ignored_node = np.inf
-    peaks = []
-    I = []
-    search_level = find_search_level(tree, threshold_tolerance)
-    for node in tree.expand_tree(mode=Tree.DEPTH, sorting=False):
-        print(node)
-        if tree.level() != search_level - 1 or tree.level(node) == tree.depth():
-            continue
-        children = tree.children(node)
-        if len(children) == 0:
-            continue
-        mzs = [child.data.mz for child in children]
-        differences  = np.diff(mzs)
-        average_diff = np.mean(differences)
-        if average_diff <= threshold_tolerance:
-            peaks += mzs
-            I += [tree.get_node(node).data.I]
-            ignored_node = node
-    return np.array(peaks), np.array(I)
-
 
 def realign_tree(spectra, mzs, mean_spectra, step=0.0005, is_ppm=False):
-    print("Creating group hierarchy")
-    group_hierarchy = create_group_hierarchy(mzs, mean_spectra)
-    print("Min diff")
-    diff_threshold = find_levels_threshold(group_hierarchy, step)
-    print("Finding peaks")
-    peaks = find_peaks_group_hierarchy(group_hierarchy, diff_threshold, step)
+    peak_detection = PeakDetectionTree(mzs, mean_spectra, step)
+    peaks = peak_detection.extract_peaks()
     exit(0)
     print("Creating tree")
     tree = create_tree(group_hierarchy)
@@ -1060,16 +878,18 @@ def realign_mzs(spectra, mzs, reference="frequence", nb_occurrence=4, step=0.02,
     realigned_spectra = realign_wrt_peaks_mzs(spectra, aligned_mzs, mzs, indices_to_width)
     return np.array(realigned_spectra)
 
-def realign_generic(spectra, mzs, reference="frequence", nb_occurrence=4, step=0.02, is_ppm=False):
-    flat_full_mzs = np.hstack(mzs)
-    groups = index_groups(flat_full_mzs, step, is_ppm)
-    groups = [group for group in groups if len(group) > nb_occurrence]
-    if reference == "frequence":
-        aligned_mzs = peak_reference_indices_groups(groups)
-    else:
-        aligned_mzs = peak_reference_indices_median(groups)
-    realigned_spectra = realign_wrt_peaks_mzs_generic(spectra, aligned_mzs)
-    return np.array(realigned_spectra)
+def realign_generic(spectra, peaks):
+    n = len(peaks)
+    out_spectra = np.zeros(spectra.shape[:-1] + (n,))
+    print("Realigning")
+    for i, spectrum in enumerate(spectra):
+        mz, I = spectrum
+        indices = np.clip(np.searchsorted(peaks, mz), 0, n-1)
+        new_I = np.zeros(n)
+        new_I[indices] += I
+        out_spectra[i, 0] = peaks
+        out_spectra[i, 1] = new_I
+    return out_spectra
 
 
 def neighbours(index, n, spectra):

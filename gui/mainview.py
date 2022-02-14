@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QFrame, QStacked
 from gui.imagehandleview import Ui_ImageHandleView
 from gui.registration_selection import Ui_RegistrationSelection
 from gui.peak_picking import Ui_PeakPicking
+from gui.peak_picking_mean_spectrum import Ui_PeakPickingMeanSpectrum
 from gui.spectra_alignment import Ui_SpectraAlignment
 import qtawesome as qta
 
@@ -30,6 +31,7 @@ class Ui_MainView(object):
         self.qframe.setSizePolicy(sizePolicy)
 
         self.peakpickingview = self.initialize_frame(Ui_PeakPicking)
+        self.peakpickingmeanspectrumview = self.initialize_frame(Ui_PeakPickingMeanSpectrum)
         self.spectraalignmentview = self.initialize_frame(Ui_SpectraAlignment)
         self.registrationselectionview = self.initialize_frame(Ui_RegistrationSelection)
 
@@ -66,6 +68,7 @@ class Ui_MainView(object):
         self.menuProcess = QtWidgets.QMenu(self.menubar)
 
         self.actionPeakPicking = QtWidgets.QAction(MainView)
+        self.actionPeakPickingMeanSpectrum = QtWidgets.QAction(MainView)
         self.actionSpectraAlignment = QtWidgets.QAction(MainView)
 
         self.menuSegmentation = QtWidgets.QMenu(self.menubar)
@@ -152,6 +155,7 @@ class Ui_MainView(object):
         self.menuRegistration.setObjectName("menuRegistration")
         self.menuProcess.setObjectName("menuProcess")
         self.actionPeakPicking.setObjectName("actionPeakPicking")
+        self.actionPeakPickingMeanSpectrum.setObjectName("actionPeakPickingMeanSpectrum")
         self.actionSpectraAlignment.setObjectName("actionSpectraAlignment")
         self.menuSegmentation.setObjectName("menuSegmentation")
         self.menuAnalyze.setObjectName("menuAnalyze")
@@ -168,6 +172,7 @@ class Ui_MainView(object):
         self.menuFile.addAction(self.actionExit)
 
         self.menuProcess.addAction(self.actionPeakPicking)
+        self.menuProcess.addAction(self.actionPeakPickingMeanSpectrum)
         self.menuProcess.addAction(self.actionSpectraAlignment)
 
         self.menuRegistration.addAction(self.actionRegistrationSelection)
@@ -204,6 +209,15 @@ class Ui_MainView(object):
             self.qframe.layout().removeWidget(widget)
             widget.setVisible(False)
 
+    def display_label_peaks(self, view, n):
+        text = str(n) + " peaks found."
+        view.label_peaks.setEnabled(True)
+        view.label_peaks.setText(text)
+
+    def disable_label_peaks(self, view):
+        text = "No peaks found yet."
+        view.label_peaks.setText(text)
+        view.label_peaks.setEnabled(False)
 
     def show_run(self):
         self.label.show()
@@ -251,6 +265,7 @@ class Ui_MainView(object):
         self.actionExit.setText(_translate("MainView", "Exit"))
 
         self.actionPeakPicking.setText(_translate("MainView", "Peak picking"))
+        self.actionPeakPickingMeanSpectrum.setText(_translate("MainView", "Peak picking - Mean spectrum"))
         self.actionSpectraAlignment.setText(_translate("MainView", "Spectra alignment"))
 
         self.actionRegistrationSelection.setText(_translate("MainView", "Fiducials - Selection"))

@@ -108,7 +108,10 @@ class MSImageImplementation:
     @property
     def mean_spectra(self):
         if self._mean_spectra is None:
-            self._mean_spectra = sp.spectra_mean(self.spectra)
+            if len(self.spectra.shape) >= 3:
+                self._mean_spectra = sp.spectra_mean(self.spectra)
+            else:
+                self._mean_spectra = sp.spectra_mean_centroided(self.spectra)
         return self._mean_spectra
 
     @property
