@@ -24,7 +24,8 @@ import esmraldi.imzmlio as io
 import esmraldi.spectraprocessing as sp
 
 
-from esmraldi.msimage import MSImage, MSImageImplementation
+from esmraldi.msimage import MSImage
+from esmraldi.msimagefly import MSImageOnTheFly
 from esmraldi.sparsematrix import SparseMatrix
 from esmraldi.utils import msimage_for_visualization
 
@@ -45,8 +46,6 @@ class WorkerOpen(QObject):
         """
         Parameters
         ----------
-        ive: ImageViewExtended
-            the image view
         path: str
             path to the filename
         """
@@ -54,11 +53,42 @@ class WorkerOpen(QObject):
         self.path = path
         self.is_abort = False
 
+    def get_spectra(self, imzml):
+        spectra = []
+        coordinates = imzml.coordinates
+        length = len(coordinates)
+        for i, (x, y, z) in enumerate(coordinates):
+            if self.is_abort:
+                break
+            QApplication.processEvents()
+
+            mz, ints = imzml.getspectrum(i)
+            spectra.append([mz, ints])
+
+            progress = float(i/length*100)
+            self.signal_progress.emit(progress)
+
+        if spectra and not all(len(l[0]) == len(spectra[0][0]) for l in spectra):
+            return np.array(spectra, dtype=object)
+        return np.array(spectra)
+
     def open_imzML(self):
         imzml = io.open_imzml(self.path)
         mz, I = imzml.getspectrum(0)
-        spectra = io.get_full_spectra(imzml)
-        img_data = MSImage(spectra, image=None, coordinates=imzml.coordinates, tolerance=0.003)
+        spectra = self.get_spectra(imzml)
+
+        sum_len = sum(len(mz) for mz, I in spectra)
+        print(sum_len)
+        max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
+        max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
+
+        if max_x*max_y*sum_len > 1e10:
+            img_data = MSImageOnTheFly(spectra, coords=imzml.coordinates, mzs=None, tolerance=0.003)
+            img_data = msimage_for_visualization(img_data)
+            return img_data
+
+        full_spectra = io.get_full_spectra(imzml)
+        img_data = MSImage(full_spectra, image=None, coordinates=imzml.coordinates, tolerance=0.003)
         img_data = msimage_for_visualization(img_data)
         return img_data
 
@@ -75,7 +105,7 @@ class WorkerOpen(QObject):
         self.signal_start.emit()
         if self.path.lower().endswith(".imzml"):
             img_data = self.open_imzML()
-            img_data.compute_mean_spectra()
+            img_data.mean_spectra
         else:
             img_data = self.open_other_formats()
         self.signal_end.emit(img_data, self.path)
@@ -253,7 +283,7 @@ class MainController:
         worker.signal_progress.connect(self.update_progressbar)
 
         self.update_progressbar(0)
-        self.mainview.progressBar.setMaximum(0)
+        self.mainview.progressBar.setMaximum(100)
         self.sig_abort_workers.signal.connect(worker.abort)
         thread.started.connect(worker.work)
         thread.start()

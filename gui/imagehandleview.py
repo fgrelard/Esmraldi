@@ -30,8 +30,6 @@ class Ui_ImageHandleView(object):
         self.labeltol.setSizePolicy(sizePolicy)
         self.labeltol.setObjectName("labeltol")
         self.lineEditTol = QtWidgets.QLineEdit(self.gridLayoutWidget)
-
-
         self.labelCombo = QtWidgets.QLabel(self.gridLayoutWidget)
         self.horizontalSpace = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum)
         self.combobox = QtWidgets.QComboBox(self.gridLayoutWidget)

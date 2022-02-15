@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import qtawesome as qta
-from esmraldi.msimage import MSImage, MSImageImplementation
+from esmraldi.msimage import MSImage
 from esmraldi.sparsematrix import SparseMatrix
 import esmraldi.imzmlio as io
 from collections import OrderedDict

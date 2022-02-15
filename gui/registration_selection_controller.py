@@ -7,7 +7,7 @@ import SimpleITK as sitk
 
 import esmraldi.registration as reg
 import esmraldi.imzmlio as imzmlio
-from esmraldi.msimage import MSImage, MSImageImplementation
+from esmraldi.msimage import MSImage
 from esmraldi.utils import msimage_for_visualization
 from skimage.color import rgb2gray, rgba2rgb, gray2rgb
 

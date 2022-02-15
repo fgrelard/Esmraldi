@@ -114,12 +114,6 @@ def get_full_spectra(imzml):
     max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
     max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
     max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
-    mzs, ints = imzml.getspectrum(0)
-    number_points = len(ints)
-    zeros_ints = [0 for i in range(number_points)]
-
-    full_spectra = np.zeros((max_x*max_y*max_z, 2, number_points))
-    full_spectra[:,0,:] = mzs
 
     spectra = get_spectra(imzml)
     if len(spectra.shape) == 2:
@@ -127,6 +121,10 @@ def get_full_spectra(imzml):
         full_spectra_sparse = get_full_spectra_sparse(spectra, imsize)
         return full_spectra_sparse
 
+    mzs, ints = imzml.getspectrum(0)
+    number_points = len(ints)
+    full_spectra = np.zeros((max_x*max_y*max_z, 2, number_points))
+    full_spectra[:,0,:] = mzs
     for i, (x, y, z) in enumerate(imzml.coordinates):
         real_index = (x-1) + (y-1) * max_x + (z-1) * max_x * max_y
         mz, ints = imzml.getspectrum(i)
