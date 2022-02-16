@@ -53,8 +53,6 @@ class Ui_MainView(object):
         self.progressBar = QtWidgets.QProgressBar(self.gridLayoutWidget)
         self.stopButton = QtWidgets.QPushButton(self.gridLayoutWidget)
 
-        self.textEdit = QtWidgets.QTextEdit(self.gridLayoutWidget)
-
         self.menubar = QtWidgets.QMenuBar(MainView)
         self.menuFile = QtWidgets.QMenu(self.menubar)
         self.actionExit = QtWidgets.QAction(MainView)
@@ -101,12 +99,6 @@ class Ui_MainView(object):
 
         self.gridLayout.setContentsMargins(0, 0, 0, 0)
         self.gridLayout.setObjectName("gridLayout")
-
-
-        self.textEdit.setAcceptDrops(False)
-        self.textEdit.setAutoFillBackground(True)
-        self.textEdit.setReadOnly(True)
-        self.textEdit.setObjectName("textEdit")
 
         self.gridLayout.addWidget(self.qframe, 0, 0, 1, 1)
         self.progressBar.setEnabled(True)
@@ -244,13 +236,6 @@ class Ui_MainView(object):
         _translate = QtCore.QCoreApplication.translate
         MainView.setWindowTitle(_translate("MainView", "Esmraldi"))
 
-        self.textEdit.setHtml(_translate("MainView", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
-"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
-"p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'Sans Serif\'; font-size:10pt; font-weight:400; font-style:normal;\">\n"
-"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:600;\">Esmraldi</span></p></body></html>"))
-        self.textEdit.setStyleSheet("background: rgba(0,0,0,0%)")
-        self.textEdit.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
 
         self.menuFile.setTitle(_translate("MainView", "File"))
 

@@ -5,6 +5,8 @@ import SimpleITK as sitk
 import matplotlib.pyplot as plt
 import xlsxwriter
 
+from skimage.color import rgb2gray
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input .imzML")
 parser.add_argument("-m", "--mask", help="Mask image (any ITK format)")
@@ -17,21 +19,26 @@ output_name = args.output
 
 imzml = io.open_imzml(input_name)
 spectra = io.get_spectra(imzml)
-
+print(spectra.shape)
 coordinates = imzml.coordinates
 max_x = max(coordinates, key=lambda item:item[0])[0]
 max_y = max(coordinates, key=lambda item:item[1])[1]
 max_z = max(coordinates, key=lambda item:item[2])[2]
 shape = (max_x, max_y, max_z)
 
-images = io.get_images_from_spectra(spectra, shape)
-mask = sitk.GetArrayFromImage(sitk.ReadImage(mask_name)).T
+full_spectra = io.get_full_spectra(imzml)
+mzs = np.unique(np.hstack(spectra[:, 0]))
+mzs = mzs[mzs>0]
+print(len(mzs))
+images = io.get_images_from_spectra(full_spectra, shape)
+mask = sitk.GetArrayFromImage(sitk.ReadImage(mask_name))
+mask = rgb2gray(mask)
+mask = mask.T
+
 n = len(np.where(mask>0)[0])
 
 print(n)
-stats = np.zeros((images.shape[-1], n+3))
 indices = np.where(mask > 0)
-
 workbook = xlsxwriter.Workbook(output_name, {'strings_to_urls': False})
 header_format = workbook.add_format({'bold': True,
                                      'align': 'center',
@@ -43,15 +50,16 @@ left_format = workbook.add_format({'align': 'left'})
 
 worksheet = workbook.add_worksheet("Full data")
 worksheet_stats = workbook.add_worksheet("Stats")
-worksheet_stats.write_column(0, 0, ["Mean", "Stddev", "N"])
+worksheet_stats.write_column(0, 0, ["m/z", "Mean", "Stddev", "N"])
 
 worksheet.freeze_panes(1, 0)
 worksheet_stats.freeze_panes(1, 1)
 
 for i in range(images.shape[-1]):
-    mz = spectra[0, 0, i]
+    mz = mzs[i]
     current_image = images[..., i]
     sub_region = current_image[indices]
+
     mean_region = np.mean(sub_region)
     stddev_region = np.std(sub_region)
     values = sub_region.flatten()

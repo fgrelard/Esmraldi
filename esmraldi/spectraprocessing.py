@@ -59,10 +59,11 @@ def spectra_mean(spectra):
     spectra_mean /= len(spectra)
     return spectra_mean
 
-def spectra_mean_centroided(spectra):
+def spectra_mean_centroided(spectra, mzs=None):
     imzml_mzs = np.hstack(spectra[:, 0])
     I = np.hstack(spectra[:, 1])
-    mzs, unique_indices = np.unique(imzml_mzs, return_inverse=True)
+    if mzs is None:
+        mzs = np.unique(imzml_mzs)
     indices_mzs = np.searchsorted(mzs, imzml_mzs)
     mean_spectra = np.zeros(len(mzs))
     N = spectra.shape[0]
@@ -880,15 +881,17 @@ def realign_mzs(spectra, mzs, reference="frequence", nb_occurrence=4, step=0.02,
 
 def realign_generic(spectra, peaks):
     n = len(peaks)
-    out_spectra = np.zeros(spectra.shape[:-1] + (n,))
+    shape = (spectra.shape[0], 2)
+    out_spectra = np.zeros(shape, dtype=object)
     print("Realigning")
     for i, spectrum in enumerate(spectra):
         mz, I = spectrum
         indices = np.clip(np.searchsorted(peaks, mz), 0, n-1)
         new_I = np.zeros(n)
         new_I[indices] += I
-        out_spectra[i, 0] = peaks
-        out_spectra[i, 1] = new_I
+        indices_nonzero = np.where(new_I>0)[0]
+        out_spectra[i, 0] = peaks[indices_nonzero]
+        out_spectra[i, 1] = new_I[indices_nonzero]
     return out_spectra
 
 

@@ -51,6 +51,7 @@ class WorkerOpen(QObject):
         """
         super().__init__()
         self.path = path
+        self.npy_path = os.path.splitext(path)[0] + ".npy"
         self.is_abort = False
 
     def get_spectra(self, imzml):
@@ -78,12 +79,14 @@ class WorkerOpen(QObject):
         spectra = self.get_spectra(imzml)
 
         sum_len = sum(len(mz) for mz, I in spectra)
-        print(sum_len)
         max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
         max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
 
         if max_x*max_y*sum_len > 1e10:
-            img_data = MSImageOnTheFly(spectra, coords=imzml.coordinates, mzs=None, tolerance=0.003)
+            mean_spectra = None
+            if os.path.isfile(self.npy_path):
+                mean_spectra = np.load(self.npy_path)
+            img_data = MSImageOnTheFly(spectra, coords=imzml.coordinates, tolerance=0.003, mean_spectra=mean_spectra)
             img_data = msimage_for_visualization(img_data)
             return img_data
 
@@ -106,6 +109,8 @@ class WorkerOpen(QObject):
         if self.path.lower().endswith(".imzml"):
             img_data = self.open_imzML()
             img_data.mean_spectra
+            if not os.path.isfile(self.npy_path):
+                np.save(self.npy_path, img_data.mean_spectra)
         else:
             img_data = self.open_other_formats()
         self.signal_end.emit(img_data, self.path)
@@ -143,7 +148,6 @@ class WorkerSave(QObject):
 
     def save_other_formats(self):
         try:
-            print(self.image.shape)
             if self.image.shape[-1] <= 4:
                 sitk.WriteImage(sitk.GetImageFromArray(self.image, isVector=True), self.path)
             else:

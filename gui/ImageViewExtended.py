@@ -445,6 +445,7 @@ class ImageViewExtended(pg.ImageView):
             self.winPlot.autoRange()
 
         self.imageCopy = self.imageDisp.copy()
+        print("Shape",self.imageDisp.shape)
         self.pen_value = np.amax(self.imageDisp)+1
 
 

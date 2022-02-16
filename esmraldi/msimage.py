@@ -21,7 +21,6 @@ class MSImage:
         max_z = max(coordinates, key=lambda item:item[2])[2]
         return (max_x, max_y, max_z)
 
-
 def concatenate(arrays, axis=0):
     _self = arrays[0]
     concat = np.concatenate([a.image for a in arrays], axis=axis)

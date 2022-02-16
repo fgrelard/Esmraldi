@@ -6,8 +6,8 @@ from bisect import bisect_left, bisect_right
 
 class MSImageOnTheFly:
     def __init__(self, spectra, coords=None, mzs=None, tolerance=0, spectral_axis=-1, mean_spectra=None, peaks=None):
-        self._mean_spectra = None
-        self._peaks = None
+        self._mean_spectra = mean_spectra
+        self._peaks = peaks
 
         self.coords = coords
         self.spectra = spectra
@@ -50,7 +50,7 @@ class MSImageOnTheFly:
             if len(self.spectra.shape) >= 3:
                 self._mean_spectra = sp.spectra_mean(self.spectra)
             else:
-                self._mean_spectra = sp.spectra_mean_centroided(self.spectra)
+                self._mean_spectra = sp.spectra_mean_centroided(self.spectra, self.mzs)
         return self._mean_spectra
 
     @property
@@ -66,10 +66,11 @@ class MSImageOnTheFly:
         self._mean_spectra = value
 
     def max(self, axis, out):
-        return self.spectra.max(axis, out)
+        print(self.spectra[..., 1].max())
+        return max(self.spectra[..., 1].max(axis, out))
 
-    def min(self):
-        return self.spectra.min(axis, out)
+    def min(self, axis, out):
+        return min(self.spectra[..., 1].min(axis, out))
 
     def bisect_spectrum(self, mzs, mz_value, tol_left, tol_right):
         ix_l, ix_u = bisect_left(mzs, mz_value - tol_left), bisect_right(mzs, mz_value + tol_right) - 1

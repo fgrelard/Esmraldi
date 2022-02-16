@@ -126,7 +126,7 @@ class MSImageImplementation:
     def max(self, axis, out, keepdims):
         return self.image.max(axis, out, keepdims)
 
-    def min(self):
+    def min(self, axis, out, keepdims):
         return self.image.min(axis, out, keepdims)
 
     def __array_function__(self, func, types, args, kwargs):
