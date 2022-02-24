@@ -78,7 +78,10 @@ class WorkerOpen(QObject):
         mz, I = imzml.getspectrum(0)
         spectra = self.get_spectra(imzml)
 
-        sum_len = sum(len(mz) for mz, I in spectra)
+        if spectra.ndim == 2:
+            sum_len = sum(len(mz) for mz, I in spectra)
+        else:
+            sum_len = spectra.shape[-1]
         max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
         max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
 

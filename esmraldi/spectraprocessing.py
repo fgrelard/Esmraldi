@@ -886,12 +886,22 @@ def realign_generic(spectra, peaks):
     print("Realigning")
     for i, spectrum in enumerate(spectra):
         mz, I = spectrum
+
         indices = np.clip(np.searchsorted(peaks, mz), 0, n-1)
+        indices2 = np.clip(indices-1, 0, n-1)
+
+        diff1 = peaks[indices] - mz
+        diff2 = mz - peaks[indices2]
+
+        indices = np.where(diff1 <= diff2, indices, indices2)
+
         new_I = np.zeros(n)
-        new_I[indices] += I
+        np.add.at(new_I, indices, I)
+
         indices_nonzero = np.where(new_I>0)[0]
         out_spectra[i, 0] = peaks[indices_nonzero]
         out_spectra[i, 1] = new_I[indices_nonzero]
+
     return out_spectra
 
 
