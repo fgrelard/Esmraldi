@@ -879,7 +879,7 @@ def realign_mzs(spectra, mzs, reference="frequence", nb_occurrence=4, step=0.02,
     realigned_spectra = realign_wrt_peaks_mzs(spectra, aligned_mzs, mzs, indices_to_width)
     return np.array(realigned_spectra)
 
-def realign_generic(spectra, peaks):
+def realign_generic(spectra, peaks, step=np.inf, is_ppm=False):
     n = len(peaks)
     shape = (spectra.shape[0], 2)
     out_spectra = np.zeros(shape, dtype=object)
@@ -895,8 +895,16 @@ def realign_generic(spectra, peaks):
 
         indices = np.where(diff1 <= diff2, indices, indices2)
 
+        current_I = I
+        if step != np.inf:
+            current_step = step
+            if is_ppm:
+                current_step = step * mz / 1e6
+            indices_ppm = np.abs(peaks[indices] - mz) < current_step
+            current_I = current_I[indices_ppm]
+            indices = indices[indices_ppm]
         new_I = np.zeros(n)
-        np.add.at(new_I, indices, I)
+        np.add.at(new_I, indices, current_I)
 
         indices_nonzero = np.where(new_I>0)[0]
         out_spectra[i, 0] = peaks[indices_nonzero]

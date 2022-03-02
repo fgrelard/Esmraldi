@@ -52,6 +52,8 @@ n = len(np.where(mask>0)[0])
 
 print(n)
 indices = np.where(mask > 0)
+indices_ravel = np.ravel_multi_index(indices, (max_x, max_y), order='F')
+print(indices_ravel, indices_ravel.shape)
 workbook = xlsxwriter.Workbook(output_name, {'strings_to_urls': False})
 header_format = workbook.add_format({'bold': True,
                                      'align': 'center',
@@ -63,10 +65,6 @@ left_format = workbook.add_format({'align': 'left'})
 
 worksheet = workbook.add_worksheet("No norm")
 worksheet_stats = workbook.add_worksheet("Stats")
-worksheet_stats.write_column(0, 0, ["m/z", "Mean", "Stddev", "N"])
-
-worksheet.freeze_panes(1, 0)
-worksheet_stats.freeze_panes(1, 1)
 
 worksheets = []
 worksheets.append((worksheet, worksheet_stats))
@@ -76,14 +74,18 @@ normalization_images = []
 for norm in normalization:
     worksheet = workbook.add_worksheet(str(norm))
     worksheet_stats = workbook.add_worksheet("Stats " + str(norm))
-    worksheet_stats.write_column(0, 0, ["m/z", "Mean", "Stddev", "N"])
-
-    worksheet.freeze_panes(1, 0)
-    worksheet_stats.freeze_panes(1, 1)
     worksheets.append((worksheet, worksheet_stats))
 
     norm_img = get_norm_image(images, norm, mzs)
     normalization_images.append(norm_img)
+
+for worksheet, worksheet_stats in worksheets:
+    worksheet.write(0, 0, "Pixel number", header_format)
+    worksheet.write_column(1, 0, indices_ravel)
+    worksheet_stats.write_column(0, 0, ["m/z", "Mean", "Stddev", "N"])
+
+    worksheet.freeze_panes(1, 1)
+    worksheet_stats.freeze_panes(1, 1)
 
 closest_mz_indices = [np.abs(mzs - norm).argmin() for norm in normalization[:-1:]]
 print(closest_mz_indices)
@@ -95,14 +97,6 @@ for i in range(images.shape[-1]):
     for j, (worksheet, worksheet_stats) in enumerate(worksheets):
         if j > 0:
             current_image = process_image(current_image, normalization_images[j-1])
-            if j-1 < len(closest_mz_indices) and i == closest_mz_indices[j-1]:
-                print(mz, normalization[j-1])
-                plt.imshow(current_image)
-                plt.show()
-                current_image_copy = np.zeros_like(current_image)
-                current_image_copy[indices] = 1000
-                plt.imshow(current_image_copy)
-                plt.show()
         sub_region = current_image[indices]
 
         current_values = sub_region.flatten()
@@ -110,8 +104,8 @@ for i in range(images.shape[-1]):
         mean = np.mean(sub_region)
         stddev = np.std(sub_region)
 
-        worksheet.write(0, i, mz, header_format)
-        worksheet.write_column(1, i, current_values)
+        worksheet.write(0, i+1, mz, header_format)
+        worksheet.write_column(1, i+1, current_values)
 
         worksheet_stats.write(0, i+1, mz, header_format)
         worksheet_stats.write_column(1, i+1, [mean, stddev, n])

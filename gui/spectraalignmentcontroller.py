@@ -13,20 +13,20 @@ class WorkerSpectraAlignment(QtCore.QObject):
     signal_end = QtCore.pyqtSignal(object)
     signal_progress = QtCore.pyqtSignal(int)
 
-    def __init__(self, msimage, step, number, is_ppm):
+    def __init__(self, msimage, step, is_ppm):
         super().__init__()
+        print(step, is_ppm)
         self.msimage = msimage
         self.step = step
-        self.number = number
         self.is_ppm = is_ppm
 
     @QtCore.pyqtSlot()
     def work(self):
         image_size = self.msimage.shape[1:][::-1]
         if self.msimage.peaks is not None:
-            realigned_spectra = sp.realign_generic(self.msimage.spectra, self.msimage.peaks)
+            realigned_spectra = sp.realign_generic(self.msimage.spectra, self.msimage.peaks, self.step, self.is_ppm)
         else:
-            realigned_spectra = sp.realign_generic(self.msimage.spectra, self.msimage.spectra[:, 0])
+            realigned_spectra = sp.realign_generic(self.msimage.spectra, self.msimage.spectra[:, 0], self.step, self.is_ppm)
 
         print("End realign")
         full_spectra_sparse = imzmlio.get_full_spectra_sparse(realigned_spectra, np.prod(image_size))
@@ -50,8 +50,6 @@ class SpectraAlignmentController:
         self.thread = None
 
         self.view.pushButton = button_tooltip_on_hover(self.view.pushButton)
-        self.view.pushButton_2 = button_tooltip_on_hover(self.view.pushButton_2)
-
         self.view.buttonBox.accepted.connect(self.spectra_alignment)
         self.view.buttonBox.rejected.connect(self.end)
 
@@ -64,8 +62,7 @@ class SpectraAlignmentController:
             is_ppm = True
         image = self.imageview.image
         step = float(self.view.lineEdit_step.text())
-        number = int(self.view.lineEdit_number.text())
-        self.worker = WorkerSpectraAlignment(image, step, number, is_ppm)
+        self.worker = WorkerSpectraAlignment(image, step, is_ppm)
         self.thread = QtCore.QThread()
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.work)
