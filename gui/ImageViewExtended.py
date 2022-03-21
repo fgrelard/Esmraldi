@@ -751,7 +751,10 @@ class ImageViewExtended(pg.ImageView):
             linear = np.unique(linear)
             ind = tuple([linear, Ellipsis])
             spectra = self.imageDisp.spectra[ind]
-            mean_spectra = sp.spectra_mean(spectra)
+            if len(spectra.shape) >= 3:
+                mean_spectra = sp.spectra_mean(spectra)
+            else:
+                mean_spectra = sp.spectra_mean_centroided(spectra, self.image.mzs)
         else:
             mean_spectra = self.roi_to_mean_spectra(self.imageDisp)
 
