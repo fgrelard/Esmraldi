@@ -15,7 +15,6 @@ class MSImageOnTheFly:
 
         if mzs is None:
             all_mzs = spectra[:, 0, ...]
-            print(all_mzs.shape)
             self.mzs = np.unique(np.hstack(all_mzs).flatten())
         else:
             self.mzs = mzs
@@ -66,11 +65,10 @@ class MSImageOnTheFly:
         self._mean_spectra = value
 
     def max(self, axis, out):
-        print(self.spectra[..., 1].max())
-        return max(self.spectra[..., 1].max(axis, out))
+        return np.hstack(self.spectra[..., 1]).flatten().max()
 
     def min(self, axis, out):
-        return min(self.spectra[..., 1].min(axis, out))
+        return np.hstack(self.spectra[..., 1]).flatten().min()
 
     def bisect_spectrum(self, mzs, mz_value, tol_left, tol_right):
         ix_l, ix_u = bisect_left(mzs, mz_value - tol_left), bisect_right(mzs, mz_value + tol_right) - 1

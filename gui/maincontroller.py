@@ -85,7 +85,7 @@ class WorkerOpen(QObject):
         max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
         max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
 
-        if max_x*max_y*sum_len > 1e10:
+        if max_x*max_y*sum_len > 1e4:
             mean_spectra = None
             if os.path.isfile(self.npy_path):
                 mean_spectra = np.load(self.npy_path)

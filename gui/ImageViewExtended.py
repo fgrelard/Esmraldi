@@ -445,7 +445,6 @@ class ImageViewExtended(pg.ImageView):
             self.winPlot.autoRange()
 
         self.imageCopy = self.imageDisp.copy()
-        print("Shape",self.imageDisp.shape)
         self.pen_value = np.amax(self.imageDisp)+1
 
 
@@ -645,7 +644,6 @@ class ImageViewExtended(pg.ImageView):
         return coords_roi
 
     def roi_to_mean_spectra(self, image):
-        print(image.shape)
         axes = tuple([i for i in range(image.ndim)  if i != image.spectral_axis])
         if self.imageItem.axisOrder == "col-major":
             axes = axes[::-1]
