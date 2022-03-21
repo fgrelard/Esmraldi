@@ -34,6 +34,7 @@ from gui.peak_picking_controller import PeakPickingController
 from gui.peak_picking_mean_spectrum_controller import PeakPickingMeanSpectrumController
 from gui.spectraalignmentcontroller import SpectraAlignmentController
 from gui.registration_selection_controller import RegistrationSelectionController
+from gui.extract_channel_controller import ExtractChannelController
 from gui.signal import Signal
 
 class WorkerOpen(QObject):
@@ -250,6 +251,12 @@ class MainController:
         self.registrationselectioncontroller.trigger_compute.signal.connect(self.compute_registration_selection)
         self.registrationselectioncontroller.trigger_end.signal.connect(self.mainview.clear_frame)
 
+
+        self.mainview.actionExtractChannel.triggered.connect(lambda event: self.mainview.set_frame(self.mainview.extractchannelview))
+        self.extractchannelcontroller = ExtractChannelController(self.mainview.extractchannelview, imageview)
+        self.extractchannelcontroller.trigger_compute.signal.connect(self.extract_channels)
+        self.extractchannelcontroller.trigger_end.signal.connect(self.mainview.clear_frame)
+
         #shortcuts
         shortcut_link = QShortcut(QKeySequence('Ctrl+L'), self.mainview.parent)
         shortcut_link.activated.connect(self.link_views)
@@ -334,6 +341,9 @@ class MainController:
 
 
     def end_open(self, image, filename, first=None):
+        """
+        First: boolean whether the image is to be displayed in the first pane or the second.
+        """
         self.mainview.hide_run()
         if first == True or first is None:
             self.imagehandlecontroller.image_to_view(image, filename)
@@ -447,6 +457,20 @@ class MainController:
         self.sig_abort_workers.signal.connect(self.registrationselectioncontroller.worker.abort)
         self.registrationselectioncontroller.thread.start()
         self.threads.append((self.registrationselectioncontroller.thread, self.registrationselectioncontroller.worker))
+
+    def extract_channels(self):
+        def end_computation(image, number):
+            name = self.imagehandlecontroller.current_name
+            new_name = "channel_" + str(number) + "_" + name
+            if image is not None:
+                self.end_open(image, new_name, first=True)
+            self.mainview.hide_run()
+        self.mainview.show_run()
+        self.extractchannelcontroller.worker.signal_end.connect(end_computation)
+        self.sig_abort_workers.signal.connect(self.extractchannelcontroller.worker.abort)
+        self.extractchannelcontroller.thread.start()
+        self.threads.append((self.extractchannelcontroller.thread, self.extractchannelcontroller.worker))
+
 
     def link_views(self):
         self.is_linked = not self.is_linked

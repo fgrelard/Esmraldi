@@ -13,6 +13,8 @@ from gui.registration_selection import Ui_RegistrationSelection
 from gui.peak_picking import Ui_PeakPicking
 from gui.peak_picking_mean_spectrum import Ui_PeakPickingMeanSpectrum
 from gui.spectra_alignment import Ui_SpectraAlignment
+from gui.thresholding import Ui_Thresholding
+from gui.extract_channels import Ui_ExtractChannels
 import qtawesome as qta
 
 class Ui_MainView(object):
@@ -34,6 +36,8 @@ class Ui_MainView(object):
         self.peakpickingmeanspectrumview = self.initialize_frame(Ui_PeakPickingMeanSpectrum)
         self.spectraalignmentview = self.initialize_frame(Ui_SpectraAlignment)
         self.registrationselectionview = self.initialize_frame(Ui_RegistrationSelection)
+        self.extractchannelview = self.initialize_frame(Ui_ExtractChannels)
+        self.thresholdingview = self.initialize_frame(Ui_Thresholding)
 
         self.imagehandleview = Ui_ImageHandleView()
         self.imagehandleview.setupUi(self.gridLayoutWidget)
@@ -70,6 +74,8 @@ class Ui_MainView(object):
         self.actionSpectraAlignment = QtWidgets.QAction(MainView)
 
         self.menuSegmentation = QtWidgets.QMenu(self.menubar)
+        self.actionExtractChannel = QtWidgets.QAction(MainView)
+        self.actionThresholding = QtWidgets.QAction(MainView)
 
         self.menuRegistration = QtWidgets.QMenu(self.menubar)
 
@@ -150,6 +156,8 @@ class Ui_MainView(object):
         self.actionPeakPickingMeanSpectrum.setObjectName("actionPeakPickingMeanSpectrum")
         self.actionSpectraAlignment.setObjectName("actionSpectraAlignment")
         self.menuSegmentation.setObjectName("menuSegmentation")
+        self.actionExtractChannel.setObjectName("actionExtractChannel")
+        self.actionThresholding.setObjectName("actionThresholding")
         self.menuAnalyze.setObjectName("menuAnalyze")
         self.menuHelp.setObjectName("menuHelp")
         MainView.setMenuBar(self.menubar)
@@ -169,6 +177,9 @@ class Ui_MainView(object):
 
         self.menuRegistration.addAction(self.actionRegistrationSelection)
         self.menuRegistration.addAction(self.actionRegistrationCoordinates)
+
+        self.menuSegmentation.addAction(self.actionExtractChannel)
+        self.menuSegmentation.addAction(self.actionThresholding)
 
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuProcess.menuAction())
@@ -255,3 +266,6 @@ class Ui_MainView(object):
 
         self.actionRegistrationSelection.setText(_translate("MainView", "Fiducials - Selection"))
         self.actionRegistrationCoordinates.setText(_translate("MainView", "Fiducials - Coordinates"))
+
+        self.actionExtractChannel.setText(_translate("MainView", "Extract channels"))
+        self.actionThresholding.setText(_translate("MainView", "Thresholding"))
