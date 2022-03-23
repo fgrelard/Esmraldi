@@ -35,6 +35,7 @@ from gui.peak_picking_mean_spectrum_controller import PeakPickingMeanSpectrumCon
 from gui.spectraalignmentcontroller import SpectraAlignmentController
 from gui.registration_selection_controller import RegistrationSelectionController
 from gui.extract_channel_controller import ExtractChannelController
+from gui.thresholding_controller import ThresholdingController
 from gui.signal import Signal
 
 class WorkerOpen(QObject):
@@ -257,6 +258,13 @@ class MainController:
         self.extractchannelcontroller.trigger_compute.signal.connect(self.extract_channels)
         self.extractchannelcontroller.trigger_end.signal.connect(self.mainview.clear_frame)
 
+        self.mainview.actionThresholding.triggered.connect(lambda event: self.mainview.set_frame(self.mainview.thresholdingview))
+        self.thresholdingcontroller = ThresholdingController(self.mainview.thresholdingview, self.mainview.imagehandleview, self.mainview.rangeSliderThreshold)
+        self.thresholdingcontroller.trigger_compute.signal.connect(self.manual_thresholding)
+        self.thresholdingcontroller.trigger_end.signal.connect(self.mainview.clear_frame)
+
+        self.imagehandlecontroller.imageview.imageChangedSignal.signal.connect(self.update_threshold_values)
+
         #shortcuts
         shortcut_link = QShortcut(QKeySequence('Ctrl+L'), self.mainview.parent)
         shortcut_link.activated.connect(self.link_views)
@@ -378,6 +386,14 @@ class MainController:
         combobox2.blockSignals(False)
 
 
+    def update_threshold_values(self):
+        current_image = self.mainview.imagehandleview.imageview.image
+        min_value, max_value = current_image.min(), current_image.max()
+        self.mainview.rangeSliderThreshold.setMinimum(min_value)
+        self.mainview.rangeSliderThreshold.setMaximum(max_value)
+        self.mainview.rangeSliderThreshold.setValue((min_value, max_value))
+
+
     def peak_picking(self):
         def end_computation(peaks):
             imageview = self.mainview.imagehandleview.imageview
@@ -459,6 +475,19 @@ class MainController:
         self.threads.append((self.registrationselectioncontroller.thread, self.registrationselectioncontroller.worker))
 
     def extract_channels(self):
+        def end_computation(image, number):
+            name = self.imagehandlecontroller.current_name
+            new_name = "channel_" + str(number) + "_" + name
+            if image is not None:
+                self.end_open(image, new_name, first=True)
+            self.mainview.hide_run()
+        self.mainview.show_run()
+        self.extractchannelcontroller.worker.signal_end.connect(end_computation)
+        self.sig_abort_workers.signal.connect(self.extractchannelcontroller.worker.abort)
+        self.extractchannelcontroller.thread.start()
+        self.threads.append((self.extractchannelcontroller.thread, self.extractchannelcontroller.worker))
+
+    def manual_thresholding(self):
         def end_computation(image, number):
             name = self.imagehandlecontroller.current_name
             new_name = "channel_" + str(number) + "_" + name

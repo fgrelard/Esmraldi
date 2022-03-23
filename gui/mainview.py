@@ -17,6 +17,9 @@ from gui.thresholding import Ui_Thresholding
 from gui.extract_channels import Ui_ExtractChannels
 import qtawesome as qta
 
+from qtrangeslider import QLabeledDoubleRangeSlider
+
+
 class Ui_MainView(object):
     def setupUi(self, MainView):
         MainView.setObjectName("MainView")
@@ -38,6 +41,15 @@ class Ui_MainView(object):
         self.registrationselectionview = self.initialize_frame(Ui_RegistrationSelection)
         self.extractchannelview = self.initialize_frame(Ui_ExtractChannels)
         self.thresholdingview = self.initialize_frame(Ui_Thresholding)
+
+        self.rangeSliderThreshold = QLabeledDoubleRangeSlider(QtCore.Qt.Horizontal)
+        self.rangeSliderThreshold.setMinimum(0)
+        self.rangeSliderThreshold.setMaximum(100)
+        self.rangeSliderThreshold.setEdgeLabelMode(QLabeledDoubleRangeSlider.EdgeLabelMode.LabelIsValue)
+        self.rangeSliderThreshold.setValue((0, 100))
+        self.thresholdingview.gridLayout.addWidget(self.rangeSliderThreshold, 2, 0, 1, 1)
+
+
 
         self.imagehandleview = Ui_ImageHandleView()
         self.imagehandleview.setupUi(self.gridLayoutWidget)

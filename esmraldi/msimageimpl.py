@@ -123,10 +123,10 @@ class MSImageImplementation:
     def __ne__(self, other):
         return self.image != other
 
-    def max(self, axis, out, keepdims):
+    def max(self, axis=None, out=None, keepdims=False):
         return self.image.max(axis, out, keepdims)
 
-    def min(self, axis, out, keepdims):
+    def min(self, axis=None, out=None, keepdims=False):
         return self.image.min(axis, out, keepdims)
 
     def __array_function__(self, func, types, args, kwargs):

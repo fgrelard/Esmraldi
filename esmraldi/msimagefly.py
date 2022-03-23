@@ -64,11 +64,11 @@ class MSImageOnTheFly:
     def mean_spectra(self, value):
         self._mean_spectra = value
 
-    def max(self, axis, out):
-        return np.hstack(self.spectra[..., 1]).flatten().max()
+    def max(self, axis=None, out=None):
+        return np.hstack(self.spectra[:, 1]).flatten().max()
 
-    def min(self, axis, out):
-        return np.hstack(self.spectra[..., 1]).flatten().min()
+    def min(self, axis=None, out=None):
+        return np.hstack(self.spectra[:, 1]).flatten().min()
 
     def bisect_spectrum(self, mzs, mz_value, tol_left, tol_right):
         ix_l, ix_u = bisect_left(mzs, mz_value - tol_left), bisect_right(mzs, mz_value + tol_right) - 1

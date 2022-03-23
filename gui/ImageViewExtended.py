@@ -11,6 +11,7 @@ import esmraldi.spectraprocessing as sp
 from gui.viewboxdirac import ViewBoxDirac
 from gui.scatterplotitemdirac import ScatterPlotItemDirac
 from gui.crosshair import Crosshair, CrosshairDrawing
+from gui.signal import Signal
 
 #Allows to use QThreads without freezing
 #the main application
@@ -31,11 +32,8 @@ from pyqtgraph.graphicsItems.ROI import ROI, CircleROI, PolyLineROI
 from pyqtgraph.graphicsItems.GraphicsObject import GraphicsObject
 from pyqtgraph.dockarea import DockArea, Dock
 
-from qtrangeslider import QLabeledRangeSlider
+from superqt import QLabeledRangeSlider
 from collections import ChainMap
-
-
-
 
 def PaintingROI(parent, roi, brush, **kwargs):
     class WrapROI(parent):
@@ -198,6 +196,8 @@ class ImageViewExtended(pg.ImageView):
         self.isNewImage = False
         self.isNewNorm = False
         self.normDivideRadioChecked = False
+
+        self.imageChangedSignal = Signal()
 
         self.ui.histogram.setHistogramRange = lambda mn, mx, padding=0.1: setHistogramRange(self.ui.histogram, mn, mx, padding)
 
@@ -429,6 +429,9 @@ class ImageViewExtended(pg.ImageView):
 
         self.isNewImage = True
         super().setImage(img, autoRange, autoLevels, levels, axes, xvals, pos, scale, transform, autoHistogramRange)
+
+        self.imageChangedSignal.signal.emit()
+
         #Changes wheel event
         self.ui.roiPlot.setMouseEnabled(True, True)
         self.ui.roiPlot.wheelEvent = self.roi_scroll_bar
@@ -759,7 +762,6 @@ class ImageViewExtended(pg.ImageView):
             mean_spectra = self.roi_to_mean_spectra(self.imageDisp)
 
         scatter = ScatterPlotItemDirac(pen="w")
-        # spots = [{'pos': , 'data': 1} for i in range(len(self.tVals))]
         scatter.setDiracs([self.tVals, mean_spectra])
         plot.addItem(scatter)
         dock.addWidget(plot)
