@@ -279,7 +279,7 @@ class MainController:
 
         # self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/synthetic.imzML")
 
-        self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/random.imzML")
+        self.open_file("/mnt/d/CBMN/random.imzML")
 
         self.mainview.set_frame(self.mainview.peakpickingview)
 
@@ -487,11 +487,16 @@ class MainController:
         self.extractchannelcontroller.thread.start()
         self.threads.append((self.extractchannelcontroller.thread, self.extractchannelcontroller.worker))
 
-    def manual_thresholding(self, image):
-        name = self.imagehandlecontroller.current_name
-        new_name = "threshold_" + name
-        if image is not None:
-            self.end_open(image, new_name, first=True)
+    def manual_thresholding(self):
+        def end_computation(image):
+            name = self.imagehandlecontroller.current_name
+            new_name = "threshold_" + name
+            if image is not None:
+                self.end_open(image, new_name, first=True)
+        self.thresholdingcontroller.worker.signal_end.connect(end_computation)
+        self.sig_abort_workers.signal.connect(self.thresholdingcontroller.worker.abort)
+        self.thresholdingcontroller.thread.start()
+        self.threads.append((self.thresholdingcontroller.thread, self.thresholdingcontroller.worker))
 
     def link_views(self):
         self.is_linked = not self.is_linked
