@@ -259,7 +259,7 @@ class MainController:
         self.extractchannelcontroller.trigger_end.signal.connect(self.mainview.clear_frame)
 
         self.mainview.actionThresholding.triggered.connect(lambda event: self.mainview.set_frame(self.mainview.thresholdingview))
-        self.thresholdingcontroller = ThresholdingController(self.mainview.thresholdingview, self.mainview.imagehandleview, self.mainview.rangeSliderThreshold)
+        self.thresholdingcontroller = ThresholdingController(self.mainview.thresholdingview, self.imagehandlecontroller.imageview, self.mainview.rangeSliderThreshold)
         self.thresholdingcontroller.trigger_compute.signal.connect(self.manual_thresholding)
         self.thresholdingcontroller.trigger_end.signal.connect(self.mainview.clear_frame)
 
@@ -487,19 +487,11 @@ class MainController:
         self.extractchannelcontroller.thread.start()
         self.threads.append((self.extractchannelcontroller.thread, self.extractchannelcontroller.worker))
 
-    def manual_thresholding(self):
-        def end_computation(image, number):
-            name = self.imagehandlecontroller.current_name
-            new_name = "channel_" + str(number) + "_" + name
-            if image is not None:
-                self.end_open(image, new_name, first=True)
-            self.mainview.hide_run()
-        self.mainview.show_run()
-        self.extractchannelcontroller.worker.signal_end.connect(end_computation)
-        self.sig_abort_workers.signal.connect(self.extractchannelcontroller.worker.abort)
-        self.extractchannelcontroller.thread.start()
-        self.threads.append((self.extractchannelcontroller.thread, self.extractchannelcontroller.worker))
-
+    def manual_thresholding(self, image):
+        name = self.imagehandlecontroller.current_name
+        new_name = "threshold_" + name
+        if image is not None:
+            self.end_open(image, new_name, first=True)
 
     def link_views(self):
         self.is_linked = not self.is_linked

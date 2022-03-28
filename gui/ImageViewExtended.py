@@ -179,6 +179,7 @@ class ImageViewExtended(pg.ImageView):
 
         self.mask_roi = None
         self.coords_roi = None
+        self.coords_threshold = None
 
         self.plot = None
         self.displayed_spectra = None
@@ -325,7 +326,7 @@ class ImageViewExtended(pg.ImageView):
 
     def render(self):
         pg.ImageItem.render(self.imageItem)
-        if not self.ui.roiBtn.isChecked() or self.coords_roi is None or self.imageItem is None or self.imageItem.qimage is None:
+        if self.imageItem is None or self.imageItem.qimage is None:
             return
 
         pixel_value = QtGui.qRgb(255, 0, 0)
@@ -334,9 +335,16 @@ class ImageViewExtended(pg.ImageView):
         if self.imageItem.qimage.format() < 4:
             self.imageItem.qimage = self.imageItem.qimage.convertToFormat(QtGui.QImage.Format_RGBA8888)
 
+        if self.ui.roiBtn.isChecked() and self.coords_roi is not None:
+            for x, y in self.coords_roi.T:
+                self.imageItem.qimage.setPixel(x, y, pixel_value)
 
-        for x, y in self.coords_roi.T:
-            self.imageItem.qimage.setPixel(x, y, pixel_value)
+        npoints = self.coords_threshold.shape[-1]
+        th_npoints = np.prod(self.imageItem.image.shape)
+        if npoints != th_npoints and self.coords_threshold is not None:
+            for x,y in self.coords_threshold.T:
+                self.imageItem.qimage.setPixel(x, y, pixel_value)
+
         self.imageItem._renderRequired = False
         self.imageItem._unrenderable = False
 
@@ -635,11 +643,11 @@ class ImageViewExtended(pg.ImageView):
         self.roiChanged()
 
 
-    def roi_to_coordinates(self, image):
-        min_t, max_t = self.intensity_value_slider(image)
-        topLeft = self.roi.boundingRect().topLeft()
-        coords_roi = np.argwhere((self.mask_roi > 0) & (image >= min_t) & (image <= max_t))
-        coords_roi = np.around(coords_roi + np.array(self.roi.pos()) + np.array([topLeft.x(), topLeft.y()])).astype(int)
+    def roi_to_coordinates(self, image, min_t, max_t, offset=np.array([0, 0]), mask_roi=None):
+        if mask_roi is None:
+            mask_roi = np.ones_like(image)
+        coords_roi = np.argwhere((mask_roi > 0) & (image >= min_t) & (image <= max_t))
+        coords_roi = np.around(coords_roi + offset).astype(int)
         condition = (coords_roi >= (0,0)) & (coords_roi < self.imageItem.image.T.shape)
         coords_roi = coords_roi[condition.all(axis=-1)]
         coords_roi = coords_roi.T
@@ -658,7 +666,9 @@ class ImageViewExtended(pg.ImageView):
         for i in range(data.shape[image.spectral_axis]):
             index = [i if j == image.spectral_axis else slice(None) for j in range(image.ndim)]
             im2D = data[tuple(index)].T
-            coords_2D = self.roi_to_coordinates(im2D)
+            min_t, max_t = self.intensity_value_slider(im2D)
+            offset = np.array(self.roi.pos()) + np.array([self.roi.boundingRect().topLeft().x(), self.roi.boundingRect().topLeft().y()])
+            coords_2D = self.roi_to_coordinates(im2D, min_t, max_t, offset, self.mask_roi)
             linear = np.ravel_multi_index(coords_2D, self.imageItem.image.T.shape)
             linear = np.unique(linear)
             index = [linear, Ellipsis]
@@ -702,7 +712,9 @@ class ImageViewExtended(pg.ImageView):
         image_roi = data.T
         self.mask_roi = self.roi.renderShapeMask(image_roi.shape[axes[0]], image_roi.shape[axes[1]])
 
-        self.coords_roi = self.roi_to_coordinates(image_roi)
+        min_t, max_t = self.intensity_value_slider(image_roi)
+        offset = np.array(self.roi.pos()) + np.array([self.roi.boundingRect().topLeft().x(), self.roi.boundingRect().topLeft().y()])
+        self.coords_roi = self.roi_to_coordinates(image_roi, min_t, max_t, offset, self.mask_roi)
         image_roi = current_image[tuple(self.coords_roi)]
 
         if not image_roi.size:

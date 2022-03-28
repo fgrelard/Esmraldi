@@ -10,4 +10,10 @@ class Signal(QObject):
     signal: pyqtSignal
         the signal
     """
-    signal = pyqtSignal()
+    def __new__(cls, signal_type=None):
+        print("hello", signal_type)
+        if signal_type is None:
+            cls.signal = pyqtSignal()
+        else:
+            cls.signal = pyqtSignal(signal_type)
+        return cls
