@@ -193,6 +193,10 @@ class ImageViewExtended(pg.ImageView):
         self.imageItem.drawAt = self.drawAt
         self.imageItem.render = self.render
 
+        self.crosshair_move = Crosshair("")
+        self.crosshair_move.setPenVisible(False)
+        self.imageItem.getViewBox().addItem(self.crosshair_move)
+
         self.levelMin, self.levelMax = None, None
         self.isNewImage = False
         self.isNewNorm = False
@@ -221,7 +225,20 @@ class ImageViewExtended(pg.ImageView):
 
         self.build_roi_group()
 
+
+        self.is_focused = False
+        self.enterEvent = lambda e: self.setFocus(True)
+        self.leaveEvent = lambda e: self.setFocus(False)
+
         self.winPlot.setVisible(False)
+
+    def setFocus(self, focus):
+        self.is_focused = focus
+        if self.is_focused:
+            self.crosshair_move.setPenVisible(False)
+            self.scene.update()
+        else:
+            self.crosshair_move.setPenVisible(True)
 
     def build_roi_group(self):
         self.ui.roiButtonGroup = QtWidgets.QButtonGroup(self.ui.normGroup)
@@ -384,7 +401,6 @@ class ImageViewExtended(pg.ImageView):
             cross = self.crossdrawer.get_drawable_crosshair(x, y)
             self.imageItem.getViewBox().addItem(cross)
 
-
     def drawAt(self, pos, ev=None):
         order = pg.getConfigOption("imageAxisOrder")
         if order == 'row-major':
@@ -479,6 +495,8 @@ class ImageViewExtended(pg.ImageView):
         new_index = self.currentIndex + 1 if ev.angleDelta().y() < 0 else self.currentIndex - 1
         self.setCurrentIndex(new_index)
 
+    def update_crosshair_move(self, pos):
+         self.crosshair_move.setPos(pos)
 
     def on_hover_image(self, evt):
         """
@@ -490,6 +508,7 @@ class ImageViewExtended(pg.ImageView):
         evt: QMouseEvent
             the mouse event
         """
+
         pos = evt
         mousePoint = self.view.mapSceneToView(pos)
         self.mouse_x = int(mousePoint.x())
@@ -498,6 +517,8 @@ class ImageViewExtended(pg.ImageView):
         if image is None:
             return
         self.update_label()
+        if not self.is_focused:
+            self.update_crosshair_move(mousePoint)
 
     def evalKeyState(self):
         if len(self.keysPressed) == 1:

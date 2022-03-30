@@ -15,6 +15,15 @@ class Crosshair(QtGui.QGraphicsItem):
         p.drawLine(0, -10, 0, 10)
         p.drawText(3, 15, self.text)
 
+    def setPen(self, pen=pg.mkPen('r')):
+        self.pen = pen
+
+    def setPenVisible(self, visible):
+        if visible:
+            self.setPen()
+        else:
+            self.setPen(QtGui.QPen(QtGui.QColor(0,0,0,0)))
+
     def boundingRect(self):
         return QtCore.QRectF(-15, -15, 30, 30)
 

@@ -271,6 +271,9 @@ class MainController:
         shortcut_link = QShortcut(QKeySequence('Ctrl+L'), self.mainview.parent)
         shortcut_link.activated.connect(self.link_views)
 
+        shortcut_link = QShortcut(QKeySequence('Ctrl+O'), self.mainview.parent)
+        shortcut_link.activated.connect(self.open)
+
         self.config = config
         self.threads = []
         self.is_linked = False
@@ -291,12 +294,13 @@ class MainController:
         Opens Bruker directory
         """
 
-        filename, ext = QtWidgets.QFileDialog.getOpenFileName(self.mainview.centralwidget, "Select image", self.config['default']["imzmldir"])
-        if not filename:
-            return
+        filenames, ext = QtWidgets.QFileDialog.getOpenFileNames(self.mainview.centralwidget, "Select image", self.config['default']["imzmldir"])
+        for filename in filenames:
+            if not filename:
+                return
 
-        self.config['default']["imzmldir"] = filename
-        self.open_file(filename)
+            self.config['default']["imzmldir"] = filename
+            self.open_file(filename)
 
     def open_file(self, filename):
         worker = WorkerOpen(path=filename)
@@ -460,11 +464,7 @@ class MainController:
         self.threads.append((self.spectraalignmentcontroller.thread, self.spectraalignmentcontroller.worker))
 
     def start_registration_selection(self, event):
-        self.imagehandlecontroller.choose_image("immunofluo")
-        self.imagehandlecontroller2.choose_image("synthetic")
-
         self.mainview.show_second_view()
-        self.registrationselectioncontroller.start()
         self.mainview.set_frame(self.mainview.registrationselectionview)
 
     def compute_registration_selection(self):
@@ -508,15 +508,26 @@ class MainController:
         self.threads.append((self.thresholdingcontroller.thread, self.thresholdingcontroller.worker))
 
     def link_views(self):
+        def disconnect(signal, oldhandler):
+            try:
+                while True:
+                    signal.disconnect(oldhandler)
+            except TypeError:
+                pass
+
         self.is_linked = not self.is_linked
         iview1 = self.imagehandlecontroller.imagehandleview.imageview
         iview2 = self.imagehandlecontroller2.imagehandleview.imageview
         if self.is_linked:
             iview1.view.setXLink(iview2.view)
             iview1.view.setYLink(iview2.view)
+            iview2.scene.sigMouseMoved.connect(iview1.on_hover_image)
+            iview1.scene.sigMouseMoved.connect(iview2.on_hover_image)
         else:
             iview1.view.setXLink(None)
             iview1.view.setYLink(None)
+            disconnect(iview1.scene.sigMouseMoved, iview2.on_hover_image)
+            disconnect(iview2.scene.sigMouseMoved, iview1.on_hover_image)
 
     def abort_computation(self):
         """
