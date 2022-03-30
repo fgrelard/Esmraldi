@@ -338,12 +338,12 @@ class ImageViewExtended(pg.ImageView):
         if self.ui.roiBtn.isChecked() and self.coords_roi is not None:
             for x, y in self.coords_roi.T:
                 self.imageItem.qimage.setPixel(x, y, pixel_value)
-
-        npoints = self.coords_threshold.shape[-1]
-        th_npoints = np.prod(self.imageItem.image.shape)
-        if npoints != th_npoints and self.coords_threshold is not None:
-            for x,y in self.coords_threshold.T:
-                self.imageItem.qimage.setPixel(x, y, pixel_value)
+        if self.coords_threshold is not None:
+            npoints = self.coords_threshold.shape[-1]
+            th_npoints = np.prod(self.imageItem.image.shape[:2])
+            if npoints != th_npoints:
+                for x,y in self.coords_threshold.T:
+                    self.imageItem.qimage.setPixel(x, y, pixel_value)
 
         self.imageItem._renderRequired = False
         self.imageItem._unrenderable = False
@@ -648,7 +648,7 @@ class ImageViewExtended(pg.ImageView):
             mask_roi = np.ones_like(image)
         coords_roi = np.argwhere((mask_roi > 0) & (image >= min_t) & (image <= max_t))
         coords_roi = np.around(coords_roi + offset).astype(int)
-        condition = (coords_roi >= (0,0)) & (coords_roi < self.imageItem.image.T.shape)
+        condition = (coords_roi >= (0,0)) & (coords_roi < image.shape)
         coords_roi = coords_roi[condition.all(axis=-1)]
         coords_roi = coords_roi.T
 

@@ -19,6 +19,7 @@ from matplotlib.figure import Figure
 
 import SimpleITK as sitk
 import cv2
+import skimage.color as color
 
 import esmraldi.imzmlio as io
 import esmraldi.spectraprocessing as sp
@@ -87,7 +88,8 @@ class WorkerOpen(QObject):
         max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
         max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
 
-        if max_x*max_y*sum_len > 1e4:
+        if max_x*max_y*sum_len > 1e10:
+            print("On the fly")
             mean_spectra = None
             if os.path.isfile(self.npy_path):
                 mean_spectra = np.load(self.npy_path)
@@ -279,7 +281,7 @@ class MainController:
 
         # self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/synthetic.imzML")
 
-        self.open_file("/mnt/d/CBMN/random.imzML")
+        self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/random.imzML")
 
         self.mainview.set_frame(self.mainview.peakpickingview)
 
@@ -387,11 +389,18 @@ class MainController:
 
 
     def update_threshold_values(self):
-        current_image = self.mainview.imagehandleview.imageview.image
-        min_value, max_value = current_image.min(), current_image.max()
+        imageview = self.mainview.imagehandleview.imageview
+        image = imageview.image
+
+        min_value, max_value = image.min(), image.max()
         self.mainview.rangeSliderThreshold.setMinimum(min_value)
         self.mainview.rangeSliderThreshold.setMaximum(max_value)
         self.mainview.rangeSliderThreshold.setValue((min_value, max_value))
+        displayed_image = imageview.imageItem.image
+        if len(displayed_image.shape) >= 3:
+            displayed_image = (color.rgb2gray(displayed_image) * 255).astype(np.uint8)
+        displayed_image = displayed_image.T
+        imageview.coords_threshold = imageview.roi_to_coordinates(displayed_image, min_value, max_value)
 
 
     def peak_picking(self):

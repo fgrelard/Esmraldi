@@ -43,6 +43,7 @@ class Ui_MainView(object):
         self.thresholdingview = self.initialize_frame(Ui_Thresholding)
 
         self.rangeSliderThreshold = QLabeledDoubleRangeSlider(QtCore.Qt.Horizontal)
+        self.rangeSliderThreshold._slider.sliderReleased.connect(self.rangeSliderThreshold.sliderReleased.emit)
         self.rangeSliderThreshold.setMinimum(0)
         self.rangeSliderThreshold.setMaximum(100)
         self.rangeSliderThreshold.setEdgeLabelMode(QLabeledDoubleRangeSlider.EdgeLabelMode.LabelIsValue)

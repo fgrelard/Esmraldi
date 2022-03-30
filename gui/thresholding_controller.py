@@ -1,5 +1,6 @@
 import numpy as np
 
+import skimage.color as color
 from esmraldi.utils import button_tooltip_on_hover, msimage_for_visualization
 from gui.signal import Signal
 from PyQt5 import QtCore
@@ -10,19 +11,20 @@ class WorkerThreshold(QtCore.QObject):
     def __init__(self, image, coords):
         super().__init__()
         self.image = image
-        self.coords = coords
+        self.coords = tuple(coords)
 
     @QtCore.pyqtSlot()
     def work(self):
         thresholded_image = np.zeros_like(self.image).T
-        thresholded_image[tuple(self.coords)] = 1
+        if len(thresholded_image.shape) >= 3:
+            self.coords = (Ellipsis, ) + tuple(self.coords)
+        thresholded_image[self.coords] = 1
         self.signal_end.emit(thresholded_image.T)
 
     def abort(self):
         self.is_abort = True
 
 class ThresholdingController:
-
     def __init__(self, view, imageview, range_slider):
         self.view = view
         self.imageview = imageview
@@ -34,15 +36,17 @@ class ThresholdingController:
         self.worker = None
         self.thread = None
 
-        self.range_slider.valueChanged.connect(self.threshold)
-
+        self.range_slider.setTracking(True)
+        self.range_slider.setMouseTracking(True)
+        self.range_slider.sliderReleased.connect(self.threshold)
         self.view.buttonBox.accepted.connect(self.generate_thresholded_image)
         self.view.buttonBox.rejected.connect(self.end)
 
     def threshold(self):
-        image = self.imageview.imageItem.image.T
-        max_x, max_y = image.shape
-        new_positions = [[0, 0], [max_x, max_y]]
+        image = self.imageview.imageItem.image
+        if len(image.shape) >= 3:
+            image = (color.rgb2gray(image) * 255).astype(np.uint8)
+        image = image.T
         min_slider, max_slider = self.range_slider.value()
         min_thresh = min_slider - np.finfo(float).eps
         max_thresh = max_slider + np.finfo(float).eps
