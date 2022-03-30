@@ -17,6 +17,8 @@ output_name = args.output
 image = sitk.GetArrayFromImage(sitk.ReadImage(input_name))
 corrected_image = utils.pseudo_flat_field_correction(image, sigma)
 
+sitk.WriteImage(sitk.GetImageFromArray(corrected_image, isVector=True), output_name)
+
 fig, ax = plt.subplots(1, 2)
 ax[0].imshow(image)
 ax[1].imshow(corrected_image)
