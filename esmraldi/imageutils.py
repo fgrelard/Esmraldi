@@ -10,9 +10,13 @@ from scipy.ndimage.morphology import distance_transform_edt
 from scipy.ndimage import uniform_filter, gaussian_filter1d
 from dtw import *
 from scipy.stats.stats import pearsonr
+
+import skimage.filters as filters
 import skimage.draw as draw
+import skimage.color as color
 import bresenham as bresenham
 import math
+import cv2
 
 def center_images(images, size):
     """
@@ -629,3 +633,18 @@ def local_radius(image):
         plane, d_max = estimate_plane(obj, voronoi, ind, dt_array.max())
         local_radius_map[plane > 0] = d_max
     return local_radius_map
+
+
+def pseudo_flat_field_correction(image, sigma):
+    hsv_image = color.rgb2hsv(image)
+    brightness = hsv_image[..., 2]
+    gray_image = brightness.astype(np.float64)
+    filter_size = int(2*np.ceil(2*sigma) + 1)
+    background_image = cv2.GaussianBlur(gray_image, (filter_size, filter_size), sigma, borderType=cv2.BORDER_REFLECT)
+    background_mean = np.mean(background_image)
+    shading = np.maximum(background_image, 1e-6)
+    corrected_hsv = brightness * background_mean / shading
+    new_hsv_image = np.stack((hsv_image[..., 0], hsv_image[..., 1], corrected_hsv), axis=-1)
+    corrected_image = color.hsv2rgb(new_hsv_image)
+    corrected_image = np.round(np.clip(corrected_image*255, 0, 255)).astype(np.uint8)
+    return corrected_image
