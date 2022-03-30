@@ -4,6 +4,7 @@ import esmraldi.imzmlio as io
 import SimpleITK as sitk
 import matplotlib.pyplot as plt
 import xlsxwriter
+import os
 
 from skimage.color import rgb2gray
 
@@ -20,14 +21,27 @@ def process_image(current_img, img_norm):
     np.divide(current_img, img_norm, out=return_img, where=img_norm!=0)
     return return_img
 
+def read_image(image_name):
+    sitk.ProcessObject_SetGlobalWarningDisplay(False)
+    mask = sitk.GetArrayFromImage(sitk.ReadImage(image_name))
+    mask = rgb2gray(mask)
+    mask = mask.T
+    return mask
+
+def find_indices(image, shape):
+    indices = np.where(image > 0)
+    return np.ravel_multi_index(indices, shape, order='F')
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input .imzML")
 parser.add_argument("-m", "--mask", help="Mask image (any ITK format)")
+parser.add_argument("-r", "--regions", help="Subregions inside mask", nargs="+", type=str)
 parser.add_argument("-o", "--output", help="Output .csv files with stats")
 args = parser.parse_args()
 
 input_name = args.input
 mask_name = args.mask
+region_names = args.regions
 output_name = args.output
 
 imzml = io.open_imzml(input_name)
@@ -44,17 +58,20 @@ mzs = np.unique(np.hstack(spectra[:, 0]))
 mzs = mzs[mzs>0]
 print(len(mzs))
 images = io.get_images_from_spectra(full_spectra, shape)
-mask = sitk.GetArrayFromImage(sitk.ReadImage(mask_name))
-mask = rgb2gray(mask)
-mask = mask.T
+
+mask = read_image(mask_name)
+regions = []
+for region_name in region_names:
+    region = read_image(region_name)
+    regions.append(region)
 
 n = len(np.where(mask>0)[0])
 
 print(n)
 indices = np.where(mask > 0)
-indices_ravel = np.ravel_multi_index(indices, (max_x, max_y), order='F')
-print(indices_ravel, indices_ravel.shape)
+indices_ravel = find_indices(mask, (max_x, max_y))
 workbook = xlsxwriter.Workbook(output_name, {'strings_to_urls': False})
+workbook.use_zip64()
 header_format = workbook.add_format({'bold': True,
                                      'align': 'center',
                                      'valign': 'vcenter',
@@ -70,6 +87,7 @@ worksheets = []
 worksheets.append((worksheet, worksheet_stats))
 
 normalization = [828.7287, 812.7540, 790.773, "tic"]
+normalization = []
 normalization_images = []
 for norm in normalization:
     worksheet = workbook.add_worksheet(str(norm))
@@ -79,17 +97,29 @@ for norm in normalization:
     norm_img = get_norm_image(images, norm, mzs)
     normalization_images.append(norm_img)
 
+region_bool = []
+for region in regions:
+    indices_regions = find_indices(region, (max_x, max_y))
+    inside_region = np.in1d(indices_ravel, indices_regions)
+    region_bool.append(inside_region)
+
 for worksheet, worksheet_stats in worksheets:
     worksheet.write(0, 0, "Pixel number", header_format)
     worksheet.write_column(1, 0, indices_ravel)
-    worksheet_stats.write_column(0, 0, ["m/z", "Mean", "Stddev", "N"])
+    for i, region in enumerate(regions):
+        region_name = region_names[i]
+        name = os.path.splitext(os.path.basename(region_name))[0]
+        worksheet.write(0, i+1, name, header_format)
+        worksheet.write_column(1, i+1, region_bool[i])
 
+    worksheet_stats.write_column(0, 0, ["m/z", "Mean", "Stddev", "N"])
     worksheet.freeze_panes(1, 1)
     worksheet_stats.freeze_panes(1, 1)
 
 closest_mz_indices = [np.abs(mzs - norm).argmin() for norm in normalization[:-1:]]
 print(closest_mz_indices)
 
+nreg = len(regions)
 for i in range(images.shape[-1]):
     mz = mzs[i]
     current_image = images[..., i]
@@ -104,8 +134,8 @@ for i in range(images.shape[-1]):
         mean = np.mean(sub_region)
         stddev = np.std(sub_region)
 
-        worksheet.write(0, i+1, mz, header_format)
-        worksheet.write_column(1, i+1, current_values)
+        worksheet.write(0, i+nreg+1, mz, header_format)
+        worksheet.write_column(1, i+nreg+1, current_values)
 
         worksheet_stats.write(0, i+1, mz, header_format)
         worksheet_stats.write_column(1, i+1, [mean, stddev, n])
