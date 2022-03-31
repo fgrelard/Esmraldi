@@ -21,6 +21,8 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 
+import skimage.color as color
+
 from PyQt5 import QtGui
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
@@ -665,14 +667,22 @@ class ImageViewExtended(pg.ImageView):
 
 
     def roi_to_coordinates(self, image, min_t, max_t, offset=np.array([0, 0]), mask_roi=None):
+        def translate_coords(coords, offset, shape):
+            coords_trans = np.around(coords + offset).astype(int)
+            condition = (coords_trans >= (0,0)) & (coords_trans < shape)
+            coords_trans = coords_trans[condition.all(axis=-1)]
+            return coords_trans
+
         if mask_roi is None:
             mask_roi = np.ones_like(image)
-        coords_roi = np.argwhere((mask_roi > 0) & (image >= min_t) & (image <= max_t))
-        coords_roi = np.around(coords_roi + offset).astype(int)
-        condition = (coords_roi >= (0,0)) & (coords_roi < image.shape)
-        coords_roi = coords_roi[condition.all(axis=-1)]
+        coords_mask = np.argwhere(mask_roi > 0)
+        coords_roi = translate_coords(coords_mask, offset, image.shape)
+        image_roi = np.zeros_like(mask_roi)
+        coords_mask = np.around(coords_roi - offset).astype(int)
+        image_roi[tuple(coords_mask.T)] = image[tuple(coords_roi.T)]
+        coords_roi = np.argwhere((mask_roi > 0) & (image_roi >= min_t) & (image_roi <= max_t))
+        coords_roi = translate_coords(coords_roi, offset, image.shape)
         coords_roi = coords_roi.T
-
         return coords_roi
 
     def roi_to_mean_spectra(self, image):
@@ -717,6 +727,9 @@ class ImageViewExtended(pg.ImageView):
 
         current_image = self.imageItem.image
         colmaj = self.imageItem.axisOrder == 'col-major'
+        dim = len(current_image.shape)
+        if dim >= 3:
+            current_image = (color.rgb2gray(current_image) * 255).astype(np.uint8)
         if colmaj:
             axes = (1, 0)
         else:
@@ -729,13 +742,14 @@ class ImageViewExtended(pg.ImageView):
 
         if data is None:
             return
-
+        if len(data.shape) >= 3:
+            data = data.max(axis=-1)
         image_roi = data.T
         self.mask_roi = self.roi.renderShapeMask(image_roi.shape[axes[0]], image_roi.shape[axes[1]])
 
-        min_t, max_t = self.intensity_value_slider(image_roi)
+        min_t, max_t = self.intensity_value_slider(current_image)
         offset = np.array(self.roi.pos()) + np.array([self.roi.boundingRect().topLeft().x(), self.roi.boundingRect().topLeft().y()])
-        self.coords_roi = self.roi_to_coordinates(image_roi, min_t, max_t, offset, self.mask_roi)
+        self.coords_roi = self.roi_to_coordinates(current_image, min_t, max_t, offset, self.mask_roi)
         image_roi = current_image[tuple(self.coords_roi)]
 
         if not image_roi.size:
