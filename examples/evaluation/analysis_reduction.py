@@ -69,12 +69,16 @@ image = image[..., mzs >= threshold]
 mzs = mzs[mzs>=threshold]
 mzs = np.around(mzs, decimals=2)
 
-species = sr.json_to_species(theoretical_name)
-ions = [mol for mol in species if mol.category=="Ion"]
-adducts = [mol for mol in species if mol.category=="Adduct"]
-modifications = [mol for mol in species if mol.category=="Modification"]
-theoretical_spectrum = TheoreticalSpectrum(ions, adducts, modifications)
-print(len(ions), "ions,", len(adducts), "adducts")
+if theoretical_name:
+    species = sr.json_to_species(theoretical_name)
+    ions = [mol for mol in species if mol.category=="Ion"]
+    adducts = [mol for mol in species if mol.category=="Adduct"]
+    modifications = [mol for mol in species if mol.category=="Modification"]
+    theoretical_spectrum = TheoreticalSpectrum(ions, adducts, modifications)
+    print(len(ions), "ions,", len(adducts), "adducts")
+
+else:
+    theoretical_spectrum = TheoreticalSpectrum([],[],[])
 
 if is_normalized:
     image = imzmlio.normalize(image)
@@ -130,7 +134,7 @@ image_eigenvectors = image_eigenvectors.reshape(new_shape)
 print(image_eigenvectors.shape)
 
 weights = eigenvectors[..., 0] / np.sum(eigenvectors[..., 0])
-image_0 = fusion.get_reconstructed_image_from_components(image_eigenvectors, weights)
+image_0 = fusion.reconstruct_image_from_components(image_eigenvectors, weights)
 
 fig, ax = plt.subplots(1, 2)
 ax[0].imshow(image[..., 0])
