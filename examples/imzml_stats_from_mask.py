@@ -159,6 +159,4 @@ for i in range(images.shape[-1]):
 
         worksheet_stats.write(0, i+1, mz, header_format)
         worksheet_stats.write_column(1, i+1, [mean, stddev, n])
-    if i > 10:
-        break
 workbook.close()
