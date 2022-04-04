@@ -17,7 +17,7 @@ from gui.thresholding import Ui_Thresholding
 from gui.extract_channels import Ui_ExtractChannels
 import qtawesome as qta
 
-from qtrangeslider import QLabeledDoubleRangeSlider
+from superqt import QLabeledDoubleRangeSlider
 
 
 class Ui_MainView(object):

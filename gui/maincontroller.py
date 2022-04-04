@@ -394,17 +394,16 @@ class MainController:
 
     def update_threshold_values(self):
         imageview = self.mainview.imagehandleview.imageview
-        image = imageview.image
-
-        min_value, max_value = image.min(), image.max()
-        self.mainview.rangeSliderThreshold.setMinimum(min_value)
-        self.mainview.rangeSliderThreshold.setMaximum(max_value)
-        self.mainview.rangeSliderThreshold.setValue((min_value, max_value))
         displayed_image = imageview.imageItem.image
+
+        min_value, max_value = displayed_image.min(), displayed_image.max()
+        self.mainview.rangeSliderThreshold.setMaximum(round(max_value))
+        self.mainview.rangeSliderThreshold.setMinimum(round(min_value))
+        self.mainview.rangeSliderThreshold.setValue((min_value, max_value))
         if len(displayed_image.shape) >= 3:
             displayed_image = (color.rgb2gray(displayed_image) * 255).astype(np.uint8)
         displayed_image = displayed_image.T
-        imageview.coords_threshold = imageview.roi_to_coordinates(displayed_image, min_value, max_value)
+        # imageview.coords_threshold = imageview.roi_to_coordinates(displayed_image, min_value, max_value)
 
 
     def peak_picking(self):
