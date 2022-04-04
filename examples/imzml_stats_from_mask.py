@@ -14,6 +14,7 @@ def get_norm_image(images, norm, mzs):
     else:
         closest_mz_index = np.abs(mzs - norm).argmin()
         img_norm = images[..., closest_mz_index]
+
     return img_norm
 
 def process_image(current_img, img_norm):
@@ -24,13 +25,22 @@ def process_image(current_img, img_norm):
 def read_image(image_name):
     sitk.ProcessObject_SetGlobalWarningDisplay(False)
     mask = sitk.GetArrayFromImage(sitk.ReadImage(image_name))
-    mask = rgb2gray(mask)
+    if mask.ndim > 2:
+        mask = rgb2gray(mask)
     mask = mask.T
     return mask
 
 def find_indices(image, shape):
     indices = np.where(image > 0)
     return np.ravel_multi_index(indices, shape, order='F')
+
+def region_labels(regions, indices, shape):
+    region_bool = []
+    for region in regions:
+        indices_regions = find_indices(region, (max_x, max_y))
+        inside_region = np.in1d(indices, indices_regions)
+        region_bool.append(inside_region)
+    return region_bool
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input .imzML")
@@ -87,7 +97,13 @@ worksheets = []
 worksheets.append((worksheet, worksheet_stats))
 
 normalization = [828.7287, 812.7540, 790.773, "tic"]
-normalization = []
+normalization = [703.669]
+
+indices_2D = [indices]
+
+region_label = region_labels(regions, indices_ravel, (max_x, max_y))
+region_bool = [region_label]
+
 normalization_images = []
 for norm in normalization:
     worksheet = workbook.add_worksheet(str(norm))
@@ -95,22 +111,24 @@ for norm in normalization:
     worksheets.append((worksheet, worksheet_stats))
 
     norm_img = get_norm_image(images, norm, mzs)
+    norm_indices = find_indices(norm_img, (max_x, max_y))
+    norm_indices = np.intersect1d(indices_ravel, norm_indices)
+    norm_indices_2D = np.unravel_index(norm_indices, (max_x, max_y), order="F")
+    region_label = region_labels(regions, norm_indices, (max_x, max_y))
     normalization_images.append(norm_img)
+    indices_2D.append(norm_indices_2D)
+    region_bool.append(region_label)
 
-region_bool = []
-for region in regions:
-    indices_regions = find_indices(region, (max_x, max_y))
-    inside_region = np.in1d(indices_ravel, indices_regions)
-    region_bool.append(inside_region)
 
-for worksheet, worksheet_stats in worksheets:
+for w, (worksheet, worksheet_stats) in enumerate(worksheets):
     worksheet.write(0, 0, "Pixel number", header_format)
-    worksheet.write_column(1, 0, indices_ravel)
+    rindex = np.ravel_multi_index(indices_2D[w], (max_x, max_y), order="F")
+    worksheet.write_column(1, 0, rindex)
     for i, region in enumerate(regions):
         region_name = region_names[i]
         name = os.path.splitext(os.path.basename(region_name))[0]
         worksheet.write(0, i+1, name, header_format)
-        worksheet.write_column(1, i+1, region_bool[i])
+        worksheet.write_column(1, i+1, region_bool[w][i])
 
     worksheet_stats.write_column(0, 0, ["m/z", "Mean", "Stddev", "N"])
     worksheet.freeze_panes(1, 1)
@@ -127,7 +145,9 @@ for i in range(images.shape[-1]):
     for j, (worksheet, worksheet_stats) in enumerate(worksheets):
         if j > 0:
             current_image = process_image(current_image, normalization_images[j-1])
-        sub_region = current_image[indices]
+
+        current_indices = indices_2D[j]
+        sub_region = current_image[current_indices]
 
         current_values = sub_region.flatten()
 
@@ -139,5 +159,6 @@ for i in range(images.shape[-1]):
 
         worksheet_stats.write(0, i+1, mz, header_format)
         worksheet_stats.write_column(1, i+1, [mean, stddev, n])
-
+    if i > 10:
+        break
 workbook.close()
