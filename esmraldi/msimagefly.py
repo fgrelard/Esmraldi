@@ -87,19 +87,26 @@ class MSImageOnTheFly:
     def __getitem__(self, key):
         iterfunc = lambda x: isinstance(x, (collections.abc.Iterable, slice))
         is_array = (isinstance(key, tuple) and any([iterfunc(elem) for elem in key])) or iterfunc(key)
-        img_shape = ()
-        for i, k in enumerate(self.shape):
-            if i != self.spectral_axis:
-                img_shape += (k, )
-        im = np.zeros(self.shape[self.spectral_axis+1:])
+
         mz_value = self.mzs[key]
         tolerance_left, tolerance_right = self.tolerance, self.tolerance
         if is_array:
             tolerance_left = np.abs(np.median(mz_value) - np.amin(mz_value))
             tolerance_right = np.abs(np.median(mz_value) - np.amax(mz_value))
+        im = self.get_ion_image_mzs(mz_value, tolerance_left, tolerance_right)
+
+        return im
+
+
+    def get_ion_image_index(self, index):
+        current_mz = self.mzs[index]
+        return self.get_ion_image_mzs(current_mz)
+
+    def get_ion_image_mzs(self, mz_value, tl=0, tr=0):
+        im = np.zeros(self.shape[self.spectral_axis+1:])
         for i, (x, y, z_) in enumerate(self.coords):
             mzs, ints = self.spectra[i, 0], self.spectra[i, 1]
-            min_i, max_i = self.bisect_spectrum(mzs, np.median(mz_value), tolerance_left, tolerance_right)
+            min_i, max_i = self.bisect_spectrum(mzs, np.median(mz_value), tl, tr)
             im[y-1, x-1] = sum(ints[min_i:max_i+1])
 
         return im

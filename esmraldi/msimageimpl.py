@@ -157,7 +157,7 @@ class MSImageImplementation:
             return sparse_func(*inputs, **kwargs)
 
         L = [arg.image if isinstance(arg, MSImageImplementation) else arg for arg in inputs]
-        array_ufunc = self.image.__array_ufunc__(func, method, *L, **kwargs)
+        array_ufunc = self.image.__array_ufunc__(ufunc, method, *L, **kwargs)
         if isinstance(array_ufunc, self.__class__):
             return MSImageImplementation(array_ufunc)
         try:

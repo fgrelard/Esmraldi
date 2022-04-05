@@ -121,6 +121,7 @@ class ImageViewExtended(pg.ImageView):
         addNewGradientFromMatplotlib("cividis")
         grayclip = pg.graphicsItems.GradientEditorItem.Gradients["greyclip"]
         pg.graphicsItems.GradientEditorItem.Gradients["segmentation"] = {'ticks': [(0.0, (0, 0, 0, 255)), (1.0-np.finfo(float).eps, (255, 255, 255, 255)), (1.0, (255, 0, 0, 255))], 'mode': 'rgb'}
+        self.full_init = False
         super().__init__(parent, name, view, imageItem, *args)
 
         self.imageItem.getHistogram = self.getImageItemHistogram
@@ -149,7 +150,7 @@ class ImageViewExtended(pg.ImageView):
         self.ui.labelRoiChange.hide()
         self.ui.gridLayout.addWidget(self.ui.labelRoiChange, 2, 0, 1, 1)
 
-
+        self.ui.menuBtn.clicked.connect(self.normToggled)
         self.ui.spectraBtn = QtWidgets.QPushButton(self.ui.layoutWidget)
         self.ui.spectraBtn.setCheckable(True)
         self.ui.spectraBtn.setObjectName("spectraBtn")
@@ -225,6 +226,7 @@ class ImageViewExtended(pg.ImageView):
         self.previousRoiSize = 10
         self.previousRoiPositions = [[0,0], [10, 0], [5, 5]]
 
+        self.build_norm_group()
         self.build_roi_group()
 
 
@@ -234,6 +236,8 @@ class ImageViewExtended(pg.ImageView):
 
         self.winPlot.setVisible(False)
 
+        self.full_init = True
+
     def setFocus(self, focus):
         self.is_focused = focus
         if self.is_focused:
@@ -241,6 +245,58 @@ class ImageViewExtended(pg.ImageView):
             self.scene.update()
         else:
             self.crosshair_move.setPenVisible(True)
+
+    def build_norm_group(self):
+        normButtonGroup = QtWidgets.QButtonGroup(self.ui.normGroup)
+
+        self.ui.gridLayout_norm = self.ui.gridLayout_2
+        # self.ui.normGroup = QtWidgets.QGroupBox(self)
+        # self.ui.normGroup.setObjectName("normGroup")
+        # self.ui.gridLayout_norm = QtWidgets.QGridLayout(self.ui.normGroup)
+        # self.ui.gridLayout_norm.setContentsMargins(0, 0, 0, 0)
+        # self.ui.gridLayout_norm.setSpacing(0)
+        # self.ui.gridLayout_norm.setObjectName("gridLayout_norm")
+
+        self.ui.label_norm_type = QtWidgets.QLabel(self.ui.normGroup)
+        font = QtGui.QFont()
+        font.setBold(True)
+        font.setWeight(75)
+        self.ui.label_norm_type.setFont(font)
+        self.ui.label_norm_type.setObjectName("label_norm_type")
+        self.ui.gridLayout_norm.addWidget(self.ui.label_norm_type, 0, 0, 1, 1)
+        self.ui.label_norm_type.setText("Type:")
+
+        self.ui.normOff = QtWidgets.QRadioButton(self.ui.normGroup)
+        self.ui.normOff.setChecked(True)
+        self.ui.normOff.setObjectName("normOff")
+        self.ui.gridLayout_norm.addWidget(self.ui.normOff, 0, 1, 1, 1)
+        self.ui.normOff.setText(QtCore.QCoreApplication.translate("Form", "Off"))
+
+        self.ui.normTIC = QtWidgets.QRadioButton(self.ui.normGroup)
+        self.ui.normTIC.setChecked(True)
+        self.ui.normTIC.setObjectName("normTIC")
+        self.ui.gridLayout_norm.addWidget(self.ui.normTIC, 0, 2, 1, 1)
+        self.ui.normTIC.setText(QtCore.QCoreApplication.translate("Form", "TIC"))
+
+        self.ui.normIon = QtWidgets.QRadioButton(self.ui.normGroup)
+        self.ui.normIon.setChecked(True)
+        hbox = QtWidgets.QHBoxLayout()
+        self.ui.normIon.setObjectName("normIon")
+        hbox.addWidget(self.ui.normIon)
+        self.ui.normIon.setText(QtCore.QCoreApplication.translate("Form", "Ion (m/z)"))
+
+        self.ui.editNorm = QtWidgets.QLineEdit(self.ui.normGroup)
+        self.ui.editNorm.setText(str(-1))
+        self.ui.editNorm.setMaximumWidth(100)
+        hbox.addWidget(self.ui.editNorm)
+        # hbox.addStretch()
+        self.ui.gridLayout_norm.addLayout(hbox, 0, 3, 1, 2)
+
+
+        normButtonGroup.addButton(self.ui.normOff)
+        normButtonGroup.addButton(self.ui.normTIC)
+        normButtonGroup.addButton(self.ui.normIon)
+
 
     def build_roi_group(self):
         self.ui.roiButtonGroup = QtWidgets.QButtonGroup(self.ui.normGroup)
@@ -416,7 +472,6 @@ class ImageViewExtended(pg.ImageView):
             self.normDivideRadioChecked = self.ui.normDivideRadio.isChecked()
             self.isNewNorm = False
             self.ui.normOffRadio.setChecked(True)
-            self.normalize(self.image)
             self.update_pen(pen_size)
             self.gradient = self.ui.histogram.gradient.colorMap()
             self.ui.histogram.gradient.loadPreset("segmentation")
@@ -822,6 +877,27 @@ class ImageViewExtended(pg.ImageView):
         self.roi.setPos((0,0))
         self.autoRange()
 
+    def normalize_ms(self):
+        print(self.ui.normOff.isChecked(), self.ui.normTIC.isChecked(), self.ui.normIon.isChecked())
+        if self.imageItem.image is not None and self.hasTimeAxis() and not self.ui.normOff.isChecked():
+            if self.ui.normTIC.isChecked():
+                pass
+            else:
+                text = self.ui.editNorm.text()
+                value = float(text)
+                norm_img = self.image.get_ion_image_mzs(value)
+                current_image = self.imageItem.image.copy()
+                print(current_image.max())
+                print(norm_img.shape, current_image.shape)
+                np.divide(current_image, 20, out=current_image, where=norm_img!=0)
+                self.imageItem.updateImage(current_image)
+                # image = divided
+
+    def updateImage(self, autoHistogramRange=True):
+        super().updateImage(autoHistogramRange)
+        if self.full_init:
+            self.normalize_ms()
+
     def normalize(self, image):
         return image
 
@@ -987,10 +1063,10 @@ class ImageViewExtended(pg.ImageView):
         """
         Adds the "Export all slices" option to the menu
         """
-        super().buildMenu()
-        self.exportSlicesAction = QtWidgets.QAction("Export all slices", self.menu)
-        self.exportSlicesAction.triggered.connect(self.exportSlicesClicked)
-        self.menu.addAction(self.exportSlicesAction)
+        pass
+
+    def menuClicked(self):
+        pass
 
     def getImageItemHistogram(self, bins='auto', step='auto', targetImageSize=200, targetHistogramSize=500, **kwds):
         """Returns x and y arrays containing the histogram values for the current image.

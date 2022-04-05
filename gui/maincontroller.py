@@ -284,7 +284,8 @@ class MainController:
 
         # self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/synthetic.imzML")
 
-        self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/random.imzML")
+        # self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/random.imzML")
+        self.open_file("/mnt/d/CBMN/random.imzML")
 
         self.mainview.set_frame(self.mainview.peakpickingview)
 
@@ -397,8 +398,7 @@ class MainController:
         displayed_image = imageview.imageItem.image
 
         min_value, max_value = displayed_image.min(), displayed_image.max()
-        self.mainview.rangeSliderThreshold.setMaximum(round(max_value))
-        self.mainview.rangeSliderThreshold.setMinimum(round(min_value))
+        self.mainview.rangeSliderThreshold.setRange(min_value, max_value)
         self.mainview.rangeSliderThreshold.setValue((min_value, max_value))
         if len(displayed_image.shape) >= 3:
             displayed_image = (color.rgb2gray(displayed_image) * 255).astype(np.uint8)
