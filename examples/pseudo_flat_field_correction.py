@@ -15,6 +15,8 @@ sigma = float(args.sigma)
 output_name = args.output
 
 image = sitk.GetArrayFromImage(sitk.ReadImage(input_name))
+if image.shape[-1] > 3:
+    image = image[..., :3]
 corrected_image = utils.pseudo_flat_field_correction(image, sigma)
 
 sitk.WriteImage(sitk.GetImageFromArray(corrected_image, isVector=True), output_name)

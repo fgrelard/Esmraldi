@@ -641,7 +641,7 @@ def pseudo_flat_field_correction(image, sigma):
     gray_image = brightness.astype(np.float64)
     filter_size = int(2*np.ceil(2*sigma) + 1)
     background_image = cv2.GaussianBlur(gray_image, (filter_size, filter_size), sigma, borderType=cv2.BORDER_REFLECT)
-    background_mean = np.mean(background_image)
+    background_mean = np.median(background_image)
     shading = np.maximum(background_image, 1e-6)
     corrected_hsv = brightness * background_mean / shading
     new_hsv_image = np.stack((hsv_image[..., 0], hsv_image[..., 1], corrected_hsv), axis=-1)
