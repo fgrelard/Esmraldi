@@ -118,7 +118,7 @@ for w, (worksheet, worksheet_stats) in enumerate(worksheets):
         region_name = region_names[i]
         name = os.path.splitext(os.path.basename(region_name))[0]
         worksheet.write(0, i+1, name, header_format)
-        worksheet.write_column(1, i+1, region_bool[w][i])
+        worksheet.write_column(1, i+1, region_bool[i])
 
     worksheet_stats.write_column(0, 0, ["m/z", "Mean", "Stddev", "N"])
     worksheet.freeze_panes(1, 1)
