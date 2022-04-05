@@ -46,6 +46,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input .imzML")
 parser.add_argument("-m", "--mask", help="Mask image (any ITK format)")
 parser.add_argument("-r", "--regions", help="Subregions inside mask", nargs="+", type=str)
+parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given m/z", default=0)
 parser.add_argument("-o", "--output", help="Output .csv files with stats")
 args = parser.parse_args()
 
@@ -53,6 +54,7 @@ input_name = args.input
 mask_name = args.mask
 region_names = args.regions
 output_name = args.output
+normalization = float(args.normalization)
 
 imzml = io.open_imzml(input_name)
 spectra = io.get_spectra(imzml)
@@ -90,40 +92,28 @@ header_format = workbook.add_format({'bold': True,
 
 left_format = workbook.add_format({'align': 'left'})
 
-worksheet = workbook.add_worksheet("No norm")
+name = "No norm"
+if normalization > 0:
+    name = str(normalization)
+
+worksheet = workbook.add_worksheet(name)
 worksheet_stats = workbook.add_worksheet("Stats")
 
 worksheets = []
 worksheets.append((worksheet, worksheet_stats))
 
-normalization = [828.7287, 812.7540, 790.773, "tic"]
-normalization = [703.669]
-
-indices_2D = [indices]
-
-region_label = region_labels(regions, indices_ravel, (max_x, max_y))
-region_bool = [region_label]
-
-normalization_images = []
-for norm in normalization:
-    worksheet = workbook.add_worksheet(str(norm))
-    worksheet_stats = workbook.add_worksheet("Stats " + str(norm))
-    worksheets.append((worksheet, worksheet_stats))
-
-    norm_img = get_norm_image(images, norm, mzs)
+norm_img = np.ones_like(images[..., 0])
+if normalization > 0:
+    norm_img = get_norm_image(images, normalization, mzs)
     norm_indices = find_indices(norm_img, (max_x, max_y))
-    norm_indices = np.intersect1d(indices_ravel, norm_indices)
-    norm_indices_2D = np.unravel_index(norm_indices, (max_x, max_y), order="F")
-    region_label = region_labels(regions, norm_indices, (max_x, max_y))
-    normalization_images.append(norm_img)
-    indices_2D.append(norm_indices_2D)
-    region_bool.append(region_label)
+    indices_ravel = np.intersect1d(indices_ravel, norm_indices)
+    indices = np.unravel_index(indices_ravel, (max_x, max_y), order="F")
 
+region_bool = region_labels(regions, indices_ravel, (max_x, max_y))
 
 for w, (worksheet, worksheet_stats) in enumerate(worksheets):
     worksheet.write(0, 0, "Pixel number", header_format)
-    rindex = np.ravel_multi_index(indices_2D[w], (max_x, max_y), order="F")
-    worksheet.write_column(1, 0, rindex)
+    worksheet.write_column(1, 0, indices_ravel)
     for i, region in enumerate(regions):
         region_name = region_names[i]
         name = os.path.splitext(os.path.basename(region_name))[0]
@@ -134,29 +124,24 @@ for w, (worksheet, worksheet_stats) in enumerate(worksheets):
     worksheet.freeze_panes(1, 1)
     worksheet_stats.freeze_panes(1, 1)
 
-closest_mz_indices = [np.abs(mzs - norm).argmin() for norm in normalization[:-1:]]
-print(closest_mz_indices)
-
 nreg = len(regions)
 for i in range(images.shape[-1]):
     mz = mzs[i]
     current_image = images[..., i]
 
-    for j, (worksheet, worksheet_stats) in enumerate(worksheets):
-        if j > 0:
-            current_image = process_image(current_image, normalization_images[j-1])
+    if normalization > 0:
+        current_image = process_image(current_image, norm_img)
 
-        current_indices = indices_2D[j]
-        sub_region = current_image[current_indices]
+    sub_region = current_image[indices]
 
-        current_values = sub_region.flatten()
+    current_values = sub_region.flatten()
 
-        mean = np.mean(sub_region)
-        stddev = np.std(sub_region)
+    mean = np.mean(sub_region)
+    stddev = np.std(sub_region)
 
-        worksheet.write(0, i+nreg+1, mz, header_format)
-        worksheet.write_column(1, i+nreg+1, current_values)
+    worksheet.write(0, i+nreg+1, mz, header_format)
+    worksheet.write_column(1, i+nreg+1, current_values)
 
-        worksheet_stats.write(0, i+1, mz, header_format)
-        worksheet_stats.write_column(1, i+1, [mean, stddev, n])
+    worksheet_stats.write(0, i+1, mz, header_format)
+    worksheet_stats.write_column(1, i+1, [mean, stddev, n])
 workbook.close()

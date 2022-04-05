@@ -84,7 +84,11 @@ header_format = workbook.add_format({'bold': True,
 
 left_format = workbook.add_format({'align': 'left'})
 
-worksheet = workbook.add_worksheet("No norm")
+name = "No norm"
+if normalization > 0:
+    name = str(normalization)
+
+worksheet = workbook.add_worksheet(name)
 
 worksheets = []
 worksheets.append(worksheet)
@@ -93,9 +97,7 @@ norm_img = np.ones_like(images[..., 0])
 if normalization > 0:
     norm_img = get_norm_image(images, normalization, mzs)
     norm_indices = find_indices(norm_img, (max_x, max_y))
-    print(indices_ravel.shape)
     indices_ravel = np.intersect1d(indices_ravel, norm_indices)
-    print(indices_ravel.shape)
     indices = np.unravel_index(indices_ravel, (max_x, max_y), order="F")
 
 
