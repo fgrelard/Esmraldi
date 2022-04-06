@@ -663,7 +663,7 @@ class ImageViewExtended(pg.ImageView):
         elif self.imageDisp is None:
             self.imageDisp = self.normalize(self.image)
         if self.hasTimeAxis():
-            curr_img = self.imageDisp[self.currentIndex, ...]
+            curr_img = self.imageDisp[self.currentIndex]
             self.levelMin, self.levelMax = np.amin(curr_img), np.amax(curr_img)
         else:
             self.levelMin, self.levelMax = np.amin(self.imageDisp), np.amax(self.imageDisp)
@@ -777,7 +777,7 @@ class ImageViewExtended(pg.ImageView):
 
         image = self.getProcessedImage()
 
-        current_image = self.imageDisp[self.currentIndex, ...]
+        current_image = self.imageDisp[self.actualIndex]
         colmaj = self.imageItem.axisOrder == 'col-major'
         dim = len(current_image.shape)
         if dim >= 3:
@@ -879,9 +879,10 @@ class ImageViewExtended(pg.ImageView):
         self.normalize_ms()
 
     def normalize_ms(self):
+        current_image = self.imageDisp
         if self.imageItem.image is not None and self.hasTimeAxis():
             is_new_value = False
-            current_image = self.imageDisp[self.currentIndex, ...]
+            current_image = self.imageDisp[self.actualIndex]
             if self.ui.normTIC.isChecked():
                 tic = self.image.tic
                 if self.norm_value != "tic":
@@ -898,13 +899,13 @@ class ImageViewExtended(pg.ImageView):
 
             if not self.ui.normOff.isChecked():
                 np.divide(current_image, self.image.normalization_image, out=current_image, where=self.image.normalization_image!=0)
-
-            self.renderRoi(current_image)
-            self.levelMin, self.levelMax = np.amin(self.imageItem.image), np.amax(self.imageItem.image)
-            self.autoLevels()
-
             if is_new_value:
                 self.buildPlot()
+
+        self.renderRoi(current_image)
+        self.levelMin, self.levelMax = np.amin(self.imageItem.image), np.amax(self.imageItem.image)
+        self.autoLevels()
+
 
     def updateImage(self, autoHistogramRange=True):
         super().updateImage(autoHistogramRange)
