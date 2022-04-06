@@ -275,7 +275,6 @@ class ImageViewExtended(pg.ImageView):
         self.ui.normTIC.setText(QtCore.QCoreApplication.translate("Form", "TIC"))
 
         self.ui.normIon = QtWidgets.QRadioButton(self.ui.normGroup)
-        self.ui.normIon.setChecked(True)
         hbox = QtWidgets.QHBoxLayout()
         self.ui.normIon.setObjectName("normIon")
         hbox.addWidget(self.ui.normIon)
@@ -293,6 +292,7 @@ class ImageViewExtended(pg.ImageView):
         normButtonGroup.addButton(self.ui.normOff)
         normButtonGroup.addButton(self.ui.normTIC)
         normButtonGroup.addButton(self.ui.normIon)
+        normButtonGroup.buttonToggled.connect(self.changeNorm)
 
 
     def build_roi_group(self):
@@ -870,23 +870,35 @@ class ImageViewExtended(pg.ImageView):
         self.roi.setPos((0,0))
         self.autoRange()
 
+    def changeNorm(self, button, is_toggled):
+        if not is_toggled:
+            return
+        self.normalize_ms()
+
     def normalize_ms(self):
-        if self.imageItem.image is not None and self.hasTimeAxis() and not self.ui.normOff.isChecked():
+        if self.imageItem.image is not None and self.hasTimeAxis():
             is_new_value = False
+            current_image = self.imageDisp[self.currentIndex, ...]
             if self.ui.normTIC.isChecked():
-                self.norm_value = "tic"
-            else:
+                tic = self.image.tic
+                if self.norm_value != "tic":
+                    self.norm_value = "tic"
+                    self.image.normalization_image = tic.reshape(current_image.shape)
+
+            elif self.ui.normIon.isChecked():
                 text = self.ui.editNorm.text()
                 value = float(text)
                 if value != self.norm_value:
                     self.norm_value = value
                     self.image.normalization_image = self.image.get_ion_image_mzs(value)
                     is_new_value = True
-                current_image = self.imageDisp[self.currentIndex, ...]
+
+            if not self.ui.normOff.isChecked():
                 np.divide(current_image, self.image.normalization_image, out=current_image, where=self.image.normalization_image!=0)
-                self.imageItem.updateImage(current_image, autoLevels=True)
-                self.levelMin, self.levelMax = np.amin(self.imageItem.image), np.amax(self.imageItem.image)
-                self.autoLevels()
+
+            self.imageItem.updateImage(current_image, autoLevels=True)
+            self.levelMin, self.levelMax = np.amin(self.imageItem.image), np.amax(self.imageItem.image)
+            self.autoLevels()
 
             if is_new_value:
                 self.buildPlot()

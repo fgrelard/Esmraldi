@@ -402,7 +402,12 @@ def same_mz_axis(spectra, tol=0):
         index += 1
     return new_matrix
 
-
+def tic_values(spectra):
+    tic = np.zeros(spectra.shape[0])
+    for i, (x, y) in enumerate(spectra):
+        spectra_sum = np.sum(y)
+        tic[i] = spectra_sum
+    return tic
 
 def normalization_tic(spectra):
     """
@@ -422,11 +427,12 @@ def normalization_tic(spectra):
         normalized spectrum
     """
     spectra_normalized = spectra.copy()
-    for i, (x, y) in enumerate(spectra):
-        spectra_sum = np.sum(y)
+    tic = tic_values(spectra)
+    for i, (x,y) in enumerate(spectra):
+        t = tic[i]
         new_y = y.copy()
-        if spectra_sum > 0:
-            new_y /= spectra_sum
+        if t > 0:
+            new_y /= t
         spectra_normalized[i, 1, :] = new_y
     return spectra_normalized
 
