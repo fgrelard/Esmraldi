@@ -288,6 +288,7 @@ class ImageViewExtended(pg.ImageView):
         self.ui.editNorm = QtWidgets.QLineEdit(self.ui.normGroup)
         self.ui.editNorm.setText(str(-1))
         self.ui.editNorm.setMaximumWidth(100)
+        self.ui.editNorm.returnPressed.connect(self.normalize_ms)
         hbox.addWidget(self.ui.editNorm)
         # hbox.addStretch()
         self.ui.gridLayout_norm.addLayout(hbox, 0, 3, 1, 2)
@@ -878,19 +879,18 @@ class ImageViewExtended(pg.ImageView):
         self.autoRange()
 
     def normalize_ms(self):
-        print(self.ui.normOff.isChecked(), self.ui.normTIC.isChecked(), self.ui.normIon.isChecked())
         if self.imageItem.image is not None and self.hasTimeAxis() and not self.ui.normOff.isChecked():
             if self.ui.normTIC.isChecked():
                 pass
             else:
                 text = self.ui.editNorm.text()
                 value = float(text)
-                norm_img = self.image.get_ion_image_mzs(value)
-                current_image = self.imageItem.image.copy()
-                print(current_image.max())
-                print(norm_img.shape, current_image.shape)
-                np.divide(current_image, 20, out=current_image, where=norm_img!=0)
-                self.imageItem.updateImage(current_image)
+                self.norm_img = self.image.get_ion_image_mzs(value)
+                current_image = self.imageDisp[self.currentIndex, ...]
+                np.divide(current_image, self.norm_img, out=current_image, where=self.norm_img!=0)
+                self.imageItem.updateImage(current_image, autoLevels=True)
+                self.levelMin, self.levelMax = np.amin(self.imageItem.image), np.amax(self.imageItem.image)
+                self.autoLevels()
                 # image = divided
 
     def updateImage(self, autoHistogramRange=True):
