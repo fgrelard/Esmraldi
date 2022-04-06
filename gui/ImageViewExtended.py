@@ -202,7 +202,6 @@ class ImageViewExtended(pg.ImageView):
 
         self.levelMin, self.levelMax = None, None
         self.isNewImage = False
-        self.isNewNorm = False
         self.normDivideRadioChecked = False
 
         self.imageChangedSignal = Signal()
@@ -434,13 +433,14 @@ class ImageViewExtended(pg.ImageView):
         self.imageItem._unrenderable = False
 
 
-    def renderRoi(self):
+    def renderRoi(self, current_image):
         if self.ui.roiBtn.isChecked() and self.coords_roi is not None:
-            current_image = self.imageDisp[self.currentIndex, ...]
             roi_image = np.zeros_like(current_image)
             coords = (self.coords_roi[1], self.coords_roi[0])
             roi_image[coords] = current_image[coords]
-            self.imageItem.updateImage(roi_image)
+            self.imageItem.updateImage(roi_image, autoLevels=True)
+        else:
+            self.imageItem.updateImage(current_image, autoLevels=True)
 
 
     def mouseClickEventImageItem(self, ev):
@@ -489,7 +489,6 @@ class ImageViewExtended(pg.ImageView):
         self.updateImage()
         if self.is_drawable:
             self.normDivideRadioChecked = self.ui.normDivideRadio.isChecked()
-            self.isNewNorm = False
             self.ui.normOffRadio.setChecked(True)
             self.update_pen(pen_size)
             self.gradient = self.ui.histogram.gradient.colorMap()
@@ -661,7 +660,7 @@ class ImageViewExtended(pg.ImageView):
     def getProcessedImage(self):
         if self.isNewImage and self.levelMin is not None:
             self.imageDisp = self.image
-        elif self.imageDisp is None or self.isNewNorm:
+        elif self.imageDisp is None:
             self.imageDisp = self.normalize(self.image)
         if self.hasTimeAxis():
             curr_img = self.imageDisp[self.currentIndex, ...]
@@ -672,7 +671,6 @@ class ImageViewExtended(pg.ImageView):
             self.levelMin = self.levelMax - 1
         self.autoLevels()
         self.isNewImage = False
-        self.isNewNorm = False
         return self.imageDisp
 
     def autoLevels(self):
@@ -768,7 +766,6 @@ class ImageViewExtended(pg.ImageView):
 
 
     def roiChanged(self):
-        self.isNewNorm = True
         if self.image is None:
             return
 
@@ -816,7 +813,7 @@ class ImageViewExtended(pg.ImageView):
 
         self.setCurrentIndices(self.actualIndex)
         self.ui.labelRoiChange.setText(string_roi)
-        self.renderRoi()
+        self.normalize_ms()
 
 
     def roiClicked(self):
@@ -902,7 +899,7 @@ class ImageViewExtended(pg.ImageView):
             if not self.ui.normOff.isChecked():
                 np.divide(current_image, self.image.normalization_image, out=current_image, where=self.image.normalization_image!=0)
 
-            self.imageItem.updateImage(current_image, autoLevels=True)
+            self.renderRoi(current_image)
             self.levelMin, self.levelMax = np.amin(self.imageItem.image), np.amax(self.imageItem.image)
             self.autoLevels()
 
