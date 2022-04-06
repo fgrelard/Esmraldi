@@ -1,35 +1,27 @@
 import collections
 import numbers
 import numpy as np
-import esmraldi.spectraprocessing as sp
 from bisect import bisect_left, bisect_right
 
-class MSImageOnTheFly:
+import esmraldi.spectraprocessing as sp
+from esmraldi.msimagebase import MSImageBase
+
+class MSImageOnTheFly(MSImageBase):
     def __init__(self, spectra, coords=None, mzs=None, tolerance=0, spectral_axis=-1, mean_spectra=None, peaks=None):
-        self._mean_spectra = mean_spectra
-        self._peaks = peaks
+        super().__init__(spectra, mzs, tolerance, spectral_axis, mean_spectra, peaks)
 
         self.coords = coords
-        self.spectra = spectra
-        self.is_maybe_densify = True
-
-        if mzs is None:
-            all_mzs = spectra[:, 0, ...]
-            self.mzs = np.unique(np.hstack(all_mzs).flatten())
-        else:
-            self.mzs = mzs
-
         max_x = max(self.coords, key=lambda item:item[0])[0]
         max_y = max(self.coords, key=lambda item:item[1])[1]
         max_z = max(self.coords, key=lambda item:item[2])[2]
         coords = (max_x, max_y, max_z)
+
         if coords[-1] == 1:
             coords = coords[:-1]
+
         self.shape = coords + (len(self.mzs), )
 
         self.image = np.zeros(self.shape[:-1])
-
-        self.tolerance = tolerance
 
     @property
     def dtype(self):
@@ -43,26 +35,6 @@ class MSImageOnTheFly:
     def size(self):
         return np.prod(self.shape)
 
-    @property
-    def mean_spectra(self):
-        if self._mean_spectra is None:
-            if len(self.spectra.shape) >= 3:
-                self._mean_spectra = sp.spectra_mean(self.spectra)
-            else:
-                self._mean_spectra = sp.spectra_mean_centroided(self.spectra, self.mzs)
-        return self._mean_spectra
-
-    @property
-    def peaks(self):
-        return self._peaks
-
-    @peaks.setter
-    def peaks(self, peaks):
-        self._peaks = peaks
-
-    @mean_spectra.setter
-    def mean_spectra(self, value):
-        self._mean_spectra = value
 
     def max(self, axis=None, out=None):
         return np.hstack(self.spectra[:, 1]).flatten().max()

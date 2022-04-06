@@ -6,36 +6,22 @@ import numbers
 
 import numpy as np
 import esmraldi.spectraprocessing as sp
+from esmraldi.msimagebase import MSImageBase
 
-class MSImageImplementation:
+class MSImageImplementation(MSImageBase):
 
     def __init__(self, spectra, image=None, mzs=None, tolerance=0, is_maybe_densify=False, spectral_axis=-1, mean_spectra=None, peaks=None):
 
-        self._mean_spectra = None
-        self._peaks = None
-
         if image is None and isinstance(spectra, MSImageImplementation):
             image = spectra.copy()
-            self.init_attributes(image.spectra, image.mzs, image.tolerance, image.spectral_axis, image.mean_spectra, image.peaks)
+            super().__init__(image.spectra, image.mzs, image.tolerance, image.spectral_axis, image.mean_spectra, image.peaks)
         else:
-            self.init_attributes(spectra, mzs, tolerance, spectral_axis, mean_spectra, peaks)
+            super().__init__(spectra, mzs, tolerance, spectral_axis, mean_spectra, peaks)
 
         if image.shape:
             self.image = image
         else:
             raise AttributeError("Please a provide a valid image")
-
-    def init_attributes(obj, spectra, mzs, tolerance, spectral_axis, mean_spectra, peaks):
-        if mzs is None:
-            all_mzs = spectra[:, 0, ...]
-            obj.mzs = np.unique(all_mzs[np.nonzero(all_mzs)])
-        else:
-            obj.mzs = mzs
-        obj.spectra = spectra
-        obj.tolerance = tolerance
-        obj.spectral_axis = spectral_axis
-        obj._mean_spectra = mean_spectra
-        obj._peaks = peaks
 
 
     @property
@@ -73,26 +59,6 @@ class MSImageImplementation:
         except:
             return True
 
-    @property
-    def mean_spectra(self):
-        if self._mean_spectra is None:
-            if len(self.spectra.shape) >= 3:
-                self._mean_spectra = sp.spectra_mean(self.spectra)
-            else:
-                self._mean_spectra = sp.spectra_mean_centroided(self.spectra)
-        return self._mean_spectra
-
-    @property
-    def peaks(self):
-        return self._peaks
-
-    @peaks.setter
-    def peaks(self, peaks):
-        self._peaks = peaks
-
-    @mean_spectra.setter
-    def mean_spectra(self, value):
-        self._mean_spectra = value
 
     @is_maybe_densify.setter
     def is_maybe_densify(self, value):

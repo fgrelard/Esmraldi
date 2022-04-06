@@ -236,6 +236,8 @@ class ImageViewExtended(pg.ImageView):
 
         self.winPlot.setVisible(False)
 
+        self.norm_value = None
+
         self.full_init = True
 
     def setFocus(self, focus):
@@ -250,12 +252,6 @@ class ImageViewExtended(pg.ImageView):
         normButtonGroup = QtWidgets.QButtonGroup(self.ui.normGroup)
 
         self.ui.gridLayout_norm = self.ui.gridLayout_2
-        # self.ui.normGroup = QtWidgets.QGroupBox(self)
-        # self.ui.normGroup.setObjectName("normGroup")
-        # self.ui.gridLayout_norm = QtWidgets.QGridLayout(self.ui.normGroup)
-        # self.ui.gridLayout_norm.setContentsMargins(0, 0, 0, 0)
-        # self.ui.gridLayout_norm.setSpacing(0)
-        # self.ui.gridLayout_norm.setObjectName("gridLayout_norm")
 
         self.ui.label_norm_type = QtWidgets.QLabel(self.ui.normGroup)
         font = QtGui.QFont()
@@ -852,17 +848,13 @@ class ImageViewExtended(pg.ImageView):
         min_slider, max_slider = self.ui.rangeSliderThreshold.value()
         min_value = self.ui.rangeSliderThreshold.minimum()
         max_value = self.ui.rangeSliderThreshold.maximum()
-        if min_slider == min_value and max_value == max_slider:
-            linear = np.ravel_multi_index(self.coords_roi, self.imageItem.image.T.shape)
-            linear = np.unique(linear)
-            ind = tuple([linear, Ellipsis])
-            spectra = self.imageDisp.spectra[ind]
-            if len(spectra.shape) >= 3:
-                mean_spectra = sp.spectra_mean(spectra)
-            else:
-                mean_spectra = sp.spectra_mean_centroided(spectra, self.image.mzs)
-        else:
-            mean_spectra = self.roi_to_mean_spectra(self.imageDisp)
+
+        linear = np.ravel_multi_index(self.coords_roi, self.imageItem.image.T.shape)
+        linear = np.unique(linear)
+        ind = tuple([linear, Ellipsis])
+        spectra = self.imageDisp.spectra[ind]
+        norm_img = self.imageDisp.normalization_image.flatten()[linear]
+        mean_spectra = self.imageDisp.compute_mean_spectra(spectra, norm_img)
 
         scatter = ScatterPlotItemDirac(pen="w")
         scatter.setDiracs([self.tVals, mean_spectra])
@@ -880,18 +872,24 @@ class ImageViewExtended(pg.ImageView):
 
     def normalize_ms(self):
         if self.imageItem.image is not None and self.hasTimeAxis() and not self.ui.normOff.isChecked():
+            is_new_value = False
             if self.ui.normTIC.isChecked():
-                pass
+                self.norm_value = "tic"
             else:
                 text = self.ui.editNorm.text()
                 value = float(text)
-                self.norm_img = self.image.get_ion_image_mzs(value)
+                if value != self.norm_value:
+                    self.norm_value = value
+                    self.image.normalization_image = self.image.get_ion_image_mzs(value)
+                    is_new_value = True
                 current_image = self.imageDisp[self.currentIndex, ...]
-                np.divide(current_image, self.norm_img, out=current_image, where=self.norm_img!=0)
+                np.divide(current_image, self.image.normalization_image, out=current_image, where=self.image.normalization_image!=0)
                 self.imageItem.updateImage(current_image, autoLevels=True)
                 self.levelMin, self.levelMax = np.amin(self.imageItem.image), np.amax(self.imageItem.image)
                 self.autoLevels()
-                # image = divided
+
+            if is_new_value:
+                self.buildPlot()
 
     def updateImage(self, autoHistogramRange=True):
         super().updateImage(autoHistogramRange)
@@ -1052,7 +1050,10 @@ class ImageViewExtended(pg.ImageView):
         self.currentIndex = np.int64(np.median(indices))
 
     def buildPlot(self):
-        self.displayed_spectra = self.image.mean_spectra
+        if self.image.normalization_image is not None:
+            self.displayed_spectra = self.image.compute_mean_spectra(self.image.spectra.copy())
+        else:
+            self.displayed_spectra = self.image.mean_spectra
         x = self.image.mzs
         self.plot.clear()
         self.plot.setDiracs([x, self.displayed_spectra])
