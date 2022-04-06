@@ -35,6 +35,7 @@ class ImageHandleController:
         self.imageview.scene.sigMouseClicked.connect(self.on_click_image)
         self.imageview.signal_image_change.connect(self.change_image_combobox)
         self.imageview.signal_mz_change.connect(lambda mz: self.imagehandleview.lineEdit.setText("{:.4f}".format(mz)))
+        self.imageview.ui.comboRoiImage.activated[str].connect(self.choose_roi_image)
 
         self.is_edit = False
         self.is_text_editing = False
@@ -171,7 +172,7 @@ class ImageHandleController:
             else:
                 self.choose_image("No image")
 
-    def choose_image(self, name, preview=False, autoLevels=True):
+    def choose_image(self, name, preview=False, autoLevels=True, display=True):
         """
         Choose an image among available image
         The name must be in self.images
@@ -194,6 +195,17 @@ class ImageHandleController:
             xvals = None
         self.current_name = name
         self.imageview.setImage(self.images[name], xvals=xvals)
+
+    def choose_roi_image(self, name):
+        if name == "No image":
+            return
+        if name not in self.images:
+            return
+        img_data = self.images[name]
+        print(img_data.shape, self.imageview.imageDisp[self.imageview.actualIndex].shape)
+        if img_data.shape == self.imageview.imageDisp[self.imageview.actualIndex].shape:
+            self.imageview.coords_roi = np.argwhere(img_data.T > 0).T
+            self.imageview.roiChanged()
 
     def image_to_visualization(self, img):
         """

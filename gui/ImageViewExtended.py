@@ -423,10 +423,11 @@ class ImageViewExtended(pg.ImageView):
             self.imageItem.qimage = self.imageItem.qimage.convertToFormat(QtGui.QImage.Format_RGBA8888)
 
         if self.coords_threshold is not None:
-            npoints = self.coords_threshold.shape[-1]
+            coords_threshold = np.array(self.coords_threshold)
+            npoints = coords_threshold.shape[-1]
             th_npoints = np.prod(self.imageItem.image.shape[:2])
             if npoints != th_npoints:
-                for x,y in self.coords_threshold.T:
+                for x,y in coords_threshold.T:
                     self.imageItem.qimage.setPixel(x, y, pixel_value)
 
         self.imageItem._renderRequired = False
@@ -704,8 +705,11 @@ class ImageViewExtended(pg.ImageView):
         elif roiPolygonChecked:
             self.roi = PolyLineROI(positions=self.previousRoiPositions, pos=self.roi.pos(), closed=True, hoverPen="r")
             self.roi.setPen(pen)
-        self.view.addItem(self.roi)
-        self.roi.sigRegionChangeFinished.connect(self.roiChanged)
+        if  self.ui.roiImage.isChecked():
+            self.coords_roi = [slice(None) for i in range(2)]
+        else:
+            self.view.addItem(self.roi)
+            self.roi.sigRegionChangeFinished.connect(self.roiChanged)
         self.roiChanged()
 
     def intensity_value_slider(self, image):
@@ -801,7 +805,14 @@ class ImageViewExtended(pg.ImageView):
 
         min_t, max_t = self.intensity_value_slider(current_image)
         offset = np.array(self.roi.pos()) + np.array([self.roi.boundingRect().topLeft().x(), self.roi.boundingRect().topLeft().y()])
-        self.coords_roi = self.roi_to_coordinates(current_image, min_t, max_t, offset, self.mask_roi)
+        if not self.ui.roiImage.isChecked():
+            self.coords_roi = self.roi_to_coordinates(current_image, min_t, max_t, offset, self.mask_roi)
+
+        self.finalize_roi_change(current_image)
+
+
+
+    def finalize_roi_change(self, current_image):
         image_roi = current_image[tuple(self.coords_roi)]
 
         if not image_roi.size:
