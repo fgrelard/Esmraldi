@@ -337,6 +337,18 @@ class ImageViewExtended(pg.ImageView):
         self.ui.gridLayout_roi.addWidget(self.ui.roiPolygon, 0, 3, 1, 1)
         self.ui.roiPolygon.setText(QtCore.QCoreApplication.translate("Form", "Polygon"))
 
+        hbox = QtWidgets.QHBoxLayout()
+        self.ui.roiImage = QtWidgets.QRadioButton(self.ui.roiGroup)
+        self.ui.roiImage.setObjectName("roiImage")
+        self.ui.roiImage.setText(QtCore.QCoreApplication.translate("Form", "Image"))
+        self.ui.comboRoiImage = QtWidgets.QComboBox(self.ui.roiGroup)
+        self.ui.comboRoiImage.setFixedWidth(100)
+        self.ui.comboRoiImage.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
+        hbox.addWidget(self.ui.roiImage)
+        hbox.addWidget(self.ui.comboRoiImage)
+        self.ui.gridLayout_roi.addLayout(hbox, 0, 4, 1, 2)
+
+
         self.ui.rangeSliderThreshold = QLabeledRangeSlider(QtCore.Qt.Horizontal)
         self.ui.rangeSliderThreshold.setMinimum(0)
         self.ui.rangeSliderThreshold.setMaximum(100)
@@ -367,9 +379,13 @@ class ImageViewExtended(pg.ImageView):
         self.ui.roiButtonGroup.addButton(self.ui.roiSquare)
         self.ui.roiButtonGroup.addButton(self.ui.roiCircle)
         self.ui.roiButtonGroup.addButton(self.ui.roiPolygon)
+        self.ui.roiButtonGroup.addButton(self.ui.roiImage)
+
         self.ui.roiSquare.clicked.connect(self.roiRadioChanged)
         self.ui.roiCircle.clicked.connect(self.roiRadioChanged)
         self.ui.roiPolygon.clicked.connect(self.roiRadioChanged)
+        self.ui.roiImage.clicked.connect(self.roiRadioChanged)
+
         self.ui.plotSpectraButton.clicked.connect(self.plotSpectraROI)
         self.ui.resetROIButton.clicked.connect(self.resetROI)
         self.roiRadioChanged()
@@ -407,9 +423,6 @@ class ImageViewExtended(pg.ImageView):
         if self.imageItem.qimage.format() < 4:
             self.imageItem.qimage = self.imageItem.qimage.convertToFormat(QtGui.QImage.Format_RGBA8888)
 
-        if self.ui.roiBtn.isChecked() and self.coords_roi is not None:
-            for x, y in self.coords_roi.T:
-                self.imageItem.qimage.setPixel(x, y, pixel_value)
         if self.coords_threshold is not None:
             npoints = self.coords_threshold.shape[-1]
             th_npoints = np.prod(self.imageItem.image.shape[:2])
@@ -419,6 +432,15 @@ class ImageViewExtended(pg.ImageView):
 
         self.imageItem._renderRequired = False
         self.imageItem._unrenderable = False
+
+
+    def renderRoi(self):
+        if self.ui.roiBtn.isChecked() and self.coords_roi is not None:
+            current_image = self.imageDisp[self.currentIndex, ...]
+            roi_image = np.zeros_like(current_image)
+            coords = (self.coords_roi[1], self.coords_roi[0])
+            roi_image[coords] = current_image[coords]
+            self.imageItem.updateImage(roi_image)
 
 
     def mouseClickEventImageItem(self, ev):
@@ -635,23 +657,6 @@ class ImageViewExtended(pg.ImageView):
         self.update_label()
         self.roiChanged()
 
-    def updateNorm(self):
-        self.isNewNorm = True
-        if self.ui.normTimeRangeCheck.isChecked():
-            self.normRgn.show()
-        else:
-            self.normRgn.hide()
-
-        if self.ui.normROICheck.isChecked():
-            self.normRoi.show()
-        else:
-            self.normRoi.hide()
-
-        if not self.ui.normOffRadio.isChecked():
-            self.updateImage()
-            self.autoLevels()
-            self.roiChanged()
-            self.sigProcessingChanged.emit(self)
 
     def getProcessedImage(self):
         if self.isNewImage and self.levelMin is not None:
@@ -684,6 +689,7 @@ class ImageViewExtended(pg.ImageView):
         brush = pg.mkBrush(220, 100, 100, 200)
         roiSquareChecked = self.ui.roiSquare.isChecked()
         roiCircleChecked = self.ui.roiCircle.isChecked()
+        roiPolygonChecked = self.ui.roiPolygon.isChecked()
         self.roi.hide()
         if roiSquareChecked:
             self.roi = ROI(pos=self.roi.pos(), size=self.previousRoiSize)
@@ -697,7 +703,7 @@ class ImageViewExtended(pg.ImageView):
             self.roi.setPen(pen)
             self.roi.setZValue(20)
             self.roi.show()
-        else:
+        elif roiPolygonChecked:
             self.roi = PolyLineROI(positions=self.previousRoiPositions, pos=self.roi.pos(), closed=True, hoverPen="r")
             self.roi.setPen(pen)
         self.view.addItem(self.roi)
@@ -719,22 +725,19 @@ class ImageViewExtended(pg.ImageView):
 
 
     def roi_to_coordinates(self, image, min_t, max_t, offset=np.array([0, 0]), mask_roi=None):
-        def translate_coords(coords, offset, shape):
-            coords_trans = np.around(coords + offset).astype(int)
-            condition = (coords_trans >= (0,0)) & (coords_trans < shape)
-            coords_trans = coords_trans[condition.all(axis=-1)]
-            return coords_trans
-
         if mask_roi is None:
             mask_roi = np.ones_like(image)
         coords_mask = np.argwhere(mask_roi > 0)
-        coords_roi = translate_coords(coords_mask, offset, image.shape)
-        image_roi = np.zeros_like(mask_roi)
-        coords_mask = np.around(coords_roi - offset).astype(int)
-        image_roi[tuple(coords_mask.T)] = image[tuple(coords_roi.T)]
-        coords_roi = np.argwhere((mask_roi > 0) & (image_roi >= min_t) & (image_roi <= max_t))
-        coords_roi = translate_coords(coords_roi, offset, image.shape)
-        coords_roi = coords_roi.T
+        coords_roi = np.around(coords_mask + offset).astype(int)
+        condition = (coords_roi >= (0,0)) & (coords_roi < image.shape)
+        coords_roi = coords_roi[condition.all(axis=-1)]
+
+        coords_threshold = np.argwhere((image >= min_t) & (image <= max_t))
+        rindex_roi = np.ravel_multi_index(coords_roi.T, image.shape)
+        rindex_threshold = np.ravel_multi_index(coords_threshold.T, image.shape)
+
+        rindex = np.intersect1d(rindex_roi, rindex_threshold)
+        coords_roi = np.unravel_index(rindex, image.shape)
         return coords_roi
 
     def roi_to_mean_spectra(self, image):
@@ -777,7 +780,7 @@ class ImageViewExtended(pg.ImageView):
 
         image = self.getProcessedImage()
 
-        current_image = self.imageItem.image
+        current_image = self.imageDisp[self.currentIndex, ...]
         colmaj = self.imageItem.axisOrder == 'col-major'
         dim = len(current_image.shape)
         if dim >= 3:
@@ -813,10 +816,14 @@ class ImageViewExtended(pg.ImageView):
 
         self.setCurrentIndices(self.actualIndex)
         self.ui.labelRoiChange.setText(string_roi)
+        self.renderRoi()
 
 
     def roiClicked(self):
         super().roiClicked()
+
+        if not self.ui.roiBtn.isChecked():
+            self.updateImage()
 
         if not self.hasTimeAxis():
             self.timeLine.hide()
@@ -828,7 +835,6 @@ class ImageViewExtended(pg.ImageView):
         except:
             pass
         self.ui.splitter.setSizes([self.height()-35, 35])
-        self.updateImage()
 
 
     def plotSpectraROI(self):

@@ -375,23 +375,35 @@ class MainController:
             self.mainview.hide_second_view()
 
     def on_combo_changed(self, index, handle1, handle2):
+        def set_combo(combo_ref, combo_target):
+            items = [combo_ref.itemText(i) for i in range(combo_ref.count())]
+            combo_target.clear()
+            combo_target.addItems(items)
+            current_index = combo_target.findText(handle2.current_name)
+            if current_index == -1:
+                current_index = combo_target.findText(index)
+            combo_target.setCurrentIndex(current_index)
+
         if index == "":
             return
         combobox1 = handle1.imagehandleview.combobox
         combobox2 = handle2.imagehandleview.combobox
+        comboboxRoi1 = handle1.imagehandleview.imageview.ui.comboRoiImage
+        comboboxRoi2 = handle2.imagehandleview.imageview.ui.comboRoiImage
 
         combobox1.blockSignals(True)
         combobox2.blockSignals(True)
-        items = [combobox1.itemText(i) for i in range(combobox1.count())]
-        combobox2.clear()
-        combobox2.addItems(items)
-        current_index = combobox2.findText(handle2.current_name)
-        if current_index == -1:
-            current_index = combobox2.findText(index)
-        combobox2.setCurrentIndex(current_index)
+        comboboxRoi1.blockSignals(True)
+        comboboxRoi2.blockSignals(True)
+
+        set_combo(combobox1, combobox2)
+        set_combo(combobox1, comboboxRoi1)
+        set_combo(combobox1, comboboxRoi2)
+
         combobox1.blockSignals(False)
         combobox2.blockSignals(False)
-
+        comboboxRoi1.blockSignals(False)
+        comboboxRoi2.blockSignals(False)
 
     def update_threshold_values(self):
         imageview = self.mainview.imagehandleview.imageview
