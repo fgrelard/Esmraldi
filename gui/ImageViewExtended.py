@@ -231,18 +231,19 @@ class ImageViewExtended(pg.ImageView):
 
 
         self.is_focused = False
-        self.enterEvent = lambda e: self.setFocus(True)
-        self.leaveEvent = lambda e: self.setFocus(False)
-
+        self.enterEvent = lambda e: self.setFocus(e, True)
+        self.leaveEvent = lambda e: self.setFocus(e, False)
         self.winPlot.setVisible(False)
 
         self.norm_value = None
 
+        self.is_linked = False
+
         self.full_init = True
 
-    def setFocus(self, focus):
+    def setFocus(self, e, focus):
         self.is_focused = focus
-        if self.is_focused:
+        if self.is_focused or not self.is_linked:
             self.crosshair_move.setPenVisible(False)
             self.scene.update()
         else:
@@ -269,7 +270,6 @@ class ImageViewExtended(pg.ImageView):
         self.ui.normOff.setText(QtCore.QCoreApplication.translate("Form", "Off"))
 
         self.ui.normTIC = QtWidgets.QRadioButton(self.ui.normGroup)
-        self.ui.normTIC.setChecked(True)
         self.ui.normTIC.setObjectName("normTIC")
         self.ui.gridLayout_norm.addWidget(self.ui.normTIC, 0, 2, 1, 1)
         self.ui.normTIC.setText(QtCore.QCoreApplication.translate("Form", "TIC"))

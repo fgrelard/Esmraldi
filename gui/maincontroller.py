@@ -517,6 +517,8 @@ class MainController:
         self.is_linked = not self.is_linked
         iview1 = self.imagehandlecontroller.imagehandleview.imageview
         iview2 = self.imagehandlecontroller2.imagehandleview.imageview
+        iview1.is_linked = self.is_linked
+        iview2.is_linked = self.is_linked
         if self.is_linked:
             iview1.view.setXLink(iview2.view)
             iview1.view.setYLink(iview2.view)
