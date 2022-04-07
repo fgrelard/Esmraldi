@@ -437,7 +437,7 @@ class ImageViewExtended(pg.ImageView):
     def renderRoi(self, current_image):
         if self.ui.roiBtn.isChecked() and self.coords_roi is not None:
             roi_image = np.zeros_like(current_image)
-            coords = (self.coords_roi[1], self.coords_roi[0])
+            coords = tuple(c for c in self.coords_roi[::-1])
             roi_image[coords] = current_image[coords]
             self.imageItem.updateImage(roi_image, autoLevels=True)
         else:
@@ -779,18 +779,21 @@ class ImageViewExtended(pg.ImageView):
         elif self.ui.roiPolygon.isChecked():
             self.previousRoiPositions = [[handle["pos"].x(), handle["pos"].y()] for handle in self.roi.handles]
 
-        image = self.getProcessedImage()
-
-        current_image = self.imageDisp[self.actualIndex]
+        current_image = self.imageDisp
+        if self.hasTimeAxis():
+            current_image = [self.actualIndex]
         colmaj = self.imageItem.axisOrder == 'col-major'
         dim = len(current_image.shape)
+
+        coords_image = current_image
         if dim >= 3:
-            current_image = (color.rgb2gray(current_image) * 255).astype(np.uint8)
+            coords_image = (color.rgb2gray(current_image[..., :3]) * 255).astype(np.uint8)
         if colmaj:
             axes = (1, 0)
         else:
             axes = (0, 1)
             current_image = current_image.T
+            coords_image = coords_image.T
 
         data, coords = self.roi.getArrayRegion(
             self.imageItem.image, img=self.imageItem, axes=axes,
@@ -803,11 +806,12 @@ class ImageViewExtended(pg.ImageView):
         image_roi = data.T
         self.mask_roi = self.roi.renderShapeMask(image_roi.shape[axes[0]], image_roi.shape[axes[1]])
 
-        min_t, max_t = self.intensity_value_slider(current_image)
+        min_t, max_t = self.intensity_value_slider(coords_image)
         offset = np.array(self.roi.pos()) + np.array([self.roi.boundingRect().topLeft().x(), self.roi.boundingRect().topLeft().y()])
         if not self.ui.roiImage.isChecked():
-            self.coords_roi = self.roi_to_coordinates(current_image, min_t, max_t, offset, self.mask_roi)
-
+            self.coords_roi = self.roi_to_coordinates(coords_image, min_t, max_t, offset, self.mask_roi)
+        if len(current_image.shape) >= 3 and not any([c is Ellipsis for c in self.coords_roi]):
+            self.coords_roi = (Ellipsis,) + tuple(self.coords_roi)
         self.finalize_roi_change(current_image)
 
 
@@ -829,6 +833,9 @@ class ImageViewExtended(pg.ImageView):
 
     def roiClicked(self):
         super().roiClicked()
+
+        if self.full_init and self.ui.roiImage.isChecked():
+            self.roi.hide()
 
         if not self.ui.roiBtn.isChecked():
             self.updateImage()

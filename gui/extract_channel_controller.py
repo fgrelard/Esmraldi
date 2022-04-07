@@ -15,7 +15,7 @@ class WorkerExtractChannels(QtCore.QObject):
     @QtCore.pyqtSlot()
     def work(self):
         axis = getattr(self.image, "spectral_axis", -1)
-        if len(self.image.shape) >= 3 and self.number > 0 and self.number < self.image.shape[axis]:
+        if len(self.image.shape) >= 3 and self.number > 0 and self.number <= self.image.shape[axis]:
             image = self.image[..., self.number-1]
         else:
             image = None

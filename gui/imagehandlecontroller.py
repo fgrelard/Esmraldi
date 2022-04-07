@@ -1,13 +1,12 @@
 import os
 import numpy as np
 import qtawesome as qta
+import skimage.color as color
+import esmraldi.imzmlio as io
 from esmraldi.msimage import MSImage
 from esmraldi.sparsematrix import SparseMatrix
-import esmraldi.imzmlio as io
 from collections import OrderedDict
 from PyQt5 import Qt, QtWidgets
-
-
 
 class ImageHandleController:
 
@@ -202,8 +201,12 @@ class ImageHandleController:
         if name not in self.images:
             return
         img_data = self.images[name]
-        print(img_data.shape, self.imageview.imageDisp[self.imageview.actualIndex].shape)
-        if img_data.shape == self.imageview.imageDisp[self.imageview.actualIndex].shape:
+        current_image = self.imageview.imageDisp
+        if self.imageview.hasTimeAxis():
+            current_image = current_image[self.imageview.actualIndex]
+        if img_data.shape[-1] <= 4:
+            img_data = (color.rgb2gray(img_data[..., :3]) * 255).astype(int)
+        if img_data.shape == current_image.shape or img_data.shape == current_image.shape[:2]:
             self.imageview.coords_roi = np.argwhere(img_data.T > 0).T
             self.imageview.roiChanged()
 

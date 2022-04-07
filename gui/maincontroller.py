@@ -285,7 +285,8 @@ class MainController:
         # self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/synthetic.imzML")
 
         # self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/random.imzML")
-        self.open_file("/mnt/d/CBMN/random.imzML")
+        self.open_file("/mnt/d/CouplageMSI-Immunofluo/20211102 DAN 5um - laser 39/IF/20211102 Rate3#6-BF 10x - Post scan DAN- washed.tif")
+        # self.open_file("/mnt/d/CBMN/random.imzML")
 
         self.mainview.set_frame(self.mainview.peakpickingview)
 
@@ -413,7 +414,7 @@ class MainController:
         self.mainview.rangeSliderThreshold.setRange(min_value, max_value)
         self.mainview.rangeSliderThreshold.setValue((min_value, max_value))
         if len(displayed_image.shape) >= 3:
-            displayed_image = (color.rgb2gray(displayed_image) * 255).astype(np.uint8)
+            displayed_image = (color.rgb2gray(displayed_image[..., :3]) * 255).astype(np.uint8)
         displayed_image = displayed_image.T
         # imageview.coords_threshold = imageview.roi_to_coordinates(displayed_image, min_value, max_value)
 
