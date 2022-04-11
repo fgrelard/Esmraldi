@@ -70,6 +70,15 @@ def properties_largest_area_cc(ccs):
     argmax = max(regionprops, key=areas)
     return argmax
 
+def properties_median_perimeter(ccs):
+    regionprops = measure.regionprops(ccs)
+    if len(regionprops) == 0:
+        return -1
+    perimeters = [r.perimeter for r in regionprops]
+    arg_median = regionprops[np.argsort(perimeters)[len(perimeters)//2]]
+    return arg_median
+
+
 def region_property_to_cc(ccs, regionprop):
     """
     Extracts the connected component associated
@@ -559,7 +568,16 @@ def spatial_coherence(image):
     else:
         return r.area
 
-def find_similar_images_spatial_coherence(image_maldi, factor, quantiles=[], upper=100):
+
+def median_perimeter(image):
+    labels = measure.label(image, background=0)
+    r = properties_median_perimeter(labels)
+    if r == -1:
+        return -1
+    else:
+        return r.perimeter
+
+def find_similar_images_spatial_coherence(image_maldi, factor, quantiles=[], upper=100, fn=spatial_coherence, return_indices=False):
     """
     Finds images with spatial
     coherence values greater than a given threshold.
@@ -592,15 +610,19 @@ def find_similar_images_spatial_coherence(image_maldi, factor, quantiles=[], upp
         upper_threshold = np.percentile(norm_img, upper)
         for quantile in quantiles:
             threshold = int(np.percentile(norm_img, quantile))
-            sc = spatial_coherence( (norm_img > threshold) & (norm_img <= upper_threshold) )
+            mask = (norm_img > threshold) & (norm_img <= upper_threshold)
+            sc = fn(mask)
             if sc < min_area:
                 min_area = sc
         values.append(min_area)
     value_array = np.array(values)
-    similar_images = image_maldi[..., value_array > factor]
-    return similar_images
+    indices = (value_array > factor)
+    similar_images = image_maldi[..., indices]
+    if return_indices:
+        return similar_images, indices
+    return similar_images, indices
 
-def find_similar_images_spatial_coherence_percentage(image_maldi, percentage, quantiles=[], upper=100):
+def find_similar_images_spatial_coherence_percentage(image_maldi, percentage, quantiles=[], upper=100, fn=spatial_coherence, return_indices=False):
     """
     Finds images with spatial
     coherence values greater than a threshold defined as a
@@ -635,14 +657,18 @@ def find_similar_images_spatial_coherence_percentage(image_maldi, percentage, qu
         upper_threshold = np.percentile(norm_img, upper)
         for quantile in quantiles:
             threshold = int(np.percentile(norm_img, quantile))
-            sc = spatial_coherence( (norm_img > threshold) & (norm_img <= upper_threshold) )
+            mask = (norm_img > threshold) & (norm_img <= upper_threshold)
+            sc = fn(mask)
             if sc < min_area:
                 min_area = sc
         values.append(min_area)
     value_array = np.array(values)
     max_sc_value = np.amax(value_array)
     t = percentage * max_sc_value
-    similar_images = image_maldi[..., value_array > t]
+    indices = (value_array > t)
+    similar_images = image_maldi[..., indices]
+    if return_indices:
+        return similar_images, indices
     return similar_images
 
 def find_similar_images_variance(image_maldi, factor_variance=0.1):
