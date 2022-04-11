@@ -411,17 +411,39 @@ class ImageViewExtended(pg.ImageView):
         self.ui.normAutoRadio.hide()
 
 
+    def join_pixmap(self, p1, p2, mode=QtGui.QPainter.CompositionMode_SourceOver):
+        s = p1.size().expandedTo(p2.size())
+        result =  QtGui.QPixmap(s)
+        result.fill(QtCore.Qt.transparent)
+        painter = QtGui.QPainter(result)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.drawPixmap(QtCore.QPoint(), p1)
+        painter.setCompositionMode(mode)
+        painter.drawPixmap(result.rect(), p2, p2.rect())
+        painter.end()
+        return result
+
     def render(self):
         pg.ImageItem.render(self.imageItem)
         if self.imageItem is None or self.imageItem.qimage is None:
             return
 
-        pixel_value = QtGui.qRgb(255, 0, 0)
+        pixel_value = QtGui.qRgba(231, 76, 60, 150)
         point = self.roi.boundingRect().topLeft()
 
-        if self.imageItem.qimage.format() < 4:
-            self.imageItem.qimage = self.imageItem.qimage.convertToFormat(QtGui.QImage.Format_RGBA8888)
+        pixmap_image = QtGui.QPixmap.fromImage(self.imageItem.qimage)
 
+        qimage_roi = self.imageItem.qimage.convertToFormat(QtGui.QImage.Format_RGBA8888)
+        qimage_roi.fill(0)
+        if self.ui.roiBtn.isChecked() and self.coords_roi is not None and slice(None) not in self.coords_roi:
+            for x, y in self.coords_roi.T:
+                qimage_roi.setPixel(x, y, pixel_value)
+
+        pixmap_roi = QtGui.QPixmap.fromImage(qimage_roi)
+        pixmap_overlay = self.join_pixmap(pixmap_image, pixmap_roi)
+        self.imageItem.qimage = QtGui.QPixmap.toImage(pixmap_overlay)
+
+        pixel_value = QtGui.qRgba(255, 0, 0, 255)
         if self.coords_threshold is not None:
             coords_threshold = np.array(self.coords_threshold)
             npoints = coords_threshold.shape[-1]
@@ -435,7 +457,7 @@ class ImageViewExtended(pg.ImageView):
 
 
     def renderRoi(self, current_image):
-        if self.ui.roiBtn.isChecked() and self.coords_roi is not None:
+        if False and self.ui.roiBtn.isChecked() and self.coords_roi is not None:
             roi_image = np.zeros_like(current_image)
             coords = tuple(c for c in self.coords_roi[::-1])
             roi_image[coords] = current_image[coords]
@@ -706,7 +728,7 @@ class ImageViewExtended(pg.ImageView):
             self.roi = PolyLineROI(positions=self.previousRoiPositions, pos=self.roi.pos(), closed=True, hoverPen="r")
             self.roi.setPen(pen)
         if  self.ui.roiImage.isChecked():
-            self.coords_roi = [slice(None) for i in range(2)]
+            self.coords_roi = np.array([slice(None) for i in range(2)])
         else:
             self.view.addItem(self.roi)
             self.roi.sigRegionChangeFinished.connect(self.roiChanged)
@@ -740,6 +762,7 @@ class ImageViewExtended(pg.ImageView):
 
         rindex = np.intersect1d(rindex_roi, rindex_threshold)
         coords_roi = np.unravel_index(rindex, image.shape)
+        coords_roi = np.array(coords_roi)
         return coords_roi
 
     def roi_to_mean_spectra(self, image):
@@ -779,9 +802,7 @@ class ImageViewExtended(pg.ImageView):
         elif self.ui.roiPolygon.isChecked():
             self.previousRoiPositions = [[handle["pos"].x(), handle["pos"].y()] for handle in self.roi.handles]
 
-        current_image = self.imageDisp
-        if self.hasTimeAxis():
-            current_image = [self.actualIndex]
+        current_image = self.get_current_image()
         colmaj = self.imageItem.axisOrder == 'col-major'
         dim = len(current_image.shape)
 
@@ -810,8 +831,8 @@ class ImageViewExtended(pg.ImageView):
         offset = np.array(self.roi.pos()) + np.array([self.roi.boundingRect().topLeft().x(), self.roi.boundingRect().topLeft().y()])
         if not self.ui.roiImage.isChecked():
             self.coords_roi = self.roi_to_coordinates(coords_image, min_t, max_t, offset, self.mask_roi)
-        if len(current_image.shape) >= 3 and not any([c is Ellipsis for c in self.coords_roi]):
-            self.coords_roi = (Ellipsis,) + tuple(self.coords_roi)
+        # if len(current_image.shape) >= 3 and not any([c is Ellipsis for c in self.coords_roi]):
+        #     self.coords_roi = (Ellipsis,) + tuple(self.coords_roi)
         self.finalize_roi_change(current_image)
 
 
@@ -874,7 +895,10 @@ class ImageViewExtended(pg.ImageView):
         linear = np.unique(linear)
         ind = tuple([linear, Ellipsis])
         spectra = self.imageDisp.spectra[ind]
-        norm_img = self.imageDisp.normalization_image.flatten()[linear]
+        norm_img = np.ones_like(self.get_current_image())
+        if self.imageDisp.normalization_image is not None:
+            norm_img = self.imageDisp.normalization_image
+        norm_img = norm_img.flatten()[linear]
         mean_spectra = self.imageDisp.compute_mean_spectra(spectra, norm_img)
 
         scatter = ScatterPlotItemDirac(pen="w")
@@ -883,6 +907,12 @@ class ImageViewExtended(pg.ImageView):
         dock.addWidget(plot)
 
         self.winPlotROI.show()
+
+    def get_current_image(self):
+        current_image = self.imageDisp
+        if self.hasTimeAxis():
+            current_image = current_image[self.actualIndex]
+        return current_image
 
     def resetROI(self, event):
         self.previousRoiSize = 10
@@ -897,10 +927,9 @@ class ImageViewExtended(pg.ImageView):
         self.normalize_ms()
 
     def normalize_ms(self):
-        current_image = self.imageDisp
+        current_image = self.get_current_image()
         if self.imageItem.image is not None and self.hasTimeAxis():
             is_new_value = False
-            current_image = self.imageDisp[self.actualIndex]
             if self.ui.normTIC.isChecked():
                 tic = self.image.tic
                 if self.norm_value != "tic":
