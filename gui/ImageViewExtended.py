@@ -234,8 +234,6 @@ class ImageViewExtended(pg.ImageView):
         self.leaveEvent = lambda e: self.setFocus(e, False)
         self.winPlot.setVisible(False)
 
-        self.norm_value = None
-
         self.is_linked = False
 
         self.full_init = True
@@ -282,8 +280,21 @@ class ImageViewExtended(pg.ImageView):
         self.ui.editNorm = QtWidgets.QLineEdit(self.ui.normGroup)
         self.ui.editNorm.setText(str(-1))
         self.ui.editNorm.setMaximumWidth(100)
-        self.ui.editNorm.returnPressed.connect(self.normalize_ms)
+        self.ui.editNorm.returnPressed.connect(lambda: self.normalize_ms(True))
+
+        self.ui.labelCutoff = QtWidgets.QLabel(self.ui.normGroup)
+        self.ui.label_norm_type.setObjectName("label_cut_off")
+        self.ui.labelCutoff.setText(QtCore.QCoreApplication.translate("Form", "Cut-off"))
+
+        self.ui.editCutoff = QtWidgets.QLineEdit(self.ui.normGroup)
+        self.ui.editCutoff.setText(str(0))
+        self.ui.editCutoff.setMaximumWidth(40)
+        self.ui.editCutoff.returnPressed.connect(lambda: self.normalize_ms(True))
+
         hbox.addWidget(self.ui.editNorm)
+        hbox.addWidget(self.ui.labelCutoff)
+        hbox.addWidget(self.ui.editCutoff)
+
         # hbox.addStretch()
         self.ui.gridLayout_norm.addLayout(hbox, 0, 3, 1, 2)
 
@@ -924,24 +935,25 @@ class ImageViewExtended(pg.ImageView):
     def changeNorm(self, button, is_toggled):
         if not is_toggled:
             return
-        self.normalize_ms()
+        self.normalize_ms(True)
 
-    def normalize_ms(self):
+    def normalize_ms(self, new_value=False):
         current_image = self.get_current_image()
         if self.imageItem.image is not None and self.hasTimeAxis():
             is_new_value = False
             if self.ui.normTIC.isChecked():
                 tic = self.image.tic
-                if self.norm_value != "tic":
-                    self.norm_value = "tic"
+                if new_value:
                     self.image.normalization_image = tic.reshape(current_image.shape)
 
             elif self.ui.normIon.isChecked():
                 text = self.ui.editNorm.text()
                 value = float(text)
-                if value != self.norm_value:
-                    self.norm_value = value
-                    self.image.normalization_image = self.image.get_ion_image_mzs(value)
+                cut_off = float(self.ui.editCutoff.text())
+                if new_value:
+                    norm_img = self.image.get_ion_image_mzs(value)
+                    norm_img[norm_img <= cut_off] = 0
+                    self.image.normalization_image = norm_img
                     is_new_value = True
 
             if not self.ui.normOff.isChecked():
