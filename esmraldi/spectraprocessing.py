@@ -54,8 +54,10 @@ def spectra_mean(spectra):
 
     """
     spectra_mean = np.array([0 for i in range(len(spectra[0][0]))], dtype=np.float)
+    print(spectra.shape)
     for x, y in spectra:
         spectra_mean = np.add(spectra_mean, y)
+    print(len(spectra))
     spectra_mean /= len(spectra)
     return spectra_mean
 

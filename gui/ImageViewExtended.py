@@ -844,12 +844,18 @@ class ImageViewExtended(pg.ImageView):
             self.coords_roi = self.roi_to_coordinates(coords_image, min_t, max_t, offset, self.mask_roi)
         # if len(current_image.shape) >= 3 and not any([c is Ellipsis for c in self.coords_roi]):
         #     self.coords_roi = (Ellipsis,) + tuple(self.coords_roi)
-        self.finalize_roi_change(current_image)
+        self.finalize_roi_change()
 
 
 
-    def finalize_roi_change(self, current_image):
-        image_roi = current_image[tuple(self.coords_roi)]
+    def finalize_roi_change(self):
+        self.setCurrentIndices(self.actualIndex)
+        current_image = self.normalize_ms()
+
+        if len(current_image.shape) >= 3:
+            return
+
+        image_roi = current_image.T[tuple(self.coords_roi)]
 
         if not image_roi.size:
             image_roi = [0]
@@ -857,10 +863,7 @@ class ImageViewExtended(pg.ImageView):
         mean_roi = np.mean(image_roi)
         stddev_roi = np.std(image_roi)
         string_roi = "\u03BC="+ "{:.3e}".format(mean_roi)+ "\t\t\u03C3="+ "{:.3e}".format(stddev_roi)
-
-        self.setCurrentIndices(self.actualIndex)
         self.ui.labelRoiChange.setText(string_roi)
-        self.normalize_ms()
 
 
     def roiClicked(self):
@@ -902,7 +905,7 @@ class ImageViewExtended(pg.ImageView):
         min_value = self.ui.rangeSliderThreshold.minimum()
         max_value = self.ui.rangeSliderThreshold.maximum()
 
-        linear = np.ravel_multi_index(self.coords_roi, self.imageItem.image.T.shape)
+        linear = np.ravel_multi_index(self.coords_roi, self.imageItem.image.T.shape, order="F")
         linear = np.unique(linear)
         ind = tuple([linear, Ellipsis])
         spectra = self.imageDisp.spectra[ind]
@@ -940,7 +943,6 @@ class ImageViewExtended(pg.ImageView):
     def normalize_ms(self, new_value=False):
         current_image = self.get_current_image()
         if self.imageItem.image is not None and self.hasTimeAxis():
-            is_new_value = False
             if self.ui.normTIC.isChecked():
                 tic = self.image.tic
                 if new_value:
@@ -948,22 +950,28 @@ class ImageViewExtended(pg.ImageView):
 
             elif self.ui.normIon.isChecked():
                 text = self.ui.editNorm.text()
-                value = float(text)
-                cut_off = float(self.ui.editCutoff.text())
+                try:
+                    value = float(text)
+                except:
+                    value = 0
+                try:
+                    cut_off = float(self.ui.editCutoff.text())
+                except:
+                    cut_off = 0
                 if new_value:
                     norm_img = self.image.get_ion_image_mzs(value)
-                    norm_img[norm_img <= cut_off] = 0
+                    norm_img[norm_img <= cut_off] = 2**32
                     self.image.normalization_image = norm_img
-                    is_new_value = True
 
             if not self.ui.normOff.isChecked():
                 np.divide(current_image, self.image.normalization_image, out=current_image, where=self.image.normalization_image!=0)
-            if is_new_value:
+            if new_value:
                 self.buildPlot()
 
         self.renderRoi(current_image)
         self.levelMin, self.levelMax = np.amin(self.imageItem.image), np.amax(self.imageItem.image)
         self.autoLevels()
+        return current_image
 
 
     def updateImage(self, autoHistogramRange=True):

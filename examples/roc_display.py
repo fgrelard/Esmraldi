@@ -18,7 +18,7 @@ roc_values = np.array(roc_values_df)
 
 region_names = roc_values[:, 0]
 roc_values = roc_values[:, 1:]
-condition = (roc_values > 0.7) | (roc_values < 0.3)
+condition = (roc_values > 0.6) | (roc_values < 0.4)
 print(condition.shape)
 for i, region in enumerate(region_names):
     print(mzs.shape, roc_values.shape)

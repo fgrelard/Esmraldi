@@ -612,9 +612,8 @@ def find_similar_images_spatial_coherence(image_maldi, factor, quantiles=[], upp
             threshold = int(np.percentile(norm_img, quantile))
             mask = (norm_img > threshold) & (norm_img <= upper_threshold)
             sc = fn(mask)
-            if sc < min_area:
+            if sc < min_area and sc != 0:
                 min_area = sc
-        values.append(min_area)
     value_array = np.array(values)
     indices = (value_array > factor)
     similar_images = image_maldi[..., indices]

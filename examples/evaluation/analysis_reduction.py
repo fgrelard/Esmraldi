@@ -33,6 +33,7 @@ parser.add_argument("-g", "--threshold", help="Mass to charge ratio threshold (o
 
 parser.add_argument("-p", "--preprocess", help="Whether to normalize or not", action="store_true")
 parser.add_argument("-f", "--nmf", help="Use NMF instead of PCA", action="store_true")
+parser.add_argument("--post_process", help="Postprocessing with tSNE", action="store_true")
 args = parser.parse_args()
 
 
@@ -44,6 +45,7 @@ threshold = int(args.threshold)
 n = int(args.n)
 is_normalized = args.preprocess
 is_nmf = args.nmf
+post_process = args.post_process
 
 outroot, outext = os.path.splitext(outname)
 print(inputname, mzsname, theoretical_name, outname, is_normalized, is_nmf)
@@ -107,6 +109,16 @@ else:
     inverse_transform = pca.inverse_transform(eigenvalues)
     eigenvectors_transposed = eigenvalues.T
 
+if post_process:
+    from sklearn.manifold import TSNE
+    X_tsne = TSNE(n_components=2, random_state=0).fit_transform( eigenvectors.T )
+    x_sel = X_tsne[:, 0]
+    y_sel = X_tsne[:, 1]
+    print(x_sel.shape)
+    plt.plot(x_sel, y_sel, "o")
+    for i, (x,y) in enumerate(zip(x_sel, y_sel)):
+        plt.annotate('{:.3f}'.format(mzs[i]), xy=(x,y), xytext=(0,5), textcoords='offset points',ha='center')
+    plt.show()
 
 mse = mean_squared_error(M, inverse_transform, multioutput='raw_values')
 outlier_indices = [i for i in range(len(mse))]
@@ -157,9 +169,12 @@ for i in range(eigenvectors.shape[0]):
     descending_indices = eigenvectors[i].argsort()[::-1]
     descending_scores = eigenvectors[i, descending_indices]
     descending_mzs = mzs[descending_indices]
-    descending_names = si.annotation(descending_mzs, theoretical_spectrum.spectrum, 0.1)
-    descending_names = {k:(v if len(v) > 0 else "?") for k,v in descending_names.items()}
-    table = np.column_stack(np.array([list(descending_names.keys()), list(descending_names.values()), descending_scores.tolist()], dtype=object))
+    if theoretical_name:
+        descending_names = si.annotation(descending_mzs, theoretical_spectrum.spectrum, 0.1)
+        descending_names = {k:(v if len(v) > 0 else "?") for k,v in descending_names.items()}
+        table = np.column_stack(np.array([list(descending_names.keys()), list(descending_names.values()), descending_scores.tolist()], dtype=object))
+    else:
+        table = np.column_stack(np.array([descending_mzs.tolist(), descending_scores.tolist()], dtype=object))
     tables.append(table)
 
 tables_array = np.array(tables).transpose((1, 0, 2))

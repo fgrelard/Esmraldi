@@ -5,7 +5,11 @@ class MSImageBase:
     def __init__(self, spectra, mzs=None, tolerance=0, spectral_axis=-1, mean_spectra=None, peaks=None):
         if mzs is None:
             all_mzs = spectra[:, 0, ...]
-            self.mzs = np.unique(all_mzs[np.nonzero(all_mzs)])
+            if len(spectra.shape) == 3:
+                mzs = all_mzs[np.nonzero(all_mzs)]
+            else:
+                mzs = np.hstack(all_mzs).flatten()
+            self.mzs = np.unique(mzs)
         else:
             self.mzs = mzs
         self.spectra = spectra

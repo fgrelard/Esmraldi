@@ -7,6 +7,9 @@ from PyQt5.QtGui import QIcon
 import sys
 import configparser
 import os
+import qdarkstyle
+
+os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
 
 # For high DPI screens
 if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
