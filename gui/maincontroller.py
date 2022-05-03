@@ -24,7 +24,6 @@ import skimage.color as color
 import esmraldi.imzmlio as io
 import esmraldi.spectraprocessing as sp
 
-
 from esmraldi.msimage import MSImage
 from esmraldi.msimagefly import MSImageOnTheFly
 from esmraldi.sparsematrix import SparseMatrix
@@ -156,6 +155,8 @@ class WorkerSave(QObject):
     def save_other_formats(self):
         try:
             if len(self.image.shape) >= 3:
+                root, ext = os.path.splitext(self.path)
+                io.to_csv(self.image.mzs, root + ".csv")
                 sitk.WriteImage(sitk.GetImageFromArray(self.image.image.astype(np.float32)), self.path)
             elif self.image.shape[-1] <= 4:
                 sitk.WriteImage(sitk.GetImageFromArray(self.image, isVector=True), self.path)
