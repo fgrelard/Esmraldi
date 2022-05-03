@@ -1,6 +1,8 @@
 import argparse
 import numpy as np
 import esmraldi.imzmlio as io
+import esmraldi.fusion as fusion
+import esmraldi.imageutils as imageutils
 import SimpleITK as sitk
 import matplotlib.pyplot as plt
 import xlsxwriter
@@ -9,19 +11,6 @@ import os
 from skimage.color import rgb2gray
 from sklearn.metrics import roc_auc_score
 
-def get_norm_image(images, norm, mzs):
-    if norm == "tic":
-        img_norm = np.sum(images, axis=-1)
-    else:
-        closest_mz_index = np.abs(mzs - norm).argmin()
-        img_norm = images[..., closest_mz_index]
-
-    return img_norm
-
-def process_image(current_img, img_norm):
-    return_img = np.zeros_like(current_img)
-    np.divide(current_img, img_norm, out=return_img, where=img_norm!=0)
-    return return_img
 
 def read_image(image_name):
     sitk.ProcessObject_SetGlobalWarningDisplay(False)
@@ -30,9 +19,6 @@ def read_image(image_name):
     mask = mask.T
     return mask
 
-def find_indices(image, shape):
-    indices = np.where(image > 0)
-    return np.ravel_multi_index(indices, shape, order='F')
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input .imzML")
@@ -64,17 +50,7 @@ print(len(mzs))
 images = io.get_images_from_spectra(full_spectra, shape)
 
 
-mask = read_image(mask_name)
-regions = []
-for region_name in region_names:
-    region = read_image(region_name)
-    regions.append(region)
 
-n = len(np.where(mask>0)[0])
-
-print(n)
-indices = np.where(mask > 0)
-indices_ravel = find_indices(mask, (max_x, max_y))
 workbook = xlsxwriter.Workbook(output_name, {'strings_to_urls': False})
 header_format = workbook.add_format({'bold': True,
                                      'align': 'center',
@@ -93,21 +69,19 @@ worksheet = workbook.add_worksheet(name)
 worksheets = []
 worksheets.append(worksheet)
 
-norm_img = np.ones_like(images[..., 0])
+mask = read_image(mask_name)
+regions = []
+for region_name in region_names:
+    region = read_image(region_name)
+    regions.append(region)
+
+n = len(np.where(mask>0)[0])
+
+norm_img = None
 if normalization > 0:
-    norm_img = get_norm_image(images, normalization, mzs)
-    norm_indices = find_indices(norm_img, (max_x, max_y))
-    indices_ravel = np.intersect1d(indices_ravel, norm_indices)
-    indices = np.unravel_index(indices_ravel, (max_x, max_y), order="F")
+    norm_img = imageutils.get_norm_image(images, normalization, mzs)
 
-
-region_bool = []
-for region in regions:
-    indices_regions = find_indices(region, (max_x, max_y))
-    inside_region = np.in1d(indices_ravel, indices_regions).astype(int)
-    is_same = np.all(inside_region == inside_region[0])
-    if not is_same:
-        region_bool.append(inside_region)
+indices, indices_ravel = fusion.roc_indices(mask, (max_x, max_y), norm_img)
 
 for worksheet in worksheets:
     for i, region in enumerate(regions):
@@ -116,18 +90,11 @@ for worksheet in worksheets:
         worksheet.write(i+1, 0, name, header_format)
     worksheet.freeze_panes(1, 1)
 
+region_bool = fusion.region_to_bool(regions, indices_ravel, (max_x, max_y))
+roc_auc_scores = fusion.roc_auc_analysis(images, indices, region_bool, norm_img)
 
-nreg = len(regions)
-for i in range(images.shape[-1]):
-    mz = mzs[i]
-    current_image = images[..., i]
-    if normalization > 0:
-        current_image = process_image(current_image, norm_img)
-    sub_region = current_image[indices]
-    current_values = sub_region.flatten()
-    worksheet.write(0, i+1, mz, header_format)
+for (i, j), auc in np.ndenumerate(roc_auc_scores):
+    worksheet.write(0, i+1, mzs[i], header_format)
+    worksheet.write(j+1, i+1, auc)
 
-    for j, binary_label in enumerate(region_bool):
-        auc = roc_auc_score(binary_label, current_values)
-        worksheet.write(j+1, i+1, auc)
 workbook.close()

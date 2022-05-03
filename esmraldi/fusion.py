@@ -14,6 +14,7 @@ from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity, cosine_distances
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import roc_auc_score
 
 def clustering_affinity(X_r):
     """
@@ -464,3 +465,44 @@ def remove_indices(image):
         if not obj_image.any() or np.median(obj_image) == current_image.max():
             to_remove.append(i)
     return to_remove
+
+
+def roc_indices(mask, shape, norm_img=None):
+    indices = np.where(mask > 0)
+    indices_ravel = np.ravel_multi_index(indices, shape, order='F')
+
+    if norm_img is not None:
+        norm_indices = np.ravel_multi_index(np.where(norm_img > 0), shape, order='F')
+        indices_ravel = np.intersect1d(indices_ravel, norm_indices)
+        indices = np.unravel_index(indices_ravel, shape, order="F")
+
+    return indices, indices_ravel
+
+
+def region_to_bool(regions, indices_ravel, shape):
+    region_bool = []
+    for region in regions:
+        indices_regions = np.ravel_multi_index(np.where(region > 0), shape, order='F')
+        inside_region = np.in1d(indices_ravel, indices_regions).astype(int)
+        is_same = np.all(inside_region == inside_region[0])
+        if not is_same:
+            region_bool.append(inside_region)
+    return region_bool
+
+def roc_auc_analysis(images, indices, region_bool, norm_img=None):
+    nreg = len(region_bool)
+    roc_auc_scores = np.zeros((images.shape[-1], nreg))
+    for i in range(images.shape[-1]):
+        current_image = images[..., i]
+        if norm_img is not None:
+            return_img = np.zeros_like(current_image)
+            np.divide(current_image, norm_img, out=return_img, where=norm_img!=0)
+            current_image = return_img
+
+        sub_region = current_image[indices]
+        current_values = sub_region.flatten()
+
+        for j, binary_label in enumerate(region_bool):
+            roc_auc_scores[i, j] = roc_auc_score(binary_label, current_values)
+
+    return roc_auc_scores

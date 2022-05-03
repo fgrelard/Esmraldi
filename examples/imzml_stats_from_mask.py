@@ -1,6 +1,8 @@
 import argparse
 import numpy as np
 import esmraldi.imzmlio as io
+import esmraldi.fusion as fusion
+import esmraldi.imageutils as imageutils
 import SimpleITK as sitk
 import matplotlib.pyplot as plt
 import xlsxwriter
@@ -8,19 +10,6 @@ import os
 
 from skimage.color import rgb2gray
 
-def get_norm_image(images, norm, mzs):
-    if norm == "tic":
-        img_norm = np.sum(images, axis=-1)
-    else:
-        closest_mz_index = np.abs(mzs - norm).argmin()
-        img_norm = images[..., closest_mz_index]
-
-    return img_norm
-
-def process_image(current_img, img_norm):
-    return_img = np.zeros_like(current_img)
-    np.divide(current_img, img_norm, out=return_img, where=img_norm!=0)
-    return return_img
 
 def read_image(image_name):
     sitk.ProcessObject_SetGlobalWarningDisplay(False)
@@ -30,17 +19,6 @@ def read_image(image_name):
     mask = mask.T
     return mask
 
-def find_indices(image, shape):
-    indices = np.where(image > 0)
-    return np.ravel_multi_index(indices, shape, order='F')
-
-def region_labels(regions, indices, shape):
-    region_bool = []
-    for region in regions:
-        indices_regions = find_indices(region, (max_x, max_y))
-        inside_region = np.in1d(indices, indices_regions)
-        region_bool.append(inside_region)
-    return region_bool
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input .imzML")
@@ -80,8 +58,7 @@ for region_name in region_names:
 n = len(np.where(mask>0)[0])
 
 print(n)
-indices = np.where(mask > 0)
-indices_ravel = find_indices(mask, (max_x, max_y))
+
 workbook = xlsxwriter.Workbook(output_name, {'strings_to_urls': False})
 workbook.use_zip64()
 header_format = workbook.add_format({'bold': True,
@@ -102,14 +79,15 @@ worksheet_stats = workbook.add_worksheet("Stats")
 worksheets = []
 worksheets.append((worksheet, worksheet_stats))
 
-norm_img = np.ones_like(images[..., 0])
-if normalization > 0:
-    norm_img = get_norm_image(images, normalization, mzs)
-    norm_indices = find_indices(norm_img, (max_x, max_y))
-    indices_ravel = np.intersect1d(indices_ravel, norm_indices)
-    indices = np.unravel_index(indices_ravel, (max_x, max_y), order="F")
 
-region_bool = region_labels(regions, indices_ravel, (max_x, max_y))
+norm_img = None
+if normalization > 0:
+    norm_img = imageutils.get_norm_image(images, normalization, mzs)
+
+indices, indices_ravel = fusion.roc_indices(mask, (max_x, max_y), norm_img)
+
+
+region_bool = fusion.region_to_bool(regions, indices_ravel, (max_x, max_y))
 
 for w, (worksheet, worksheet_stats) in enumerate(worksheets):
     worksheet.write(0, 0, "Pixel number", header_format)
@@ -130,7 +108,7 @@ for i in range(images.shape[-1]):
     current_image = images[..., i]
 
     if normalization > 0:
-        current_image = process_image(current_image, norm_img)
+        current_image = imageutils.normalize_image(current_image, norm_img)
 
     sub_region = current_image[indices]
 

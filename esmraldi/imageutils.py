@@ -648,3 +648,18 @@ def pseudo_flat_field_correction(image, sigma):
     corrected_image = color.hsv2rgb(new_hsv_image)
     corrected_image = np.round(np.clip(corrected_image*255, 0, 255)).astype(np.uint8)
     return corrected_image
+
+
+def get_norm_image(images, norm, mzs):
+    if norm == "tic":
+        img_norm = np.sum(images, axis=-1)
+    else:
+        closest_mz_index = np.abs(mzs - norm).argmin()
+        img_norm = images[..., closest_mz_index]
+
+    return img_norm
+
+def normalize_image(current_image, norm_img):
+    return_img = np.zeros_like(current_image)
+    np.divide(current_image, norm_img, out=return_img, where=norm_img!=0)
+    return return_img

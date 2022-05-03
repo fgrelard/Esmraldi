@@ -612,8 +612,9 @@ def find_similar_images_spatial_coherence(image_maldi, factor, quantiles=[], upp
             threshold = int(np.percentile(norm_img, quantile))
             mask = (norm_img > threshold) & (norm_img <= upper_threshold)
             sc = fn(mask)
-            if sc < min_area and sc != 0:
+            if sc < min_area:
                 min_area = sc
+        values.append(min_area)
     value_array = np.array(values)
     indices = (value_array > factor)
     similar_images = image_maldi[..., indices]
@@ -670,7 +671,7 @@ def find_similar_images_spatial_coherence_percentage(image_maldi, percentage, qu
         return similar_images, indices
     return similar_images
 
-def find_similar_images_variance(image_maldi, factor_variance=0.1):
+def find_similar_images_variance(image_maldi, factor_variance=0.1, return_indices=False):
     """
     Finds images that have a high variance in their intensities.
 
@@ -693,5 +694,8 @@ def find_similar_images_variance(image_maldi, factor_variance=0.1):
     reshaped = image_maldi.reshape(-1, image_maldi.shape[-1])
     variance = np.var(reshaped, axis=0)
     max_variance = np.amax(variance)
-    similar_images = image_maldi[..., variance < factor_variance * max_variance]
+    indices = variance < factor_variance * max_variance
+    similar_images = image_maldi[..., indices]
+    if return_indices:
+        return similar_images, indices
     return similar_images
