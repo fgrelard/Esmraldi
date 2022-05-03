@@ -155,7 +155,9 @@ class WorkerSave(QObject):
 
     def save_other_formats(self):
         try:
-            if self.image.shape[-1] <= 4:
+            if len(self.image.shape) >= 3:
+                sitk.WriteImage(sitk.GetImageFromArray(self.image.image.astype(np.float32)), self.path)
+            elif self.image.shape[-1] <= 4:
                 sitk.WriteImage(sitk.GetImageFromArray(self.image, isVector=True), self.path)
             else:
                 sitk.WriteImage(sitk.GetImageFromArray(self.image), self.path)
@@ -273,6 +275,9 @@ class MainController:
 
         shortcut_link = QShortcut(QKeySequence('Ctrl+O'), self.mainview.parent)
         shortcut_link.activated.connect(self.open)
+
+        shortcut_link = QShortcut(QKeySequence('Ctrl+S'), self.mainview.parent)
+        shortcut_link.activated.connect(self.save)
 
         self.config = config
         self.threads = []
