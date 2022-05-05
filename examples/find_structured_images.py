@@ -11,6 +11,7 @@ on this subset
 import esmraldi.segmentation as seg
 import esmraldi.imzmlio as imzmlio
 import esmraldi.imageutils as imageutils
+import esmraldi.fusion as fusion
 import sys
 import SimpleITK as sitk
 import matplotlib.pyplot as plt
@@ -21,6 +22,7 @@ import os
 import math
 
 from esmraldi.msimage import MSImage
+from esmraldi.sliceviewer import SliceViewer
 
 from skimage import segmentation
 from skimage import measure
@@ -33,21 +35,23 @@ from sklearn import manifold
 from skimage.morphology import convex_hull_image
 
 from scipy import ndimage
+from skimage.color import rgb2gray
 
-def display_stack(img):
-    n = img.shape[-1]
-    w = math.ceil(math.sqrt(n))
-    fig, ax = plt.subplots(w, w)
 
-    for i in range(n):
-        ndindex = np.unravel_index(i, ax.shape)
-        ax[ndindex].imshow(img[..., i])
-    plt.show()
-
+def read_image(image_name):
+    sitk.ProcessObject_SetGlobalWarningDisplay(False)
+    mask = sitk.GetArrayFromImage(sitk.ReadImage(image_name))
+    mask = rgb2gray(mask)
+    mask = mask.T
+    return mask
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input (.nii or imzML)")
+parser.add_argument("--on_sample", help="Whether to consider only on-sample points", action="store_true")
+parser.add_argument("-m", "--mask", help="Mask image (any ITK format)")
+parser.add_argument("-r", "--regions", help="Subregions inside mask", nargs="+", type=str)
+parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given m/z", default=0)
 parser.add_argument("-o", "--output", help="Output segmentation (.nii)")
 parser.add_argument("-f", "--factor", help="Factor for the spatially coherent images")
 parser.add_argument("-q", "--quantiles", nargs="+", type=int, help="Quantile lower thresholds", default=[60, 70, 80, 90])
@@ -55,14 +59,17 @@ parser.add_argument("-u", "--quantile_upper", help="Quantile upper threshold", d
 args = parser.parse_args()
 
 inputname = args.input
+on_sample = args.on_sample
 outname = args.output
 factor = float(args.factor)
 quantiles = args.quantiles
 quantile_upper = int(args.quantile_upper)
+mask_name = args.mask
+region_names = args.regions
+normalization = float(args.normalization)
 
 radius = 1
 selem = disk(radius)
-
 
 if inputname.lower().endswith(".imzml"):
     imzml = imzmlio.open_imzml(inputname)
@@ -84,51 +91,40 @@ else:
 
 print(img_data.shape)
 
-# index = np.argmin(np.abs(mzs - 377.06045532))
-# image2D = img_data[..., index]
-# norm_img = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
-# upper_threshold = np.percentile(norm_img, 100)
-# for quantile in quantiles:
-#     threshold = int(np.percentile(norm_img, quantile))
-#     mask = (norm_img > threshold) & (norm_img <= upper_threshold)
-#     curimg = norm_img.copy()
-#     curimg[~mask] = 0
-#     print(np.count_nonzero(curimg)/np.prod(curimg.shape))
-#     plt.imshow(curimg)
-#     plt.show()
+if on_sample:
+    large_structure_images, ind = seg.find_remote_from_image_edges(img_data, 0.75, quantiles=quantiles, return_indices=True)
+    fig, ax = plt.subplots(1)
+    tracker = SliceViewer(ax, np.transpose(large_structure_images, (2, 1, 0)))
+    fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
+    plt.show()
 
 
-values = []
-for i in range(img_data.shape[-1]):
-    curimg = img_data[..., i]
-    curimg = np.uint8(cv.normalize(curimg, None, 0, 255, cv.NORM_MINMAX))
-    varimg = imageutils.variance_image(curimg, size=5)
-    varimg = np.uint8(cv.normalize(varimg, None, 0, 255, cv.NORM_MINMAX))
-    upper_threshold = np.percentile(varimg, 100)
-    centroid = [varimg.shape[0]//2, varimg.shape[1]//2]
-    thimg = varimg.copy()
-    thimg[:] = 1
-    thdiff = np.linalg.norm(np.argwhere(thimg) - centroid, axis=-1)
-    thstd = np.std(thdiff)
-    minvalue = sys.maxsize
-    for quantile in quantiles:
-        threshold = int(np.percentile(curimg, quantile))
-        mask = (curimg > threshold) & (curimg <= upper_threshold)
-        binaryimg = curimg.copy()
-        binaryimg[mask] = 1
-        binaryimg[~mask] = 0
-        moments = measure.moments(binaryimg, order=1)
 
-        centroid = [moments[1, 0]/moments[0,0], moments[0, 1]/moments[0,0]]
-        ind = np.argwhere(mask)
-        max_distance = np.linalg.norm(centroid)
-        diff = np.linalg.norm(ind - centroid, axis=-1)
-        variance = np.std(diff) / thstd
-        if variance < minvalue:
-            minvalue = variance
-    values.append(minvalue)
-value_array = np.array(values)
-indices = (value_array < factor)
+if mask_name and region_names:
+    mask = read_image(mask_name)
+    regions = []
+    for region_name in region_names:
+        region = read_image(region_name)
+        regions.append(region)
+
+    norm_img = None
+    if normalization > 0:
+        norm_img = imageutils.get_norm_image(img_data, normalization, mzs)
+
+    indices, indices_ravel = fusion.roc_indices(mask, mask.shape, norm_img)
+
+    region_bool = fusion.region_to_bool(regions, indices_ravel, mask.shape)
+    roc_auc_scores = fusion.roc_auc_analysis(img_data, indices, region_bool, norm_img)
+    value = 0.7
+    print(roc_auc_scores)
+    cond = (roc_auc_scores > 1 - value) & (roc_auc_scores < value)
+    indices_roc = np.all(cond, axis=-1)
+    indices_roc = np.where(indices_roc)[0]
+
+similar_images, indices = seg.find_similar_images_dispersion(img_data, factor, quantiles=quantiles, in_sample=True, return_indices=True)
+
+indices = np.where(indices)[0]
+indices = np.intersect1d(indices, indices_roc)
 similar_images = img_data[..., indices]
 
 # similar_images, indices = seg.find_similar_images_variance(img_data, factor, return_indices=True)
@@ -137,7 +133,6 @@ similar_images = img_data[..., indices]
 # similar_images = seg.find_similar_images_variance(img_data, factor)
 print(mzs[indices], mzs[indices].shape)
 
-from esmraldi.sliceviewer import SliceViewer
 fig, ax = plt.subplots(1)
 tracker = SliceViewer(ax, np.transpose(similar_images, (2, 1, 0)))
 fig.canvas.mpl_connect('scroll_event', tracker.onscroll)

@@ -663,3 +663,22 @@ def normalize_image(current_image, norm_img):
     return_img = np.zeros_like(current_image)
     np.divide(current_image, norm_img, out=return_img, where=norm_img!=0)
     return return_img
+
+
+def distance_point_to_set(point, point_set):
+    dist_2 = np.sum((point_set - point)**2, axis=1)
+    ind_closest = np.argmin(dist_2)
+    dist = np.linalg.norm(point - point_set[ind_closest])
+    return dist
+
+
+def rectangle_coordinates(lower_left, upper_right):
+    l = lower_left
+    w, h = np.array(upper_right) - np.array(lower_left)
+    u = np.array(upper_right)-1
+    im =  np.zeros((w, h))
+    im[l[0]:u[0], l[1]:l[1]+1] = 1
+    im[u[0]:u[0]+1, l[1]:u[1]+1] = 1
+    im[l[0]:u[0], u[1]:u[1]+1] = 1
+    im[l[0]:l[0]+1, l[1]:u[1]+1] = 1
+    return np.argwhere(im>0)

@@ -6,6 +6,8 @@ import math
 import numpy as np
 import pyimzml.ImzMLParser as imzmlparser
 import scipy.spatial.distance as dist
+import esmraldi.imageutils as imageutils
+import esmraldi.imzmlio as io
 import cv2 as cv
 import SimpleITK as sitk
 
@@ -699,3 +701,66 @@ def find_similar_images_variance(image_maldi, factor_variance=0.1, return_indice
     if return_indices:
         return similar_images, indices
     return similar_images
+
+
+def find_similar_images_dispersion(image_maldi, factor, quantiles=[], in_sample=False, return_indices=False):
+    values = []
+    values_sample = []
+    coords = []
+    th_image = image_maldi[..., 0].copy()
+    centroid = [th_image.shape[0]//2, th_image.shape[1]//2]
+    th_image[:] = 1
+    th_diff = np.linalg.norm(np.argwhere(th_image) - centroid, axis=-1)
+    th_std = np.std(th_diff)
+    for i in range(image_maldi.shape[-1]):
+        image2D = image_maldi[..., i]
+        image2D = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
+        upper_threshold = np.percentile(image2D, 100)
+        min_value = sys.maxsize
+        min_value_sample = sys.maxsize
+        c = []
+        for quantile in quantiles:
+            threshold = int(np.percentile(image2D, quantile))
+            mask = (image2D > threshold) & (image2D <= upper_threshold)
+            binaryimg = image2D.copy()
+            binaryimg[mask] = 1
+            binaryimg[~mask] = 0
+            moments = measure.moments(binaryimg, order=1)
+            centroid = [moments[1, 0]/moments[0, 0], moments[0, 1]/moments[0, 0]]
+            ind = np.argwhere(mask)
+            diff = np.linalg.norm(ind - centroid, axis=-1)
+            variance = np.std(diff) / th_std
+            value_sample = np.amin(diff)
+            if variance < min_value:
+                min_value = variance
+                min_value_sample = value_sample
+                c = ind
+        values.append(min_value)
+        values_sample.append(min_value_sample)
+        coords.append(c)
+    value_array = np.array(values)
+    value_sample_array = np.array(values_sample)
+    coords = np.array(coords)
+    print(coords.shape)
+    if in_sample:
+        off_sample_image = determine_on_off_sample(image_maldi, value_sample_array)
+        off_sample_cond = np.array([np.median(off_sample_image[coord.T[0], coord.T[1]]) for coord in coords])
+    indices = (value_array < factor) & (off_sample_cond == 1)
+    similar_images = image_maldi[..., indices]
+    if return_indices:
+        return similar_images, indices
+    return similar_images
+
+def determine_on_off_sample(image_maldi, value_array):
+    kmeans = KMeans(n_clusters=2, random_state=0).fit(value_array.reshape(-1, 1))
+    labels = kmeans.labels_
+    cond = np.mean(value_array[labels == 0]) > np.mean(value_array[labels == 1])
+    im = io.normalize(image_maldi)
+    number_cluster = 0 if cond else 1
+    off_sample = np.zeros_like(im[..., 0])
+    sub_image = im[..., labels==number_cluster]
+    for i in range(sub_image.shape[-1]):
+        current_sub = sub_image[..., i]
+        thresh = threshold_otsu(current_sub)
+        off_sample[current_sub > thresh] = 1
+    return off_sample
