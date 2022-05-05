@@ -745,7 +745,7 @@ def find_similar_images_dispersion(image_maldi, factor, quantiles=[], in_sample=
     if in_sample:
         off_sample_image = determine_on_off_sample(image_maldi, value_sample_array)
         off_sample_cond = np.array([np.median(off_sample_image[coord.T[0], coord.T[1]]) for coord in coords])
-    indices = (value_array < factor) & (off_sample_cond == 1)
+    indices = (value_array < factor) & (off_sample_cond == 0)
     similar_images = image_maldi[..., indices]
     if return_indices:
         return similar_images, indices
