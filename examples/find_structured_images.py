@@ -91,13 +91,6 @@ else:
 
 print(img_data.shape)
 
-if on_sample:
-    large_structure_images, ind = seg.find_remote_from_image_edges(img_data, 0.75, quantiles=quantiles, return_indices=True)
-    fig, ax = plt.subplots(1)
-    tracker = SliceViewer(ax, np.transpose(large_structure_images, (2, 1, 0)))
-    fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
-    plt.show()
-
 
 
 if mask_name and region_names:
@@ -140,5 +133,5 @@ plt.show()
 
 root, ext = os.path.splitext(outname)
 
-sitk.WriteImage(sitk.GetImageFromArray(similar_images), outname)
+sitk.WriteImage(sitk.GetImageFromArray(similar_images.T), outname)
 imzmlio.to_csv(mzs[indices], root + ".csv")

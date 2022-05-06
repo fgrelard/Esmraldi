@@ -230,11 +230,12 @@ class ImageViewExtended(pg.ImageView):
 
 
         self.is_focused = False
+        self.is_linked = False
+
         self.enterEvent = lambda e: self.setFocus(e, True)
         self.leaveEvent = lambda e: self.setFocus(e, False)
-        self.winPlot.setVisible(False)
 
-        self.is_linked = False
+        self.winPlot.setVisible(False)
 
         self.full_init = True
 

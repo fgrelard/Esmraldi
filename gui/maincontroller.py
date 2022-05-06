@@ -484,6 +484,7 @@ class MainController:
 
     def start_registration_selection(self, event):
         self.mainview.show_second_view()
+        self.registrationselectioncontroller.set_clickable(True)
         self.mainview.set_frame(self.mainview.registrationselectionview)
 
     def compute_registration_selection(self):
@@ -539,6 +540,8 @@ class MainController:
         iview2 = self.imagehandlecontroller2.imagehandleview.imageview
         iview1.is_linked = self.is_linked
         iview2.is_linked = self.is_linked
+        iview1.setFocus(None, iview1.is_focused)
+        iview2.setFocus(None, iview2.is_focused)
         if self.is_linked:
             iview1.view.setXLink(iview2.view)
             iview1.view.setYLink(iview2.view)
