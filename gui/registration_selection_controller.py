@@ -99,8 +99,9 @@ class WorkerRegistrationSelection(QtCore.QObject):
     def work(self):
         fixed, is_ms_fixed = self.preprocess_image(self.fixed)
         moving, is_ms_moving = self.preprocess_image(self.moving)
-        fixed, self.points_fixed = self.crop_image(fixed, self.points_fixed)
+        # fixed, self.points_fixed = self.crop_image(fixed, self.points_fixed)
 
+        print(self.points_fixed, self.points_moving)
         landmark_transform = sitk.LandmarkBasedTransformInitializer(sitk.AffineTransform(2), self.points_fixed, self.points_moving)
 
         deformed = self.apply_registration(fixed, moving, landmark_transform)
