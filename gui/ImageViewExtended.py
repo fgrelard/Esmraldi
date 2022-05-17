@@ -499,7 +499,7 @@ class ImageViewExtended(pg.ImageView):
         children = self.imageItem.getViewBox().allChildren()
         self.points = []
         for child in children:
-            if isinstance(child, Crosshair):
+            if isinstance(child, Crosshair) and child != self.crosshair_move:
                 self.imageItem.getViewBox().removeItem(child)
         self.crossdrawer = CrosshairDrawing()
 
@@ -562,6 +562,7 @@ class ImageViewExtended(pg.ImageView):
             is_shown = True
 
         self.isNewImage = True
+        self.displayed_spectra = None
         super().setImage(img, autoRange, autoLevels, levels, axes, xvals, pos, scale, transform, autoHistogramRange)
 
         self.imageChangedSignal.signal.emit()
@@ -926,7 +927,10 @@ class ImageViewExtended(pg.ImageView):
     def get_current_image(self):
         current_image = self.imageDisp
         if self.hasTimeAxis():
-            current_image = current_image[self.actualIndex]
+            if self.actualIndex < self.imageDisp.shape[0]:
+                current_image = current_image[self.actualIndex]
+            else:
+                current_image = current_image[0]
         return current_image
 
     def resetROI(self, event):
@@ -1125,7 +1129,6 @@ class ImageViewExtended(pg.ImageView):
 
         self.levelMin, self.levelMax = np.amin(self.imageItem.image), np.amax(self.imageItem.image)
         self.autoLevels()
-
         if self.displayed_spectra is not None:
             data = self.tVals[self.actualIndex], self.displayed_spectra[self.actualIndex]
             if isinstance(self.actualIndex, numbers.Number):
