@@ -1,17 +1,21 @@
 import numpy as np
 import esmraldi.spectraprocessing as sp
-
+import esmraldi.utils as utils
 class MSImageBase:
     def __init__(self, spectra, mzs=None, tolerance=0, spectral_axis=-1, mean_spectra=None, peaks=None):
+        all_mzs = spectra[:, 0, ...]
+        if len(spectra.shape) == 3:
+            all_mzs = all_mzs[np.nonzero(all_mzs)]
+        else:
+            all_mzs = np.hstack(all_mzs).flatten()
         if mzs is None:
-            all_mzs = spectra[:, 0, ...]
-            if len(spectra.shape) == 3:
-                mzs = all_mzs[np.nonzero(all_mzs)]
-            else:
-                mzs = np.hstack(all_mzs).flatten()
-            self.mzs = np.unique(mzs)
+            self.mzs = np.unique(all_mzs)
         else:
             self.mzs = mzs
+        self.indexing = utils.indices_search_sorted(all_mzs, self.mzs)
+        all_len = [len(g) for g in spectra[:, 0]]
+        self.ind_len = np.hstack([np.arange(l) for l in all_len])
+        self.cumlen = np.cumsum(all_len)-1
         self.spectra = spectra
         self.tolerance = tolerance
         self.spectral_axis = spectral_axis
@@ -85,7 +89,7 @@ class MSImageBase:
         if len(spectra.shape) >= 3:
             mean_spectra = sp.spectra_mean(spectra)
         else:
-            mean_spectra = sp.spectra_mean_centroided(spectra)
+            mean_spectra = sp.spectra_mean_centroided(spectra, self.mzs)
         return mean_spectra
 
     def max(self, axis=None, out=None, keepdims=False):

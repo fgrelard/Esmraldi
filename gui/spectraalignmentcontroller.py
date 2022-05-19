@@ -29,7 +29,11 @@ class WorkerSpectraAlignment(QtCore.QObject):
             realigned_spectra = sp.realign_generic(self.msimage.spectra, self.msimage.spectra[:, 0], self.step, self.is_ppm)
 
         print("End realign")
+        if self.is_abort:
+            return
         full_spectra_sparse = imzmlio.get_full_spectra_sparse(realigned_spectra, np.prod(image_size))
+        if self.is_abort:
+            return
         print("End full spectra sparse")
         image = MSImage(full_spectra_sparse, image=None, shape=image_size, tolerance=0.003)
         image = msimage_for_visualization(image)

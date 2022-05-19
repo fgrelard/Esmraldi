@@ -1,4 +1,5 @@
 import sys
+import numpy as np
 from functools import reduce
 from PyQt5.QtWidgets import QToolTip
 
@@ -39,3 +40,14 @@ def msimage_for_visualization(msimage, transpose=True):
         new_order = (2, 1, 0)
         msimage = msimage.transpose(new_order)
     return msimage
+
+def indices_search_sorted(current, target):
+    n = len(target)
+    indices = np.clip(np.searchsorted(target, current), 0, n-1)
+    indices2 = np.clip(indices-1, 0, n-1)
+
+    diff1 = target[indices] - current
+    diff2 = current - target[indices2]
+
+    indices = np.where(diff1 <= diff2, indices, indices2)
+    return indices

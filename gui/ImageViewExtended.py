@@ -122,6 +122,10 @@ class ImageViewExtended(pg.ImageView):
         grayclip = pg.graphicsItems.GradientEditorItem.Gradients["greyclip"]
         pg.graphicsItems.GradientEditorItem.Gradients["segmentation"] = {'ticks': [(0.0, (0, 0, 0, 255)), (1.0-np.finfo(float).eps, (255, 255, 255, 255)), (1.0, (255, 0, 0, 255))], 'mode': 'rgb'}
         self.full_init = False
+        self.current_image = None
+        self.levelMin, self.levelMax = None, None
+        self.isNewImage = False
+
         super().__init__(parent, name, view, imageItem, *args)
 
         self.imageItem.getHistogram = self.getImageItemHistogram
@@ -187,6 +191,7 @@ class ImageViewExtended(pg.ImageView):
         self.plot = None
         self.displayed_spectra = None
 
+
         self.crossdrawer = CrosshairDrawing()
         self.is_clickable = False
         self.is_drawable = False
@@ -200,8 +205,7 @@ class ImageViewExtended(pg.ImageView):
         self.crosshair_move.setPenVisible(False)
         self.imageItem.getViewBox().addItem(self.crosshair_move)
 
-        self.levelMin, self.levelMax = None, None
-        self.isNewImage = False
+
         self.normDivideRadioChecked = False
 
         self.imageChangedSignal = Signal()
@@ -563,8 +567,10 @@ class ImageViewExtended(pg.ImageView):
 
         self.isNewImage = True
         self.displayed_spectra = None
+        self.current_image = None
+        print("Set image")
         super().setImage(img, autoRange, autoLevels, levels, axes, xvals, pos, scale, transform, autoHistogramRange)
-
+        print("Image changed")
         self.imageChangedSignal.signal.emit()
 
         #Changes wheel event
@@ -686,6 +692,7 @@ class ImageViewExtended(pg.ImageView):
 
     def timeLineChanged(self):
         super().timeLineChanged()
+        self.current_image = None
         self.actualIndex = self.currentIndex
         self.setCurrentIndices(self.actualIndex)
         self.signal_mz_change.emit(self.tVals[self.currentIndex])
@@ -699,8 +706,9 @@ class ImageViewExtended(pg.ImageView):
         elif self.imageDisp is None:
             self.imageDisp = self.normalize(self.image)
         if self.hasTimeAxis():
-            curr_img = self.imageDisp[self.currentIndex]
-            self.levelMin, self.levelMax = np.amin(curr_img), np.amax(curr_img)
+            print(self.current_image is None)
+            self.get_current_image()
+            self.levelMin, self.levelMax = np.amin(self.current_image), np.amax(self.current_image)
         else:
             self.levelMin, self.levelMax = np.amin(self.imageDisp), np.amax(self.imageDisp)
         if self.levelMin == self.levelMax:
@@ -815,7 +823,8 @@ class ImageViewExtended(pg.ImageView):
         elif self.ui.roiPolygon.isChecked():
             self.previousRoiPositions = [[handle["pos"].x(), handle["pos"].y()] for handle in self.roi.handles]
 
-        current_image = self.get_current_image()
+        self.get_current_image()
+        current_image = self.current_image
         colmaj = self.imageItem.axisOrder == 'col-major'
         dim = len(current_image.shape)
 
@@ -911,7 +920,8 @@ class ImageViewExtended(pg.ImageView):
         linear = np.unique(linear)
         ind = tuple([linear, Ellipsis])
         spectra = self.imageDisp.spectra[ind]
-        norm_img = np.ones_like(self.get_current_image())
+        self.get_current_image()
+        norm_img = np.ones_like(self.current_image)
         if self.imageDisp.normalization_image is not None:
             norm_img = self.imageDisp.normalization_image
         norm_img = norm_img.flatten()[linear]
@@ -925,13 +935,13 @@ class ImageViewExtended(pg.ImageView):
         self.winPlotROI.show()
 
     def get_current_image(self):
-        current_image = self.imageDisp
+        if self.current_image is not None:
+            return
         if self.hasTimeAxis():
-            if self.actualIndex < self.imageDisp.shape[0]:
-                current_image = current_image[self.actualIndex]
+            if np.amax(self.actualIndex) < self.imageDisp.shape[0]:
+                self.current_image = self.imageDisp[self.actualIndex]
             else:
-                current_image = current_image[0]
-        return current_image
+                self.current_image = self.imageDisp[0]
 
     def resetROI(self, event):
         self.previousRoiSize = 10
@@ -946,7 +956,8 @@ class ImageViewExtended(pg.ImageView):
         self.normalize_ms(True)
 
     def normalize_ms(self, new_value=False):
-        current_image = self.get_current_image()
+        self.get_current_image()
+        current_image = self.current_image
         if self.imageItem.image is not None and self.hasTimeAxis():
             if self.ui.normTIC.isChecked():
                 tic = self.image.tic
@@ -980,7 +991,12 @@ class ImageViewExtended(pg.ImageView):
 
 
     def updateImage(self, autoHistogramRange=True):
-        super().updateImage(autoHistogramRange)
+        print("update")
+        if self.image is None:
+            return
+        self.getProcessedImage()
+        self.get_current_image()
+        self.imageItem.updateImage(self.current_image)
         if self.full_init:
             self.normalize_ms()
 

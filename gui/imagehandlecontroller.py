@@ -95,6 +95,7 @@ class ImageHandleController:
         self.is_text_editing = False
         try:
             self.imageview.imageDisp.tolerance = self.tolerance
+            self.imageview.current_image = None
             self.imageview.updateImage()
         except Exception as e:
             print("error", e)

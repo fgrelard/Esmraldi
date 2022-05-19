@@ -87,7 +87,7 @@ class WorkerOpen(QObject):
         max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
         max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
 
-        if max_x*max_y*sum_len > 1e10:
+        if max_x*max_y*sum_len > 1e4:
             print("On the fly")
             mean_spectra = None
             if os.path.isfile(self.npy_path):
@@ -291,7 +291,7 @@ class MainController:
         # self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/synthetic.imzML")
 
         # self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/random.imzML")
-        self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/20210112_107x25_20um_Mouse_Spleen_DAN_Neg_mode_200-2000mz_70K_Laser37_6p5kV_350C_Slens90_Line_centroid_aligned.imzml")
+        self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/20210112_107x25_20um_Mouse_Spleen_DAN_Neg_mode_200-2000mz_70K_Laser37_6p5kV_350C_Slens90_Line_centroid.imzml")
         # self.open_file("/mnt/d/CouplageMSI-Immunofluo/20211102 DAN 5um - laser 39/IF/20211102 Rate3#6-BF 10x - Post scan DAN- washed.tif")
         # self.open_file("/mnt/d/CBMN/random.imzML")
 

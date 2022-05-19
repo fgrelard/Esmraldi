@@ -4,6 +4,7 @@ import numpy as np
 from bisect import bisect_left, bisect_right
 
 import esmraldi.spectraprocessing as sp
+import esmraldi.utils as utils
 from esmraldi.msimagebase import MSImageBase
 
 class MSImageOnTheFly(MSImageBase):
@@ -75,12 +76,37 @@ class MSImageOnTheFly(MSImageBase):
         return self.get_ion_image_mzs(current_mz)
 
     def get_ion_image_mzs(self, mz_value, tl=0, tr=0):
-        im = np.zeros(self.shape[self.spectral_axis+1:])
-        for i, (x, y, z_) in enumerate(self.coords):
-            mzs, ints = self.spectra[i, 0], self.spectra[i, 1]
-            min_i, max_i = self.bisect_spectrum(mzs, np.median(mz_value), tl, tr)
-            im[y-1, x-1] = sum(ints[min_i:max_i+1])
+        import time
+        start = time.time()
 
+        min_i, max_i = utils.indices_search_sorted([mz_value-tl, mz_value+tr], self.mzs)
+        indices = np.arange(max_i-min_i+1) + min_i
+        # ind = np.where(np.in1d(self.indexing, indices))[0]
+        ind = np.where((self.indexing >= min_i) & (self.indexing < max_i))[0]
+        ind_value = self.ind_len[ind]
+        ind_spectra = np.searchsorted(self.cumlen, ind)
+        ind_value = np.split(ind_value, np.where(np.diff(ind_spectra) != 0)[0]+1)
+        ind_spectra = np.unique(ind_spectra)
+
+        im = np.zeros(self.shape[self.spectral_axis+1:])
+        x, y = np.unravel_index(ind_spectra, self.shape[self.spectral_axis+1:], order="C")
+        for i, (x_i, y_i) in enumerate(zip(x,y)):
+            curr_i = self.spectra[:, 1][ind_spectra]
+            curr_i = curr_i[i]
+#            print(len(curr_i), len(ind_value))
+            curr_i = curr_i[ind_value[i]]
+            im[x_i, y_i] = sum(curr_i)
+
+        # im = np.zeros(self.shape[self.spectral_axis+1:])
+        # for i, (x, y, z_) in enumerate(self.coords):
+        #     mzs, ints = self.spectra[i, 0], self.spectra[i, 1]
+        #     min_i, max_i = self.bisect_spectrum(mzs, np.median(mz_value), tl, tr)
+        #     if i == 0:
+        #         print(min_i, max_i, mzs[:10])
+        #     im[y-1, x-1] = sum(ints[min_i:max_i+1])
+
+        end = time.time()
+        print("End", end-start, "seconds")
         return im
 
     def astype(self, new_type, casting="unsafe", copy=True):
