@@ -19,6 +19,7 @@ class WorkerSpectraAlignment(QtCore.QObject):
         self.msimage = msimage
         self.step = step
         self.is_ppm = is_ppm
+        self.is_abort = False
 
     @QtCore.pyqtSlot()
     def work(self):
@@ -36,6 +37,7 @@ class WorkerSpectraAlignment(QtCore.QObject):
             return
         print("End full spectra sparse")
         image = MSImage(full_spectra_sparse, image=None, shape=image_size, tolerance=0.003)
+        print("ms image for visualization")
         image = msimage_for_visualization(image)
         self.signal_end.emit(image)
 

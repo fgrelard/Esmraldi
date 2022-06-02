@@ -61,6 +61,7 @@ def spectra_mean(spectra):
     spectra_mean /= len(spectra)
     return spectra_mean
 
+
 def spectra_mean_centroided(spectra, mzs=None):
     imzml_mzs = np.hstack(spectra[:, 0])
     I = np.hstack(spectra[:, 1])
@@ -69,8 +70,10 @@ def spectra_mean_centroided(spectra, mzs=None):
     indices_mzs = np.searchsorted(mzs, imzml_mzs)
     mean_spectra = np.zeros(len(mzs))
     N = spectra.shape[0]
+    N = np.zeros(len(mzs))
     for i, ind in enumerate(indices_mzs):
         mean_spectra[ind] += I[i]
+        N[ind] += 1
 
     mean_spectra /= N
     return mean_spectra

@@ -14,9 +14,12 @@ annotation_name = args.annotation
 
 data = pd.read_csv(annotation_name, header=2, delimiter=",")
 mzs_annotated = data.mz
-mzs_annotated = np.unique(mzs_annotated)
+msm = data.msm
 
-print(mzs_annotated.shape)
+mzs_annotated, ind = np.unique(mzs_annotated, return_index=True)
+msm = msm[ind]
+
+print("Theoretical", mzs_annotated.shape, data.mz.shape)
 
 
 if input_name.lower().endswith(".imzml"):
@@ -33,10 +36,15 @@ if input_name.lower().endswith(".imzml"):
 else:
     mzs = np.loadtxt(os.path.splitext(input_name)[0] + ".csv")
 
+print("Observed", mzs.shape)
+
 diffs = np.argmin(np.abs(mzs - mzs_annotated[:, None]), axis=-1)
 intersection = np.abs(mzs[diffs] - mzs_annotated) < 1e-2
 percentage = np.count_nonzero(intersection)/len(mzs_annotated)
 percentage *= 100
 missing = mzs_annotated[~intersection]
+missing_msm = msm[~intersection]
 print("Found", percentage, "% peaks from Metaspace")
 print("Missing", missing)
+np.set_printoptions(suppress=True)
+print("Missing MSM", np.vstack((missing, missing_msm)).T)

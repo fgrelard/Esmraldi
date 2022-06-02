@@ -8,13 +8,20 @@ import esmraldi.utils as utils
 from esmraldi.msimagebase import MSImageBase
 
 class MSImageOnTheFly(MSImageBase):
-    def __init__(self, spectra, coords=None, mzs=None, tolerance=0, spectral_axis=-1, mean_spectra=None, peaks=None):
+    def __init__(self, spectra, coords=None, mzs=None, tolerance=0, spectral_axis=-1, mean_spectra=None, peaks=None, indexing=None):
         super().__init__(spectra, mzs, tolerance, spectral_axis, mean_spectra, peaks)
-
+        all_mzs = np.hstack(spectra[:, 0]).flatten()
+        if indexing is None:
+            self.indexing = utils.indices_search_sorted(all_mzs, self.mzs)
+        else:
+            self.indexing = indexing
+        all_len = [len(g) for g in spectra[:, 0]]
+        self.ind_len = np.hstack([np.arange(l) for l in all_len])
+        self.cumlen = np.cumsum(all_len)-1
         self.coords = coords
-        max_x = max(self.coords, key=lambda item:item[0])[0]
-        max_y = max(self.coords, key=lambda item:item[1])[1]
-        max_z = max(self.coords, key=lambda item:item[2])[2]
+        max_x = max(self.coords, key=lambda item: item[0])[0]
+        max_y = max(self.coords, key=lambda item: item[1])[1]
+        max_z = max(self.coords, key=lambda item: item[2])[2]
         coords = (max_x, max_y, max_z)
 
         if coords[-1] == 1:
@@ -38,10 +45,12 @@ class MSImageOnTheFly(MSImageBase):
 
 
     def max(self, axis=None, out=None):
-        return np.hstack(self.spectra[:, 1]).flatten().max()
+        intensities = np.hstack(self.spectra[:, 1]).flatten()
+        return intensities.max()
 
     def min(self, axis=None, out=None):
-        return np.hstack(self.spectra[:, 1]).flatten().min()
+        intensities = np.hstack(self.spectra[:, 1]).flatten()
+        return intensities.min()
 
     def bisect_spectrum(self, mzs, mz_value, tol_left, tol_right):
         ix_l, ix_u = bisect_left(mzs, mz_value - tol_left), bisect_right(mzs, mz_value + tol_right) - 1
@@ -76,12 +85,7 @@ class MSImageOnTheFly(MSImageBase):
         return self.get_ion_image_mzs(current_mz)
 
     def get_ion_image_mzs(self, mz_value, tl=0, tr=0):
-        import time
-        start = time.time()
-
         min_i, max_i = utils.indices_search_sorted([mz_value-tl, mz_value+tr], self.mzs)
-        indices = np.arange(max_i-min_i+1) + min_i
-        # ind = np.where(np.in1d(self.indexing, indices))[0]
         ind = np.where((self.indexing >= min_i) & (self.indexing < max_i))[0]
         ind_value = self.ind_len[ind]
         ind_spectra = np.searchsorted(self.cumlen, ind)
@@ -90,23 +94,12 @@ class MSImageOnTheFly(MSImageBase):
 
         im = np.zeros(self.shape[self.spectral_axis+1:])
         x, y = np.unravel_index(ind_spectra, self.shape[self.spectral_axis+1:], order="C")
-        for i, (x_i, y_i) in enumerate(zip(x,y)):
-            curr_i = self.spectra[:, 1][ind_spectra]
-            curr_i = curr_i[i]
-#            print(len(curr_i), len(ind_value))
+        intensities = self.spectra[:, 1][ind_spectra]
+        for i, (x_i, y_i) in enumerate(zip(x, y)):
+            curr_i = intensities[i]
             curr_i = curr_i[ind_value[i]]
             im[x_i, y_i] = sum(curr_i)
 
-        # im = np.zeros(self.shape[self.spectral_axis+1:])
-        # for i, (x, y, z_) in enumerate(self.coords):
-        #     mzs, ints = self.spectra[i, 0], self.spectra[i, 1]
-        #     min_i, max_i = self.bisect_spectrum(mzs, np.median(mz_value), tl, tr)
-        #     if i == 0:
-        #         print(min_i, max_i, mzs[:10])
-        #     im[y-1, x-1] = sum(ints[min_i:max_i+1])
-
-        end = time.time()
-        print("End", end-start, "seconds")
         return im
 
     def astype(self, new_type, casting="unsafe", copy=True):

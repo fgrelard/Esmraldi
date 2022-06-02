@@ -1,5 +1,7 @@
 import pyqtgraph as pg
+import numpy as np
 from pyqtgraph.Qt import QtGui, QtCore
+import scipy.signal as signal
 
 class ScatterPlotItemDirac(pg.ScatterPlotItem):
 
@@ -8,6 +10,8 @@ class ScatterPlotItemDirac(pg.ScatterPlotItem):
 
         self.selectedPoints = [[], []]
         self.diracs = [[], []]
+
+        self.x_show, self.y_show = self.diracs
 
         if "pen" in kwds:
             self.pen = pg.mkPen(kwds["pen"])
@@ -30,27 +34,42 @@ class ScatterPlotItemDirac(pg.ScatterPlotItem):
 
     def setDiracs(self, diracs):
         self.diracs = diracs
-        self.setPoints(x=diracs[0], y=diracs[1], size=0)
+        self.x_show = diracs[0]
+        self.y_show = diracs[1]
+
+        x_minmax = np.amin(self.diracs[0]), np.amax(self.diracs[0])
+        y_minmax = np.amin(self.diracs[1]), np.amax(self.diracs[1])
+        self.setPoints(x=x_minmax, y=y_minmax, size=0)
         self.generatePicture()
 
     def generatePicture(self, firstRender=True):
         if self.picture is None:
             return
 
-        x_vals, y_vals = self.diracs
-        zipped = zip(x_vals, y_vals)
+
+        n_max = int(1e5)
+        if len(self.x_show) > n_max:
+            self.x_show = signal.resample(self.x_show, n_max)
+            self.y_show = signal.resample(self.y_show, n_max)
+        zipped = zip(self.x_show, self.y_show)
         if firstRender:
+            self.picture = QtGui.QPicture()
             p = QtGui.QPainter(self.picture)
             p.setPen(self.pen)
+            line_list = []
             for x, y in zipped:
                 if y > 0:
-                    p.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, y))
+                    line_list.append(QtCore.QLineF(x, 0, x, y))
+            p.drawLines(line_list)
         else:
+            self.selectedPicture = QtGui.QPicture()
             p = QtGui.QPainter(self.selectedPicture)
             p.setPen(self.selectedPen)
             x_vals, y_vals = self.selectedPoints
+            line_list = []
             for x, y in zip(x_vals, y_vals):
-                p.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, y))
+                line_list.append(QtCore.QLineF(x, 0, x, y))
+            p.drawLines(line_list)
         p.end()
 
 

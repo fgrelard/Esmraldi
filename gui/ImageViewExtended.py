@@ -197,7 +197,6 @@ class ImageViewExtended(pg.ImageView):
         self.is_drawable = False
 
         self.pen_size = 1
-        self.imageCopy = None
         self.imageItem.drawAt = self.drawAt
         self.imageItem.render = self.render
 
@@ -492,7 +491,7 @@ class ImageViewExtended(pg.ImageView):
                 shift = self.pen_size//2
                 min_x, max_x = pos[0] - shift, pos[0] + shift
                 min_y, max_y = pos[1] - shift, pos[1] + shift
-                local_values = self.imageCopy[self.currentIndex, min_y:max_y, min_x:max_x]
+                local_values = self.imageDisp[self.currentIndex, min_y:max_y, min_x:max_x]
                 self.update_pen(pen_size=self.pen_size, array=local_values)
             else:
                 self.update_pen(pen_size=self.pen_size, array=None)
@@ -568,9 +567,7 @@ class ImageViewExtended(pg.ImageView):
         self.isNewImage = True
         self.displayed_spectra = None
         self.current_image = None
-        print("Set image")
         super().setImage(img, autoRange, autoLevels, levels, axes, xvals, pos, scale, transform, autoHistogramRange)
-        print("Image changed")
         self.imageChangedSignal.signal.emit()
 
         #Changes wheel event
@@ -588,9 +585,7 @@ class ImageViewExtended(pg.ImageView):
             self.timeLine.show()
             self.winPlot.autoRange()
 
-        self.imageCopy = self.imageDisp.copy()
         self.pen_value = np.amax(self.imageDisp)+1
-
 
         if not is_shown:
             return
@@ -706,7 +701,6 @@ class ImageViewExtended(pg.ImageView):
         elif self.imageDisp is None:
             self.imageDisp = self.normalize(self.image)
         if self.hasTimeAxis():
-            print(self.current_image is None)
             self.get_current_image()
             self.levelMin, self.levelMax = np.amin(self.current_image), np.amax(self.current_image)
         else:
@@ -991,7 +985,6 @@ class ImageViewExtended(pg.ImageView):
 
 
     def updateImage(self, autoHistogramRange=True):
-        print("update")
         if self.image is None:
             return
         self.getProcessedImage()
