@@ -9,6 +9,7 @@ import configparser
 import os
 import qdarkstyle
 
+
 os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
 
 # For high DPI screens
@@ -57,7 +58,7 @@ def init_configuration():
         config['default']['otherformatdir'] = os.getcwd()
     return config
 
-if __name__=='__main__':
+def start():
     app = QApplication.instance()
     if not app:
         app = QApplication(sys.argv)
@@ -66,3 +67,6 @@ if __name__=='__main__':
     main_controller = MainController(app, main_window, config)
     main_window.show()
     app.exec_()
+
+if __name__=='__main__':
+    start()

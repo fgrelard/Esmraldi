@@ -8,6 +8,8 @@ import os
 
 from skimage.color import rgb2gray
 from sklearn.cluster import AgglomerativeClustering
+from sklearn.manifold import MDS
+
 import scipy.cluster.hierarchy as hc
 import scipy.spatial.distance as distance
 
@@ -27,19 +29,20 @@ def find_indices(image, shape):
     return np.ravel_multi_index(indices, shape, order='F')
 
 def onclick(event, linkage, shape):
-    if event.inaxes == ax_scatter:
+    if event.inaxes != ax[0]:
         return
-    clusters = hc.fcluster(linkage, t=event.ydata, criterion="distance")
-    cluster_image = clusters.reshape(shape)
-    print("k=", cluster_image.max())
-    if len(shape) >= 2:
-        ax_scatter.imshow(cluster_image, cmap="Set1")
-    else:
-        points = ax_scatter.collections[0]
-        cm = plt.cm.get_cmap("Set3")
-        n_cm = len(cm.colors)
-        points.set_color(cm(cluster_image%n_cm))
-    fig.canvas.draw_idle()
+    if event.dblclick:
+        clusters = hc.fcluster(linkage, t=event.ydata, criterion="distance")
+        cluster_image = clusters.reshape(shape)
+        print("k=", cluster_image.max())
+        if len(shape) >= 2:
+            ax_scatter.imshow(cluster_image, cmap="Set1")
+        else:
+            cm = plt.cm.get_cmap("Set3")
+            n_cm = len(cm.colors)
+            points = ax_scatter.collections[0]
+            points.set_color(cm(cluster_image%n_cm))
+        fig.canvas.draw_idle()
 
 def get_linkage(model):
 
@@ -59,30 +62,32 @@ def get_linkage(model):
     return linkage_matrix
 
 
-def visu_hierarchical_clustering(model, mzs):
-    distances = model.distances_
-    children = model.children_
-    n_samples = distances.size
-    groups = []
-    for i in range(len(children)):
-        index = i
-        first = children[i][0]
-        second = children[i][1]
-        if first >= n_samples and second >= n_samples:
-            continue
-        elif first >= n_samples:
-            index = first - n_samples
-            print(i, index)
-            groups[index].append(second)
-        elif second >= n_samples:
-            index = second - n_samples
-            print(i, index)
-            groups[index].append(first)
-        else:
-            groups.append([first, second])
-        # print("Merging", mzs[], mzs[])
-    print(model.children_, distances.shape)
 
+def draw_graph(distance_matrix, is_mds):
+    ax_scatter.clear()
+    print(is_mds)
+    if is_mds:
+        mds = MDS(n_components=2, dissimilarity="precomputed")
+        pos_array = mds.fit_transform(distance_matrix).T
+
+    else:
+        np.divide(1.0, distance_matrix, out=distance_matrix, where=distance_matrix!=0)
+        G = nx.from_numpy_matrix(distance_matrix)
+
+        # test_distance_layout(G)
+        # test_compare_layouts(G)
+
+        # pos = nx.spring_layout(G, k=1, dim=dim)
+        pos = nx.kamada_kawai_layout(G, dim=dim)
+        pos_array = np.array(list(pos.values())).T
+
+    print(pos_array.shape)
+    ax_scatter.scatter(*pos_array, marker='o', s=50, edgecolor='None')
+    for k, p in enumerate(pos_array.T):
+        ax_scatter.text(*p, "{:.2f}".format(mzs[k]))
+
+    if not is_3D:
+        ax_scatter.axis('equal')
 
 def test_distance_layout(G):
     initial_pos = None
@@ -102,6 +107,35 @@ def test_distance_layout(G):
         ax[i].scatter(pos_array[0], pos_array[1], marker='o', s=50, edgecolor='None')
 
     plt.show()
+
+def plot_tree(P, ax, pos=None):
+    icoord = np.array(P['icoord'])
+    dcoord = np.array(P['dcoord'])
+    color_list = np.array(P['color_list'])
+    xmin, xmax = icoord.min(), icoord.max()
+    ymin, ymax = dcoord.min(), dcoord.max()
+    if pos is not None:
+        icoord = icoord[pos]
+        dcoord = dcoord[pos]
+        color_list = color_list[pos]
+    for xs, ys, color in zip(icoord, dcoord, color_list):
+        ax.plot(xs, ys, color)
+    if pos is None:
+        ax.set_xlim(xmin-10, xmax + 0.1*abs(xmax))
+        ax.set_ylim(ymin, ymax + 0.1*abs(ymax))
+
+def on_lims_change(axes):
+    xmin, xmax = axes.xaxis.get_view_interval()
+    xs = dendro["icoord"]
+    if xmin < np.amin(xs) and xmax > np.amax(xs):
+        return
+    indices = np.where((xs >= xmin) & (xs <= xmax))[0]
+    indices, order = np.unique(indices, return_index=True)
+    indices = indices[np.argsort(order)]
+    indices_mzs = np.array(dendro["leaves"])[indices]
+    d = distance_matrix[indices_mzs, :][:, indices_mzs]
+    draw_graph(d, is_mds)
+    # plot_tree(dendro, axes, pos=indices)
 
 
 def test_compare_layouts(G):
@@ -126,11 +160,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input .imzML")
 parser.add_argument("-p", "--preprocess", help="Normalize", action="store_true")
 parser.add_argument("-o", "--output", help="Output .csv files with stats")
+parser.add_argument("--mds", help="Use Multidimensional scaling to project points", action="store_true")
 args = parser.parse_args()
 
 input_name = args.input
 output_name = args.output
 is_normalized = args.preprocess
+is_mds = args.mds
 
 if input_name.lower().endswith(".imzml"):
     imzml = io.open_imzml(input_name)
@@ -168,32 +204,21 @@ print(image_norm.shape)
 
 distance_matrix = distance.squareform(distance.pdist(image_norm, metric="correlation"))
 
+
+
 model = AgglomerativeClustering(linkage="average", affinity="precomputed", n_clusters=None, distance_threshold=0)
 model = model.fit(distance_matrix)
-
-
-
 
 fig, ax = plt.subplots(1, 2)
 linkage_matrix = get_linkage(model)
 
 # Plot the corresponding dendrogram
-hc.dendrogram(linkage_matrix, truncate_mode=None, p=10, ax=ax[0])
+dendro = hc.dendrogram(linkage_matrix, truncate_mode=None, p=10, no_plot=True)
+plot_tree(dendro, ax[0])
 cid = fig.canvas.mpl_connect('button_press_event', lambda event:onclick(event, linkage_matrix, shape))
-
-# plt.show()
-
-np.divide(1.0, distance_matrix, out=distance_matrix, where=distance_matrix!=0)
-G = nx.from_numpy_matrix(distance_matrix)
-
-# test_distance_layout(G)
-# test_compare_layouts(G)
-
-initial_pos = {0: [0, 0]}
-fixed_pos = [0]
+ax[0].callbacks.connect('xlim_changed', on_lims_change)
 
 is_3D = False
-
 dim = 2
 if is_3D:
     dim = 3
@@ -201,17 +226,8 @@ if is_3D:
 else:
     ax_scatter = ax[1]
 
+draw_graph(distance_matrix, is_mds)
 
-# pos = nx.spring_layout(G, k=1, dim=dim)
-pos = nx.kamada_kawai_layout(G, dim=dim)
-pos_array = np.array(list(pos.values())).T
-print(pos_array.shape)
-ax_scatter.scatter(*pos_array, marker='o', s=50, edgecolor='None')
-for k, p in pos.items():
-    ax_scatter.text(*p, "{:.2f}".format(mzs[k]))
-
-if not is_3D:
-    ax_scatter.axis('equal')
 plt.tight_layout()
 plt.show()
 
