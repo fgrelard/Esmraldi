@@ -63,9 +63,17 @@ def get_linkage(model):
 
 
 
-def draw_graph(distance_matrix, is_mds):
+def draw_graph(matrix, mzs, is_mds, new_separation=False):
     ax_scatter.clear()
     print(is_mds)
+    diffs = matrix[matrix>0]
+    smallest_value = diffs.max() - diffs.min()
+    print(smallest_value)
+    distance_matrix = matrix
+    if new_separation:
+        k = 1/smallest_value
+        k = 5
+        distance_matrix = matrix*k
     if is_mds:
         mds = MDS(n_components=2, dissimilarity="precomputed")
         pos_array = mds.fit_transform(distance_matrix).T
@@ -128,13 +136,14 @@ def on_lims_change(axes):
     xmin, xmax = axes.xaxis.get_view_interval()
     xs = dendro["icoord"]
     if xmin < np.amin(xs) and xmax > np.amax(xs):
-        return
+        draw_graph(distance_matrix, mzs, is_mdis, new_separation=False)
     indices = np.where((xs >= xmin) & (xs <= xmax))[0]
     indices, order = np.unique(indices, return_index=True)
     indices = indices[np.argsort(order)]
     indices_mzs = np.array(dendro["leaves"])[indices]
+    m = mzs[indices_mzs]
     d = distance_matrix[indices_mzs, :][:, indices_mzs]
-    draw_graph(d, is_mds)
+    draw_graph(d, m, is_mds, new_separation=True)
     # plot_tree(dendro, axes, pos=indices)
 
 
@@ -226,7 +235,7 @@ if is_3D:
 else:
     ax_scatter = ax[1]
 
-draw_graph(distance_matrix, is_mds)
+draw_graph(distance_matrix, mzs, is_mds)
 
 plt.tight_layout()
 plt.show()
