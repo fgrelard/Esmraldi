@@ -20,6 +20,7 @@ import cv2 as cv
 import argparse
 import os
 import math
+import pandas as pd
 
 from esmraldi.msimage import MSImage
 from esmraldi.sliceviewer import SliceViewer
@@ -49,8 +50,7 @@ def read_image(image_name):
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input (.nii or imzML)")
 parser.add_argument("--on_sample", help="Whether to consider only on-sample points", action="store_true")
-parser.add_argument("-m", "--mask", help="Mask image (any ITK format)")
-parser.add_argument("-r", "--regions", help="Subregions inside mask", nargs="+", type=str)
+parser.add_argument("-r", "--roc", help="ROC file (.xlsx)")
 parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given m/z", default=0)
 parser.add_argument("-o", "--output", help="Output segmentation (.nii)")
 parser.add_argument("-f", "--factor", help="Factor for the spatially coherent images")
@@ -64,8 +64,7 @@ outname = args.output
 factor = float(args.factor)
 quantiles = args.quantiles
 quantile_upper = int(args.quantile_upper)
-mask_name = args.mask
-region_names = args.regions
+roc_name = args.roc
 normalization = float(args.normalization)
 
 radius = 1
@@ -91,30 +90,34 @@ else:
 
 print(img_data.shape)
 
+img_data = imzmlio.normalize(img_data)
+
+roc_values_df = pd.read_excel(roc_name)
+mzs = roc_values_df.columns[1:]
+end = 4
+roc_auc_scores = np.array(roc_values_df)[:4, 1:].T
+print(roc_auc_scores)
+value = 0.7
+cond = (roc_auc_scores > 1 - value) & (roc_auc_scores < value)
+indices_roc = np.all(cond, axis=-1)
+indices_roc = np.where(indices_roc)[0]
+
+similar_images, indices, off_sample_image, off_sample_cond = seg.find_similar_images_dispersion(img_data, factor, quantiles=quantiles, in_sample=True, return_indices=True)
 
 
-if mask_name and region_names:
-    mask = read_image(mask_name)
-    regions = []
-    for region_name in region_names:
-        region = read_image(region_name)
-        regions.append(region)
+plt.imsave("off_sample.png", off_sample_image.T)
 
-    norm_img = None
-    if normalization > 0:
-        norm_img = imageutils.get_norm_image(img_data, normalization, mzs)
+im_off = img_data[..., off_sample_cond >= 0.95]
+im_incert = img_data[..., (off_sample_cond < 0.95) & (off_sample_cond > 0.5)]
+im_on = img_data[..., off_sample_cond <= 0.5]
 
-    indices, indices_ravel = fusion.roc_indices(mask, mask.shape, norm_img)
+print(im_on.shape, im_off.shape, im_incert.shape)
+fig, ax = plt.subplots(1)
+label = np.vstack((mzs, off_sample_cond, (off_sample_cond>0.5))).T
+tracker = SliceViewer(ax, np.transpose(img_data, (2, 1, 0)), labels=label)
+fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
+plt.show()
 
-    region_bool = fusion.region_to_bool(regions, indices_ravel, mask.shape)
-    roc_auc_scores = fusion.roc_auc_analysis(img_data, indices, region_bool, norm_img)
-    value = 0.7
-    print(roc_auc_scores)
-    cond = (roc_auc_scores > 1 - value) & (roc_auc_scores < value)
-    indices_roc = np.all(cond, axis=-1)
-    indices_roc = np.where(indices_roc)[0]
-
-similar_images, indices = seg.find_similar_images_dispersion(img_data, factor, quantiles=quantiles, in_sample=True, return_indices=True)
 
 indices = np.where(indices)[0]
 indices = np.intersect1d(indices, indices_roc)

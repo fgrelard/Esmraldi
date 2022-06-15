@@ -6,7 +6,7 @@ with numpy and matplotlib
 import numpy as np
 
 class SliceViewer(object):
-    def __init__(self, ax, *X, **kwargs):
+    def __init__(self, ax, *X, labels=None, **kwargs):
         """
         Parameters
         ----------
@@ -27,6 +27,7 @@ class SliceViewer(object):
         self.ind = 0
 
         self.slices = X[0].shape[0]
+        self.labels = labels
 
         self.im = []
         for i in range(len(self.ax)):
@@ -64,5 +65,8 @@ class SliceViewer(object):
         """
         for i in range(len(self.ax)):
             self.im[i].set_data(self.X[i][self.ind, ...])
-            self.ax[i].set_ylabel('slice %s' % self.ind)
+            if self.labels is None:
+                self.ax[i].set_xlabel('slice %s' % self.ind)
+            else:
+                self.ax[i].set_xlabel('slice %s' % self.labels[self.ind])
             self.im[i].axes.figure.canvas.draw()

@@ -103,6 +103,7 @@ def extract_slice_itk(image, index):
 
 def register2D(fixed, moving, numberOfBins, is_best_rotation=False, array_moving=None, flipped=False, sampling_percentage=0.1, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
     to_flip = False
+    print("register 2D")
     # Flip axis and choose best fit during registration
     if flipped:
         # Construct a 3D image
@@ -325,14 +326,14 @@ height = fixed.GetHeight()
 numberOfBins = int(math.sqrt(height * width / bins))
 
 
-
 best_resamplers = []
 flips = []
 if dim_moving == 2:
     best_resampler, to_flip = register2D(fixed, moving, numberOfBins, is_best_rotation, array_moving, flipped, sampling_percentage, learning_rate, min_step, relaxation_factor)
+    print(to_flip)
     out = apply_registration(moving, best_resampler, to_flip)
-    p,r =reg.quality_registration(sitk.Cast(fixed, sitk.sitkUInt8), sitk.Cast(out, sitk.sitkUInt8), 40)
-    print(reg.fmeasure(np.mean(p), np.mean(r)))
+    # p,r =reg.quality_registration(sitk.Cast(fixed, sitk.sitkUInt8), sitk.Cast(out, sitk.sitkUInt8), 40)
+    # print(reg.fmeasure(np.mean(p), np.mean(r)))
     best_resamplers.append(best_resampler)
     flips.append(to_flip)
 
@@ -359,9 +360,10 @@ if out != None:
     cimg = sitk.Compose(simg1, simg2, simg1//3.+simg2//1.5)
 
     if dim_moving == 2:
-        fig, ax = plt.subplots(1, 2)
-        ax[0].imshow(sitk.GetArrayFromImage(moving))
-        ax[1].imshow(sitk.GetArrayFromImage(cimg))
+        fig, ax = plt.subplots(1, 3)
+        ax[0].imshow(sitk.GetArrayFromImage(fixed))
+        ax[1].imshow(sitk.GetArrayFromImage(moving))
+        ax[2].imshow(sitk.GetArrayFromImage(cimg))
     elif dim_moving == 3:
         fig, ax = plt.subplots(1, 1)
         tracker = SliceViewer(ax, sitk.GetArrayFromImage(cimg))
@@ -388,8 +390,8 @@ if registername:
     for register_name in register_image_names:
         best_resampler, flip = get_resampler(is_different_resampler, best_resamplers, flips, i)
         is_imzml = register_name.lower().endswith(".imzml")
-        register, mz = read_image_to_register(register_name, is_imzml, to_flip, moving)
-
+        print("flip", flip)
+        register, mz = read_image_to_register(register_name, is_imzml, to_flip=False, moving=moving)
         register = realign_image(register, moving_before_resize)
 
         if is_resize:
@@ -410,7 +412,6 @@ if registername:
         else:
             outImage = registration_itk(register, fixed, best_resamplers, flips)
             outImages.append(outImage)
-
         i += 1
 
     if is_imzml:

@@ -37,6 +37,9 @@ from pyqtgraph.dockarea import DockArea, Dock
 from superqt import QLabeledRangeSlider
 from collections import ChainMap
 
+import tracemalloc
+
+
 def PaintingROI(parent, roi, brush, **kwargs):
     class WrapROI(parent):
         def __init__(self, roi, brush=None):
@@ -125,6 +128,9 @@ class ImageViewExtended(pg.ImageView):
         self.current_image = None
         self.levelMin, self.levelMax = None, None
         self.isNewImage = False
+
+        tracemalloc.start()
+        self.number = 0
 
         super().__init__(parent, name, view, imageItem, *args)
 
@@ -592,6 +598,12 @@ class ImageViewExtended(pg.ImageView):
         #Shows image at previous z-index if in range
         if self.imageDisp.ndim > 2 and previousIndex < self.imageDisp.shape[0] and self.hasTimeAxis():
             self.setCurrentIndex(previousIndex)
+        else:
+            self.get_current_image()
+
+        snapshot = tracemalloc.take_snapshot()
+        snapshot.dump("snapshot"+str(self.number)+".pickle")
+        self.number += 1
 
     def roi_scroll_bar(self, ev):
         """
@@ -936,6 +948,8 @@ class ImageViewExtended(pg.ImageView):
                 self.current_image = self.imageDisp[self.actualIndex]
             else:
                 self.current_image = self.imageDisp[0]
+        else:
+            self.current_image = self.imageDisp
 
     def resetROI(self, event):
         self.previousRoiSize = 10
@@ -952,6 +966,7 @@ class ImageViewExtended(pg.ImageView):
     def normalize_ms(self, new_value=False):
         self.get_current_image()
         current_image = self.current_image
+        normed_image = np.zeros_like(current_image)
         if self.imageItem.image is not None and self.hasTimeAxis():
             if self.ui.normTIC.isChecked():
                 tic = self.image.tic
@@ -970,11 +985,12 @@ class ImageViewExtended(pg.ImageView):
                     cut_off = 0
                 if new_value:
                     norm_img = self.image.get_ion_image_mzs(value)
-                    norm_img[norm_img <= cut_off] = 2**32
+                    norm_img[norm_img <= cut_off] = -1
                     self.image.normalization_image = norm_img
 
             if not self.ui.normOff.isChecked():
-                np.divide(current_image, self.image.normalization_image, out=current_image, where=self.image.normalization_image!=0)
+                np.divide(current_image, self.image.normalization_image, out=normed_image, where=self.image.normalization_image>0)
+                current_image = normed_image
             if new_value:
                 self.buildPlot()
 

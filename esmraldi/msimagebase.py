@@ -82,7 +82,7 @@ class MSImageBase:
             norm_factor = norm_img.flatten()
             num = spectra[:, 1, :]
             denom = norm_factor[:, np.newaxis]
-            np.divide(num, denom, out=num, where=denom!=0)
+            np.divide(num, denom, out=num, where=denom>0)
         if len(spectra.shape) >= 3:
             mean_spectra = sp.spectra_mean(spectra)
         else:

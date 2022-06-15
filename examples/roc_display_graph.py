@@ -52,6 +52,7 @@ print(smallest_value)
 #Find ROC distance
 #Expressed as min AUC distance over regions
 #Multiplied by a factor depending on whether the
+#color is the same or not
 for i in range(n_reg):
     roc = roc_values[i, :, None].astype(float)
     if np.isnan(roc).all():

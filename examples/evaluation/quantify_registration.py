@@ -175,6 +175,7 @@ display = args.display
 
 fixed = sitk.ReadImage(fixedname, sitk.sitkFloat32)
 original = sitk.ReadImage(originalname, sitk.sitkFloat32)
+fixed.SetSpacing([1,1])
 
 # precision = quality_registration_size_bin(fixed, registeredname)
 # plt.plot(*precision, ".b-")
