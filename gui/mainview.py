@@ -58,8 +58,8 @@ class Ui_MainView(object):
         self.imagehandleview2 = Ui_ImageHandleView()
         self.imagehandleview2.setupUi(self.gridLayoutWidget)
 
-        fa_oneview = qta.icon('fa5s.dice-one')
-        fa_twoviews = qta.icon('fa5s.th-large')
+        fa_oneview = qta.icon('fa5s.dice-one', color="#ccc")
+        fa_twoviews = qta.icon('fa5s.th-large', color="#ccc")
         self.oneViewButton = QtWidgets.QPushButton(fa_oneview, "")
         self.twoViewButton = QtWidgets.QPushButton(fa_twoviews, "")
         self.labelView = QtWidgets.QLabel(self.gridLayoutWidget)

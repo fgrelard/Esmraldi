@@ -33,8 +33,8 @@ class Ui_ImageHandleView(object):
         self.labelCombo = QtWidgets.QLabel(self.gridLayoutWidget)
         self.horizontalSpace = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum)
         self.combobox = QtWidgets.QComboBox(self.gridLayoutWidget)
-        fa_trash = qta.icon('fa.trash')
-        fa_edit = qta.icon('fa.edit')
+        fa_trash = qta.icon('fa.trash', color="#ccc")
+        fa_edit = qta.icon('fa.edit', color="#ccc")
         self.trashButton = QtWidgets.QPushButton(fa_trash, "")
         self.editButton = QtWidgets.QPushButton(fa_edit, "")
 

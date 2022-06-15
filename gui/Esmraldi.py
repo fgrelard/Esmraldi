@@ -28,6 +28,13 @@ QSlider::groove:horizontal {
 QSlider::sub-page:horizontal {
   border: none;
 }
+QTextEdit {
+    border:none;
+}
+QDialogButtonBox QPushButton {
+  /* Issue #194 #248 - Special case of QPushButton inside dialogs, for better UI */
+  min-width: 0px;
+}
 
 """
     return qss + QSS

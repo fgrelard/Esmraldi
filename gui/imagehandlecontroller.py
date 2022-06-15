@@ -136,7 +136,7 @@ class ImageHandleController:
                 index = self.imagehandleview.combobox.findText(new_name)
                 self.imagehandleview.combobox.setCurrentIndex(index)
                 self.current_name = new_name
-            fa_edit = qta.icon('fa.edit')
+            fa_edit = qta.icon('fa.edit', color="#ccc")
             self.imagehandleview.editButton.setIcon(fa_edit)
         self.imagehandleview.combobox.setEditable(self.is_edit)
 
