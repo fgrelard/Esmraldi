@@ -9,8 +9,28 @@ import configparser
 import os
 import qdarkstyle
 
-
 os.environ['PYQTGRAPH_QT_LIB'] = 'PyQt5'
+
+def enrich_qss(qss):
+    QSS = """
+QRangeSlider {
+    qproperty-barColor: #6490c4;
+    border:none;
+}
+QSlider{
+    background-color: none;
+    border: none;
+    border-radius: 0px;
+}
+QSlider::groove:horizontal {
+  border: none;
+}
+QSlider::sub-page:horizontal {
+  border: none;
+}
+
+"""
+    return qss + QSS
 
 # For high DPI screens
 if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
@@ -62,6 +82,8 @@ def start():
     app = QApplication.instance()
     if not app:
         app = QApplication(sys.argv)
+    qss = enrich_qss(qdarkstyle.load_stylesheet())
+    app.setStyleSheet(qss)
     main_window = AppWindow()
     config = init_configuration()
     main_controller = MainController(app, main_window, config)
