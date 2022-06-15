@@ -743,13 +743,17 @@ def find_similar_images_dispersion(image_maldi, factor, quantiles=[], in_sample=
     coords = np.array(coords)
     print(coords.shape)
     if in_sample:
-        off_sample_image = determine_on_off_sample(image_maldi, value_sample_array)
-        off_sample_cond = np.array([np.median(off_sample_image[coord.T[0], coord.T[1]]) for coord in coords])
-    indices = (value_array < factor) & (off_sample_cond == 0)
+        off_sample_image, off_sample_cond = determine_on_off_sample(image_maldi, value_sample_array)
+        print(off_sample_cond)
+        # off_sample_cond = np.array([np.median(off_sample_image[coord.T[0], coord.T[1]]) for coord in coords])
+    indices = (value_array < factor) & (off_sample_cond < 0.5)
     similar_images = image_maldi[..., indices]
+    to_return = (similar_images,)
     if return_indices:
-        return similar_images, indices
-    return similar_images
+        to_return += (indices,)
+    if in_sample:
+        to_return += (off_sample_image, off_sample_cond)
+    return to_return
 
 def determine_on_off_sample(image_maldi, value_array):
     kmeans = KMeans(n_clusters=2, random_state=0).fit(value_array.reshape(-1, 1))
@@ -763,4 +767,12 @@ def determine_on_off_sample(image_maldi, value_array):
         current_sub = sub_image[..., i]
         thresh = threshold_otsu(current_sub)
         off_sample[current_sub > thresh] = 1
-    return off_sample
+    off_sample_cond = []
+    for i in range(image_maldi.shape[-1]):
+        im = image_maldi[..., i]
+        thresh = threshold_otsu(im)
+        coord = np.argwhere(im > thresh)
+        median = np.mean(off_sample[coord.T[0], coord.T[1]])
+        off_sample_cond.append(median)
+    off_sample_cond = np.array(off_sample_cond)
+    return off_sample, off_sample_cond

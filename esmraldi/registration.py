@@ -91,7 +91,6 @@ def quality_registration(imRef, imRegistered, threshold=-1, display=False):
     threshold_filter.SetOutsideValue(1)
     imRef_bin = threshold_filter.Execute(imRef)
     imRegistered_bin = threshold_filter.Execute(imRegistered)
-
     if display:
         if imRef_bin.GetDimension() == 2:
             fig, ax = plt.subplots(1,2)
@@ -315,6 +314,7 @@ def find_best_transformation(scale_and_rotation, initial_transform, fixed, movin
     tx = sitk.Transform(initial_transform)
     scale = scale_and_rotation[0]
     rotation = scale_and_rotation[1]
+    print(scale, rotation)
     parameters = list(tx.GetParameters())
     parameters[0] = scale
     parameters[1] = rotation
@@ -360,9 +360,6 @@ def find_best_translation_scale(scale_and_translation, initial_transform, fixed,
 
     metric = mutual_information(fixed, deformed)
     return -metric
-
-def registration_fiducial(first_points, second_points):
-    pass
 
 
 def find_best_translation(translation_vector, initial_transform, fixed, moving):
@@ -555,8 +552,8 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
 
         x = [0, 0]
         ranges = (slice(0.1, 2.0, 0.1), slice(-3.2, 3.2, 0.05))
+        ranges = (slice(0.9, 1.0, 0.1), slice(-3.2, 3.2, 0.1))
         x1, metric1, _, _ = optimizer.brute(lambda x=x: find_best_transformation(x, tx, fixed_DT, moving_DT, update_DT), ranges=ranges, finish=None, full_output=True)
-
         x2, metric2, _, _ = optimizer.brute(lambda x=x: find_best_transformation(x, tx2, fixed_DT, moving_DT, update_DT), ranges=ranges, finish=None, full_output=True)
         print(metric1, metric2)
         x0 = x1
@@ -574,7 +571,7 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
 
     R.SetMetricAsMattesMutualInformation(number_of_bins)
     R.SetMetricSamplingPercentage(sampling_percentage, seed)
-
+    R.SetMetricAsMeanSquares()
     R.SetOptimizerAsRegularStepGradientDescent(
         learningRate=learning_rate,
         minStep=min_step,
@@ -583,6 +580,7 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
         gradientMagnitudeTolerance = 1e-5,
         maximumStepSizeInPhysicalUnits = 0.0)
 
+    # R.SetOptimizerAsOnePlusOneEvolutionary()
 
     if not find_best_rotation:
         transform = sitk.CenteredTransformInitializer(
@@ -596,8 +594,69 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
     try:
         outTx = R.Execute(fixed, moving)
     except Exception as e:
-        print(e)
-    else:
-        resampler = initialize_resampler(fixed, outTx)
-        return resampler
+        outTx = transform
+    resampler = initialize_resampler(fixed, outTx)
+    return resampler
     return None
+
+
+def preprocess_image(image):
+    is_ms_image = hasattr(image, "image")
+    processed_image = image
+    shape = ((2,) if image.ndim == 3 else ()) + (0, 1)
+    if is_ms_image:
+        processed_image = processed_image.image
+    else:
+        processed_image = np.transpose(image, shape)
+    return processed_image, is_ms_image
+
+def crop_image(image, points):
+    lower = round(np.amin(points[::2])), round(np.amin(points[1::2]))
+    upper = round(np.amax(points[::2])+1), round(np.amax(points[1::2])+1)
+    if image.ndim == 2:
+        image = image[lower[1]:upper[1], lower[0]:upper[0]]
+    else:
+        image = image[:, lower[1]:upper[1], lower[0]:upper[0]]
+    new_points = [int(p - lower[i%2]) for i, p in enumerate(points)]
+    return image, new_points
+
+def apply_registration(fixed, register, landmark_transform):
+    fixed_dim = fixed.ndim
+    dim = register.ndim
+    size = np.array(register.shape)[::-1]
+
+    if fixed_dim == 2:
+        fixed_itk = sitk.GetImageFromArray(fixed)
+        resampler = initialize_resampler(fixed_itk, landmark_transform)
+    if fixed_dim == 3:
+        fixed_itk = sitk.GetImageFromArray(fixed[0, ...])
+        resampler = initialize_resampler(fixed_itk, landmark_transform)
+
+    if dim == 2:
+        register_itk = sitk.GetImageFromArray(register)
+        deformed_itk = resampler.Execute(register_itk)
+    elif dim == 3:
+        slices = []
+        for i in range(size[2]):
+            img_slice = sitk.GetImageFromArray(register[i, ...])
+            img_slice.SetSpacing([1, 1])
+            out_slice = resampler.Execute(img_slice)
+            out_slice = sitk.JoinSeries(out_slice)
+            slices.append(out_slice)
+        stackmaker = sitk.TileImageFilter()
+        stackmaker.SetLayout([1, 1, 0])
+        deformed_itk = stackmaker.Execute(slices)
+
+    deformed = sitk.GetArrayFromImage(deformed_itk)
+    return deformed
+
+def registration_landmarks(fixed, moving, points_fixed, points_moving, to_crop=False):
+    fixed, is_ms_fixed = preprocess_image(fixed)
+    moving, is_ms_moving = preprocess_image(moving)
+    if to_crop:
+        fixed, points_fixed = crop_image(fixed, points_fixed)
+
+    landmark_transform = sitk.LandmarkBasedTransformInitializer(sitk.AffineTransform(2), points_fixed, points_moving)
+
+    deformed = apply_registration(fixed, moving, landmark_transform)
+    return deformed
