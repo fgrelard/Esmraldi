@@ -19,6 +19,7 @@ from matplotlib.figure import Figure
 
 import SimpleITK as sitk
 import cv2
+import pandas as pd
 import skimage.color as color
 
 import esmraldi.imzmlio as io
@@ -27,7 +28,7 @@ import esmraldi.spectraprocessing as sp
 from esmraldi.msimage import MSImage
 from esmraldi.msimagefly import MSImageOnTheFly
 from esmraldi.sparsematrix import SparseMatrix
-from esmraldi.utils import msimage_for_visualization
+from esmraldi.utils import msimage_for_visualization,  indices_search_sorted
 
 from gui.imagehandlecontroller import ImageHandleController
 from gui.peak_picking_controller import PeakPickingController
@@ -252,10 +253,14 @@ class MainController:
         self.peakpickingcontroller.trigger_compute.signal.connect(self.peak_picking)
         self.peakpickingcontroller.trigger_end.signal.connect(self.mainview.clear_frame)
 
+
         self.mainview.actionPeakPickingMeanSpectrum.triggered.connect(lambda event: self.mainview.set_frame(self.mainview.peakpickingmeanspectrumview))
         self.peakpickingmeanspectrumcontroller = PeakPickingMeanSpectrumController(self.mainview.peakpickingmeanspectrumview, imageview)
         self.peakpickingmeanspectrumcontroller.trigger_compute.signal.connect(self.peak_picking_mean_spectrum)
         self.peakpickingcontroller.trigger_end.signal.connect(self.mainview.clear_frame)
+
+        self.mainview.actionPeakMetaspace.triggered.connect(self.peaks_metaspace)
+
 
         self.mainview.actionSpectraAlignment.triggered.connect(lambda event: self.mainview.set_frame(self.mainview.spectraalignmentview))
         self.spectraalignmentcontroller = SpectraAlignmentController(self.mainview.spectraalignmentview, imageview)
@@ -436,18 +441,21 @@ class MainController:
         displayed_image = displayed_image.T
         # imageview.coords_threshold = imageview.roi_to_coordinates(displayed_image, min_value, max_value)
 
+    def display_peaks_mean_spectrum(self, peaks):
+        imageview = self.mainview.imagehandleview.imageview
+        imageview.winPlot.setVisible(True)
+        unique = np.unique(np.hstack(peaks))
+        intensities = imageview.displayed_spectra
+        mzs = imageview.tVals
+        indices = indices_search_sorted(unique, mzs)
+        data = [unique, intensities[indices]]
+        imageview.plot.setPoints(data[0], data[1], size=5, brush=pg.mkBrush("r"))
 
     def peak_picking(self):
         def end_computation(peaks):
             imageview = self.mainview.imagehandleview.imageview
             imageview.image.peaks = peaks
-            imageview.winPlot.setVisible(True)
-            unique = np.unique(np.hstack(peaks))
-            intensities = imageview.displayed_spectra
-            mzs = imageview.tVals
-            indices = np.searchsorted(mzs, unique)
-            data = [unique, intensities[indices]]
-            imageview.plot.setPoints(data[0], data[1], size=5, brush=pg.mkBrush("r"))
+            self.display_peaks_mean_spectrum(peaks)
             self.mainview.peakpickingview.label_peaks.setEnabled(True)
             self.mainview.peakpickingview.label_peaks.setText(str(len(indices)) + " peaks found.")
             self.mainview.progressBar.setMaximum(100)
@@ -477,6 +485,33 @@ class MainController:
         self.sig_abort_workers.signal.connect(self.peakpickingmeanspectrumcontroller.worker.abort)
         self.peakpickingmeanspectrumcontroller.thread.start()
         self.threads.append((self.peakpickingmeanspectrumcontroller.thread, self.peakpickingmeanspectrumcontroller.worker))
+
+    def peaks_metaspace(self):
+        filenames, ext = QtWidgets.QFileDialog.getOpenFileNames(self.mainview.centralwidget, "Select METASPACE .csv file", self.config['default']["imzmldir"])
+        for filename in filenames:
+            if not filename:
+                return
+
+            data = pd.read_csv(filename, header=2, delimiter=",")
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Information)
+
+            msg.setWindowTitle("Peaks from METASPACE (.csv)")
+            if hasattr(data, "mz"):
+                mzs_annotated = data.mz
+                mzs_annotated = np.unique(mzs_annotated)
+                imageview = self.mainview.imagehandleview.imageview
+                if imageview.image.peaks is not None:
+                    imageview.image.peaks = np.concatenate((imageview.image.peaks, mzs_annotated))
+                else:
+                    imageview.image.peaks = mzs_annotated
+
+                self.display_peaks_mean_spectrum(imageview.image.peaks)
+                msg.setText("Added " + str(len(mzs_annotated)) + " peaks from METASPACE")
+            else:
+                msg.setText("Not a valid METASPACE file.")
+                msg.setInformativeText("Please supply a .csv file exported from METASPACE")
+            msg.exec_()
 
     def spectra_alignment(self):
         def end_computation(image):

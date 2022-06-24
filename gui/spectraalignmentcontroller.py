@@ -42,6 +42,7 @@ class WorkerSpectraAlignment(QtCore.QObject):
         snapshot.dump("snapshot_align.pickle")
         print("ms image for visualization")
         image = msimage_for_visualization(image)
+        print(image.shape)
         self.signal_end.emit(image)
 
     def abort(self):
