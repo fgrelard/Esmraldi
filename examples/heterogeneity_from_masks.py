@@ -1,15 +1,12 @@
 import argparse
 import numpy as np
+
 import esmraldi.imzmlio as io
-import esmraldi.fusion as fusion
-import esmraldi.imageutils as imageutils
+import esmraldi.segmentation as segmentation
 import SimpleITK as sitk
 import matplotlib.pyplot as plt
-import xlsxwriter
 import os
-
 from skimage.color import rgb2gray
-from sklearn.metrics import roc_auc_score
 
 
 def read_image(image_name):
@@ -19,20 +16,23 @@ def read_image(image_name):
     mask = mask.T
     return mask
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input .imzML")
 parser.add_argument("-m", "--mask", help="Mask image (any ITK format)")
 parser.add_argument("-r", "--regions", help="Subregions inside mask", nargs="+", type=str)
 parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given m/z", default=0)
+parser.add_argument("--preprocess", help="Normalize to 0-255", action="store_true")
 parser.add_argument("-o", "--output", help="Output .csv files with stats")
 args = parser.parse_args()
+
 
 input_name = args.input
 mask_name = args.mask
 region_names = args.regions
 output_name = args.output
 normalization = float(args.normalization)
+is_normalized = args.preprocess
+
 
 if input_name.lower().endswith(".imzml"):
     imzml = io.open_imzml(input_name)
@@ -55,24 +55,6 @@ else:
     mzs = np.loadtxt(os.path.splitext(input_name)[0] + ".csv")
 
 
-workbook = xlsxwriter.Workbook(output_name, {'strings_to_urls': False})
-header_format = workbook.add_format({'bold': True,
-                                     'align': 'center',
-                                     'valign': 'vcenter',
-                                     'fg_color': '#D7E4BC',
-                                     'border': 1})
-
-left_format = workbook.add_format({'align': 'left'})
-
-name = "No norm"
-if normalization > 0:
-    name = str(normalization)
-
-worksheet = workbook.add_worksheet(name)
-
-worksheets = []
-worksheets.append(worksheet)
-
 mask = read_image(mask_name)
 regions = []
 for region_name in region_names:
@@ -84,21 +66,31 @@ n = len(np.where(mask>0)[0])
 norm_img = None
 if normalization > 0:
     norm_img = imageutils.get_norm_image(images, normalization, mzs)
+    for i in range(image.shape[-1]):
+        images[..., i] = imageutils.normalize_image(image[..., i], norm_img)
 
-indices, indices_ravel = fusion.roc_indices(mask, images.shape[:-1], norm_img)
+if is_normalized:
+    images = io.normalize(images)
 
-for worksheet in worksheets:
-    for i, region in enumerate(regions):
-        region_name = region_names[i]
-        name = os.path.splitext(os.path.basename(region_name))[0]
-        worksheet.write(i+1, 0, name, header_format)
-    worksheet.freeze_panes(1, 1)
 
-region_bool = fusion.region_to_bool(regions, indices_ravel, images.shape[:-1])
-roc_auc_scores = fusion.roc_auc_analysis(images, indices, region_bool, norm_img, thresholded_variants=True)
+mzs_target = [837.549, 773.534, 869.554, #dispersion
+           859.531372070312, 861.549438476562, 857.518188476562, #LB
+           644.5015869,	788.5460815,	670.5178223, #LT
+           286.9776, 296.0708]
 
-for (i, j), auc in np.ndenumerate(roc_auc_scores):
-    worksheet.write(0, i+1, mzs[i], header_format)
-    worksheet.write(j+1, i+1, auc)
 
-workbook.close()
+indices = [np.abs(mzs - mz).argmin() for mz in mzs_target]
+image = images[..., indices]
+
+for i in range(image.shape[-1]):
+    heterogeneities = []
+    avs = []
+    maxs = []
+    for j, r in enumerate(regions):
+        h, a, m = segmentation.heterogeneity_mask(image[..., i], r, 200)
+        heterogeneities.append(h)
+        avs.append(a)
+        maxs.append(m)
+
+    ind = np.argmax(heterogeneities)
+    print("mzs", mzs_target[i], "Region", region_names[ind].split("crop ")[-1].split("-")[0], "hetero", heterogeneities[ind], avs[ind], maxs[ind])

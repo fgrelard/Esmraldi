@@ -9,18 +9,24 @@ import os
 
 from skimage.color import rgb2gray
 from skimage.metrics import structural_similarity
-from sklearn.cluster import AgglomerativeClustering
+from skimage.filters import threshold_multiotsu
+from sklearn.cluster import AgglomerativeClustering, MeanShift, estimate_bandwidth, DBSCAN, KMeans
 from sklearn.manifold import MDS, LocallyLinearEmbedding, Isomap, TSNE
+from sklearn.metrics import silhouette_score
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn import preprocessing
 from sewar.full_ref import mse, rmse, psnr, uqi, ssim, ergas, scc, rase, sam, msssim, vifp
 
 import scipy.cluster.hierarchy as hc
 import scipy.spatial.distance as distance
+from scipy.stats import pearsonr, norm
 
 import esmraldi.imzmlio as io
 import esmraldi.fusion as fusion
 import esmraldi.imageutils as imageutils
 import networkx as nx
+from sklearn.mixture import GaussianMixture
+from skimage import feature
 
 def read_image(image_name):
     sitk.ProcessObject_SetGlobalWarningDisplay(False)
@@ -201,10 +207,70 @@ def corr(x, y, w):
     """Weighted Correlation"""
     return cov(x, y, w) / np.sqrt(cov(x, x, w) * cov(y, y, w))
 
+def cosdistance(x,y):
+    x = x.astype(float)
+    y = y.astype(float)
+    return 1-(np.dot(x, y)/(np.sqrt(np.dot(x,x))*np.sqrt(np.dot(y,y))))
+
 def cosw(x,y,w):
-    x_new = x*w
-    y_new = y*w
-    return 1-np.dot(x_new, y_new)/(np.linalg.norm(x_new)*np.linalg.norm(y_new))
+    return distance.cosine(x,y,w)
+
+def cospos(x,y):
+    cond = (x>0) & (y>0)
+    x_n = x[cond]
+    y_n = y[cond]
+    return distance.cosine(x_n,y_n)
+
+
+def analyse_intensity_distributions(image_norm):
+    best_regions = None
+    for i in range(image_norm.shape[0]):
+        values = image_norm[i, ...]
+        X = values.reshape(image.shape[:-1])
+        best_coeff = -1
+        for i in range(3):
+
+            number = i + 2
+            thresholds = threshold_multiotsu(X, number)
+            regions = np.digitize(X, bins=thresholds)
+            region_flatten = regions.flatten()
+            coeffr = cosine_similarity(region_flatten[region_flatten>0].reshape((1, -1)), values[region_flatten>0].reshape((1, -1)))
+            if coeffr > best_coeff:
+                best_coeff = coeffr
+                best_regions = regions
+                best_number = number
+                best_thresholds = thresholds
+
+        # for t in best_thresholds:
+        #     img = np.where(X > t, X, 0)
+        #     plt.imshow(img)
+        #     plt.show()
+
+        gm = GaussianMixture(n_components=best_number, random_state=0).fit(values.reshape(-1, 1))
+        means = gm.means_
+        covariances = gm.covariances_
+        weights = gm.weights_
+        x_axis = np.linspace(1, values.max(), 1000)
+
+        print(thresholds, means)
+        print(best_number, best_thresholds)
+        im = np.digitize(X, best_thresholds)
+        fig, ax = plt.subplots(1, 3)
+        logbins = np.geomspace(1, values.max(), 200)
+        img = np.where(X > best_thresholds[-1], 255, 0)
+        varimg = imageutils.variance_image(img, 2)
+        varimg = feature.canny(X, sigma=10)
+        ax[0].imshow(X)
+        ax[1].imshow(varimg)
+        hist, bin_edges = np.histogram(values, bins=200)
+        pdfs = [norm.pdf(x_axis, means[i][0], np.sqrt(covariances[i][0]))*weights[i] for i in range(len(means)) if means[i][0] != 0]
+        ax[2].hist(values, bins=logbins, density=True)
+        # for j in range(len(pdfs)):
+        #     ax[2].plot(x_axis, pdfs[j], "r")
+        ax[2].set_xscale("log")
+        ax[2].set_yscale("log")
+        plt.show()
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input .imzML")
@@ -261,29 +327,25 @@ if not is_spectral:
 print(image_norm.shape)
 print(image.shape)
 
-# im_837 = imageutils.get_norm_image(image, 837.549, mzs)
-# im_773 = imageutils.get_norm_image(image, 773.534, mzs)
-# im_869 = imageutils.get_norm_image(image, 869.554, mzs)
+mzs_target = [837.549, 773.534, 869.554, #dispersion
+           859.531372070312, 861.549438476562, 857.518188476562, #LB
+           644.5015869,	788.5460815,	670.5178223, #LT
+           286.9776, 296.0708]
 
-# fig, ax = plt.subplots(1, 3)
-# ax[0].imshow(im_837)
-# ax[1].imshow(im_773)
-# ax[2].imshow(im_869)
-# plt.show()
 
-# from scipy import spatial
-# mask = (im_837 != 0) | (im_773 != 0)
-# print(np.count_nonzero(mask))
-# mask2 = (im_773 != 0) | (im_869 != 0)
-# cos = spatial.distance.cosine(im_837[mask].flatten(), im_773[mask].flatten())
-# cos2 = spatial.distance.cosine(im_773[mask2].flatten(), im_869[mask2].flatten())
-# print(cos, cos2)
-# exit(0)
+indices = [np.abs(mzs - mz).argmin() for mz in mzs_target]
+current_image = current_image[..., indices]
+image_norm = image_norm[indices, ...]
+
+analyse_intensity_distributions(image_norm)
+
+mzs = np.array(mzs_target)
 
 
 # distance_matrix = distance.squareform(distance.pdist(image_norm, metric=lambda u,v: 1-corr(u,v,np.maximum(u,v))))
 distance_matrix = distance.squareform(distance.pdist(image_norm, metric="cosine"))
-distance_matrix = distance.squareform(distance.pdist(image_norm, metric=lambda u,v: cosw(u,v,np.maximum(u,v))))
+distance_matrix = distance.squareform(distance.pdist(image_norm, metric=lambda u,v: cosdistance(u,v)))
+print(distance_matrix)
 
 plt.imshow(distance_matrix, cmap="RdBu", interpolation="nearest")
 pos = np.arange(0, len(mzs))

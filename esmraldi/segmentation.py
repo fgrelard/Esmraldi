@@ -20,7 +20,7 @@ from skimage import measure
 from skimage.filters import threshold_otsu, rank, sobel
 from skimage.transform import hough_circle, hough_circle_peaks
 from skimage.feature import canny
-from skimage import data, color
+from skimage import data, color, util
 from skimage.draw import disk as drawdisk
 from skimage.morphology import binary_erosion, closing, disk
 
@@ -776,3 +776,20 @@ def determine_on_off_sample(image_maldi, value_array):
         off_sample_cond.append(median)
     off_sample_cond = np.array(off_sample_cond)
     return off_sample, off_sample_cond
+
+
+def heterogeneity_mask(image, region, size=10):
+    reduced_image = np.where(region > 0, image, -1)
+    averages = []
+    max_values = []
+    for x in range(0, image.shape[0], size):
+        for y in range(0, image.shape[1], size):
+            currimg = reduced_image[x:x+size, y:y+size]
+            origimg = image[x:x+size, y:y+size]
+            currimg = currimg[currimg >=0]
+            if currimg.size > 0:
+                averages.append(np.median(currimg))
+                max_values.append(currimg.max())
+    average = np.median(averages)
+    average /= np.median(max_values)/2
+    return average, averages, max_values

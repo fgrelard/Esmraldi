@@ -87,6 +87,7 @@ current_values = sub_region.flatten()
 colors = ["g", "r", "b"]
 for j, binary_label in enumerate(region_bool):
     fpr, tpr, _ = roc_curve(binary_label, current_values)
+    print(roc_auc_score(binary_label, current_values))
     plt.plot(fpr, tpr, color=colors[j], label=region_names[j])
 
 plt.plot([0, 1], [0, 1], color="k", linestyle="--")

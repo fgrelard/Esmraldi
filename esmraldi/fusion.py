@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity, cosine_distances
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score
+from skimage.filters import threshold_multiotsu
 
 def clustering_affinity(X_r):
     """
@@ -489,7 +490,16 @@ def region_to_bool(regions, indices_ravel, shape):
             region_bool.append(inside_region)
     return region_bool
 
-def roc_auc_analysis(images, indices, region_bool, norm_img=None):
+
+def single_roc_auc(image, indices, region_bool):
+    sub_region = image[indices]
+    current_values = sub_region.flatten()
+    rocs = np.zeros(len(region_bool))
+    for j, binary_label in enumerate(region_bool):
+        rocs[j] = roc_auc_score(binary_label, current_values)
+    return rocs
+
+def roc_auc_analysis(images, indices, region_bool, norm_img=None, thresholded_variants=False):
     nreg = len(region_bool)
     roc_auc_scores = np.zeros((images.shape[-1], nreg))
     for i in range(images.shape[-1]):
@@ -499,10 +509,33 @@ def roc_auc_analysis(images, indices, region_bool, norm_img=None):
             np.divide(current_image, norm_img, out=return_img, where=norm_img!=0)
             current_image = return_img
 
-        sub_region = current_image[indices]
-        current_values = sub_region.flatten()
-
-        for j, binary_label in enumerate(region_bool):
-            roc_auc_scores[i, j] = roc_auc_score(binary_label, current_values)
+        if thresholded_variants:
+            current_image = image_to_thresholded_variants(current_image)
+            for j, im in enumerate(current_image):
+                auc_scores = single_roc_auc(im, indices, region_bool)
+                if j == 0:
+                    roc_auc_scores[i, :] = auc_scores
+                else:
+                    roc_auc_scores[i, :] = np.minimum(roc_auc_scores[i, :], auc_scores)
+        else:
+            roc_auc_scores[i, :] = single_roc_auc(current_image, indices, region_bool)
 
     return roc_auc_scores
+
+
+def image_to_thresholded_variants(image, n=3):
+    thresholded_images = []
+    best_coeff = -1
+    for i in range(n):
+        number = i + 2
+        thresholds = threshold_multiotsu(image, number)
+        regions = np.digitize(image, bins=thresholds)
+        region_flatten = regions.flatten()
+        image_flatten = image.flatten()
+        coeffr = cosine_similarity(region_flatten[region_flatten>0].reshape((1, -1)), image_flatten[region_flatten>0].reshape((1, -1)))
+        if coeffr > best_coeff:
+            best_coeff = coeffr
+            best_thresholds = thresholds
+
+    L = [np.where(image > t, image, 0) for t in best_thresholds]
+    return L
