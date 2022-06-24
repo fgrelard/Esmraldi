@@ -5,6 +5,7 @@ import esmraldi.spectraprocessing as sp
 import esmraldi.imageutils as imageutils
 from esmraldi.msimagefly import MSImageOnTheFly
 import SimpleITK as sitk
+import xlsxwriter
 
 import os
 
@@ -31,6 +32,21 @@ region_names = args.regions
 output_name = args.output
 normalization = float(args.normalization)
 
+workbook = xlsxwriter.Workbook(output_name, {'strings_to_urls': False})
+header_format = workbook.add_format({'bold': True,
+                                     'align': 'center',
+                                     'valign': 'vcenter',
+                                     'fg_color': '#D7E4BC',
+                                     'border': 1})
+
+left_format = workbook.add_format({'align': 'left'})
+
+name = "No norm"
+if normalization > 0:
+    name = str(normalization)
+
+worksheet = workbook.add_worksheet(name)
+
 imzml = io.open_imzml(input_name)
 spectra = io.get_spectra(imzml)
 print(spectra.shape)
@@ -46,12 +62,24 @@ if normalization > 0:
     img_data = MSImageOnTheFly(spectra, coords=imzml.coordinates, tolerance=0.01)
     norm_img = img_data.get_ion_image_mzs(normalization, img_data.tolerance, img_data.tolerance)
     norm_flatten = norm_img.flatten()[:, np.newaxis]
-    np.divide(spectra[:, 1, :], norm_flatten, where=norm_flatten!=0, out=spectra[:, 1, :])
+    for i, intensities in enumerate(spectra[:, 1]):
+        if norm_flatten[i] != 0:
+            new_intensities = intensities / norm_flatten[i]
+        else:
+            new_intensities = np.zeros_like(intensities)
+        spectra[i, 1] = new_intensities
+
+
+worksheet.write_column(1, 0, mzs, header_format)
 
 regions = []
-for region_name in region_names:
+for i, region_name in enumerate(region_names):
     region = read_image(region_name)
-    indices_regions = np.ravel_multi_index(np.where(region > 0), shape, order='F')
+    indices_regions = np.ravel_multi_index(np.where(region > 0), (max_x, max_y), order='F')
     mean_spectra = sp.spectra_mean_centroided(spectra[indices_regions], mzs)
-    plt.plot(mzs, mean_spectra)
-    plt.show()
+    name = os.path.splitext(os.path.basename(region_name))[0]
+    worksheet.write(0, i+1, name)
+    worksheet.write_column(1, i+1, mean_spectra)
+
+worksheet.freeze_panes(1, 1)
+workbook.close()

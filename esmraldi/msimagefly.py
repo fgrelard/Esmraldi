@@ -91,9 +91,12 @@ class MSImageOnTheFly(MSImageBase):
         ind_spectra = np.searchsorted(self.cumlen, ind)
         ind_value = np.split(ind_value, np.where(np.diff(ind_spectra) != 0)[0]+1)
         ind_spectra = np.unique(ind_spectra)
+        mask = np.ones(len(self.shape),dtype=bool)
+        mask[self.spectral_axis] = False
+        shape = np.array(self.shape)[mask]
 
-        im = np.zeros(self.shape[self.spectral_axis+1:])
-        x, y = np.unravel_index(ind_spectra, self.shape[self.spectral_axis+1:], order="C")
+        im = np.zeros(shape)
+        x, y = np.unravel_index(ind_spectra, shape, order="C")
         intensities = self.spectra[:, 1][ind_spectra]
         for i, (x_i, y_i) in enumerate(zip(x, y)):
             curr_i = intensities[i]
