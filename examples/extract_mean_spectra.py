@@ -10,6 +10,7 @@ import xlsxwriter
 import os
 
 from skimage.color import rgb2gray
+import matplotlib.pyplot as plt
 
 def read_image(image_name):
     sitk.ProcessObject_SetGlobalWarningDisplay(False)
@@ -57,6 +58,7 @@ max_z = max(coordinates, key=lambda item:item[2])[2]
 mzs = np.unique(np.hstack(spectra[:, 0]))
 mzs = mzs[mzs>0]
 
+
 norm_img = None
 if normalization > 0:
     img_data = MSImageOnTheFly(spectra, coords=imzml.coordinates, tolerance=0.01)
@@ -70,16 +72,24 @@ if normalization > 0:
         spectra[i, 1] = new_intensities
 
 
-worksheet.write_column(1, 0, mzs, header_format)
+
 
 regions = []
 for i, region_name in enumerate(region_names):
     region = read_image(region_name)
     indices_regions = np.ravel_multi_index(np.where(region > 0), (max_x, max_y), order='F')
-    mean_spectra = sp.spectra_mean_centroided(spectra[indices_regions], mzs)
+    curr_spectra = spectra[indices_regions]
+    curr_mzs, intensities = sp.realign_mean_spectrum(mzs, curr_spectra[:, 1], curr_spectra[:, 0], 14, is_ppm=True)
+    mean_spectra = sp.spectra_mean_centroided(curr_spectra, mzs)
+    if i==0:
+        worksheet.write_column(1, 0, curr_mzs, header_format)
+    print(mzs.shape, curr_mzs.shape, intensities.shape)
+    plt.plot(curr_mzs, intensities)
+    plt.plot(mzs, mean_spectra)
+    plt.show()
     name = os.path.splitext(os.path.basename(region_name))[0]
     worksheet.write(0, i+1, name)
-    worksheet.write_column(1, i+1, mean_spectra)
+    worksheet.write_column(1, i+1, intensities)
 
 worksheet.freeze_panes(1, 1)
 workbook.close()

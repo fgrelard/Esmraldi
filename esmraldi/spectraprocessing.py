@@ -514,6 +514,31 @@ def index_groups(indices, step=1, is_ppm=False):
         index += 1
     return groups
 
+def index_groups_start_end(indices, step=1, is_ppm=False):
+    indices.sort()
+    groups = []
+    index = 1
+    current_step = step
+    start = indices[0]
+    L=[start]
+    while index < len(indices):
+        value = indices[index]
+        if is_ppm:
+            current_step = step*value/1e6
+        if abs(value - start) > 2*current_step:
+            groups.append(L)
+            if index == len(indices) - 1:
+                groups.append([value])
+            start = value
+            L = [start]
+        elif index == len(indices) - 1:
+            L.append(value)
+            groups.append(L)
+        elif index != len(indices) - 1:
+            L.append(value)
+        index += 1
+    return groups
+
 
 
 def peak_reference_indices_group(group):
@@ -696,6 +721,25 @@ def realign_reducing(out_spectra, spectra, step=0.0005, is_ppm=False):
             out_spectra[j, 1, i] = np.mean(subset_i[j])
         current_ind = next_ind
 
+def realign_mean_spectrum(mzs, intensities, all_mzs, step=0.0005, is_ppm=False):
+    new_mzs = []
+    new_intensities = []
+    indices = np.searchsorted(mzs, np.hstack(all_mzs))
+    intensities_flat = np.hstack(intensities)
+    all_len = [len(g) for g in intensities]
+    ind_len = [i for i in range(len(all_len)) for j in range(all_len[i])]
+    groups = index_groups_start_end(mzs, step, is_ppm)
+    current_ind = 0
+    next_ind = 0
+    for i in range(len(groups)):
+        g = groups[i]
+        next_ind += len(g)
+        subset_mz = mzs[current_ind:next_ind]
+        condition = (indices>=current_ind) & (indices<next_ind)
+        new_mzs.append(np.median(subset_mz))
+        new_intensities.append(np.sum(intensities_flat[condition])/intensities.shape[0])
+        current_ind = next_ind
+    return np.array(new_mzs), np.array(new_intensities)
 
 def realign_tree(spectra, mzs, mean_spectra, step=0.0005, is_ppm=False):
     peak_detection = PeakDetectionTree(mzs, mean_spectra, step)

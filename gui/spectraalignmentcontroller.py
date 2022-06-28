@@ -37,9 +37,9 @@ class WorkerSpectraAlignment(QtCore.QObject):
             return
         print("End full spectra sparse")
         image = MSImage(full_spectra_sparse, image=None, shape=image_size, tolerance=0.003)
-        import tracemalloc
-        snapshot = tracemalloc.take_snapshot()
-        snapshot.dump("snapshot_align.pickle")
+        # import tracemalloc
+        # snapshot = tracemalloc.take_snapshot()
+        # snapshot.dump("snapshot_align.pickle")
         print("ms image for visualization")
         image = msimage_for_visualization(image)
         print(image.shape)
