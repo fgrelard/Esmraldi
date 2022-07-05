@@ -786,10 +786,11 @@ def heterogeneity_mask(image, region, size=10):
         for y in range(0, image.shape[1], size):
             currimg = reduced_image[x:x+size, y:y+size]
             origimg = image[x:x+size, y:y+size]
-            currimg = currimg[currimg >=0]
-            if currimg.size > 0:
-                averages.append(np.median(currimg))
-                max_values.append(currimg.max())
+            origimg = origimg[origimg > 0]
+            currimg = currimg[currimg >= 0]
+            if currimg.size > 0 and origimg.size > 0:
+                averages.append(np.median(origimg))
+                max_values.append(origimg.max())
     average = np.median(averages)
     average /= np.median(max_values)/2
     return average, averages, max_values

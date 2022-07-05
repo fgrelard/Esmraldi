@@ -169,7 +169,7 @@ class SparseMatrix(COO):
             restricted_self = COO.__getitem__(self, key)
         if self.is_maybe_densify:
             try:
-                value = restricted_self.maybe_densify(max_size=1e7)
+                value = restricted_self.maybe_densify(max_size=int(1e7), min_density=1)
             except ValueError as ve:
                 #If array
                 value = SparseMatrix(restricted_self)

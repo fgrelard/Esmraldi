@@ -95,7 +95,7 @@ for worksheet in worksheets:
     worksheet.freeze_panes(1, 1)
 
 region_bool = fusion.region_to_bool(regions, indices_ravel, images.shape[:-1])
-roc_auc_scores = fusion.roc_auc_analysis(images, indices, region_bool, norm_img, thresholded_variants=True)
+roc_auc_scores = fusion.roc_auc_analysis(images, indices, region_bool, norm_img)
 
 for (i, j), auc in np.ndenumerate(roc_auc_scores):
     worksheet.write(0, i+1, mzs[i], header_format)

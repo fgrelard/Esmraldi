@@ -721,13 +721,15 @@ def realign_reducing(out_spectra, spectra, step=0.0005, is_ppm=False):
             out_spectra[j, 1, i] = np.mean(subset_i[j])
         current_ind = next_ind
 
-def realign_mean_spectrum(mzs, intensities, all_mzs, step=0.0005, is_ppm=False):
+def realign_mean_spectrum(mzs, intensities, all_mzs, step=0.0005, is_ppm=False, return_stats=False):
     new_mzs = []
     new_intensities = []
+    new_cardinals = []
+    new_stds = []
     indices = np.searchsorted(mzs, np.hstack(all_mzs))
     intensities_flat = np.hstack(intensities)
     all_len = [len(g) for g in intensities]
-    ind_len = [i for i in range(len(all_len)) for j in range(all_len[i])]
+    ind_len = np.array([i for i in range(len(all_len)) for j in range(all_len[i])])
     groups = index_groups_start_end(mzs, step, is_ppm)
     current_ind = 0
     next_ind = 0
@@ -736,9 +738,24 @@ def realign_mean_spectrum(mzs, intensities, all_mzs, step=0.0005, is_ppm=False):
         next_ind += len(g)
         subset_mz = mzs[current_ind:next_ind]
         condition = (indices>=current_ind) & (indices<next_ind)
+        current_intensities = intensities_flat[condition]
+
+        end = np.where(np.diff(ind_len[condition]))[0] + 1
+        start = np.concatenate(([0], end))
+        end = np.append(end, len(ind_len[condition]))
+        if current_intensities.size > 0:
+            current_intensities = np.array([np.mean(current_intensities[start[i]:end[i]]) for i in range(len(start))])
+            current_intensities = np.concatenate((current_intensities, np.zeros((intensities.shape[0]-current_intensities.shape[0],))))
+        else:
+            current_intensities = [0]
         new_mzs.append(np.median(subset_mz))
-        new_intensities.append(np.sum(intensities_flat[condition])/intensities.shape[0])
+        new_intensities.append(np.mean(current_intensities))
+        if return_stats:
+            new_cardinals.append(intensities.shape[0])
+            new_stds.append(np.std(current_intensities))
         current_ind = next_ind
+    if return_stats:
+        return np.array(new_mzs), np.array(new_intensities), np.array(new_stds), np.array(new_cardinals)
     return np.array(new_mzs), np.array(new_intensities)
 
 def realign_tree(spectra, mzs, mean_spectra, step=0.0005, is_ppm=False):
@@ -934,6 +951,7 @@ def realign_mzs(spectra, mzs, reference="frequence", nb_occurrence=4, step=0.02,
 
 def realign_generic(spectra, peaks, step=np.inf, is_ppm=False):
     n = len(peaks)
+    print(n)
     shape = (spectra.shape[0], 2)
     out_spectra = np.zeros(shape, dtype=object)
     print("Realigning")
@@ -962,7 +980,6 @@ def realign_generic(spectra, peaks, step=np.inf, is_ppm=False):
         indices_nonzero = np.where(new_I>0)[0]
         out_spectra[i, 0] = peaks[indices_nonzero]
         out_spectra[i, 1] = new_I[indices_nonzero]
-
     return out_spectra
 
 

@@ -7,7 +7,11 @@ import SimpleITK as sitk
 import matplotlib.pyplot as plt
 import os
 from skimage.color import rgb2gray
-
+import cv2
+import esmraldi.imageutils as imageutils
+from skimage.filters import threshold_niblack, threshold_sauvola, threshold_otsu
+from scipy.stats import pearsonr
+from esmraldi.sliceviewer import SliceViewer
 
 def read_image(image_name):
     sitk.ProcessObject_SetGlobalWarningDisplay(False)
@@ -66,8 +70,8 @@ n = len(np.where(mask>0)[0])
 norm_img = None
 if normalization > 0:
     norm_img = imageutils.get_norm_image(images, normalization, mzs)
-    for i in range(image.shape[-1]):
-        images[..., i] = imageutils.normalize_image(image[..., i], norm_img)
+    for i in range(images.shape[-1]):
+        images[..., i] = imageutils.normalize_image(images[..., i], norm_img)
 
 if is_normalized:
     images = io.normalize(images)
@@ -82,15 +86,46 @@ mzs_target = [837.549, 773.534, 869.554, #dispersion
 indices = [np.abs(mzs - mz).argmin() for mz in mzs_target]
 image = images[..., indices]
 
-for i in range(image.shape[-1]):
+H = []
+indices_toremove = []
+for i in range(images.shape[-1]):
     heterogeneities = []
     avs = []
     maxs = []
+    w = 7
+    currimg = images[..., i]
+    thresholded = threshold_sauvola(currimg, window_size=w, k=1)
+    otsu = threshold_otsu(thresholded)
+    thresholded = (thresholded > otsu)*1
+
     for j, r in enumerate(regions):
-        h, a, m = segmentation.heterogeneity_mask(image[..., i], r, 200)
+        if j == len(regions)-1:
+            continue
+        tp = np.count_nonzero((thresholded>0) & (r>0))
+        fp = np.count_nonzero((thresholded>0) & (r==0))
+        p = np.count_nonzero(r)
+        n = np.prod(r.shape) - p
+        tpr = tp/p
+        fpr = fp/n
+        if tpr > 0.4 and fpr < 0.2:
+            indices_toremove.append(i)
+        h = pearsonr(currimg.flatten(), r.flatten())[0]
+        # h, a, m = segmentation.heterogeneity_mask(currimg, r, 50)
         heterogeneities.append(h)
-        avs.append(a)
-        maxs.append(m)
+        # avs.append(a)
+        # maxs.append(m)
 
     ind = np.argmax(heterogeneities)
-    print("mzs", mzs_target[i], "Region", region_names[ind].split("crop ")[-1].split("-")[0], "hetero", heterogeneities[ind], avs[ind], maxs[ind])
+    H.append(heterogeneities[ind])
+    # print("mzs", mzs_target[i], "Region", region_names[ind].split("crop ")[-1].split("-")[0], "hetero", heterogeneities[ind])
+
+indices_toremove = np.unique(indices_toremove)
+indices_sort = np.argsort(H)
+
+fig, ax  = plt.subplots(1)
+img_data = images[..., indices_toremove]
+print(img_data.shape)
+labels = np.vstack((mzs[indices_toremove], np.array(H)[indices_toremove])).T
+tracker = SliceViewer(ax, np.transpose(img_data, (2, 1, 0)), labels=labels)
+fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
+plt.show()
