@@ -99,4 +99,4 @@ class Ui_ImageHandleView(object):
         self.lineEdit.setText(_translate("ImageHandleView", "1.0"))
 
         self.labeltol.setText(_translate("ImageHandleView", "Tolerance"))
-        self.lineEditTol.setText(_translate("ImageHandleView", "0.003"))
+        self.lineEditTol.setText(_translate("ImageHandleView", "14"))

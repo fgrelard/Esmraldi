@@ -984,7 +984,12 @@ class ImageViewExtended(pg.ImageView):
                 except:
                     cut_off = 0
                 if new_value:
-                    norm_img = self.image.get_ion_image_mzs(value)
+                    actual_value = self.image.mzs[np.abs(value - self.image.mzs).argmin()]
+                    if self.image.is_ppm:
+                        tol = self.image.tolerance_ppm(actual_value)
+                    else:
+                        tol = self.image.tolerance
+                    norm_img = self.image.get_ion_image_mzs(actual_value, tol, tol)
                     norm_img[norm_img <= cut_off] = -1
                     self.image.normalization_image = norm_img
 

@@ -8,8 +8,8 @@ import esmraldi.utils as utils
 from esmraldi.msimagebase import MSImageBase
 
 class MSImageOnTheFly(MSImageBase):
-    def __init__(self, spectra, coords=None, mzs=None, tolerance=0, spectral_axis=-1, mean_spectra=None, peaks=None, indexing=None):
-        super().__init__(spectra, mzs, tolerance, spectral_axis, mean_spectra, peaks)
+    def __init__(self, spectra, coords=None, mzs=None, tolerance=0, spectral_axis=-1, mean_spectra=None, peaks=None, indexing=None, is_ppm=True):
+        super().__init__(spectra, mzs, tolerance, spectral_axis, mean_spectra, peaks, is_ppm)
         all_mzs = np.hstack(spectra[:, 0]).flatten()
         if indexing is None:
             self.indexing = utils.indices_search_sorted(all_mzs, self.mzs)
@@ -71,7 +71,11 @@ class MSImageOnTheFly(MSImageBase):
         is_array = (isinstance(key, tuple) and any([iterfunc(elem) for elem in key])) or iterfunc(key)
 
         mz_value = self.mzs[key]
-        tolerance_left, tolerance_right = self.tolerance, self.tolerance
+        if self.is_ppm:
+            tolerance_left = self.tolerance_ppm(mz_value)
+            tolerance_right = tolerance_left
+        else:
+            tolerance_left, tolerance_right = self.tolerance, self.tolerance
         if is_array:
             tolerance_left = np.abs(np.median(mz_value) - np.amin(mz_value))
             tolerance_right = np.abs(np.median(mz_value) - np.amax(mz_value))

@@ -99,13 +99,13 @@ class WorkerOpen(QObject):
             if os.path.isfile(self.npy_indexing_path):
                 indexing = np.load(self.npy_indexing_path, mmap_mode="r")
 
-            img_data = MSImageOnTheFly(spectra, coords=imzml.coordinates, tolerance=0.003, mean_spectra=mean_spectra, indexing=indexing)
+            img_data = MSImageOnTheFly(spectra, coords=imzml.coordinates, tolerance=14, mean_spectra=mean_spectra, indexing=indexing)
 
             img_data = msimage_for_visualization(img_data)
             return img_data
 
         full_spectra = io.get_full_spectra(imzml)
-        img_data = MSImage(full_spectra, image=None, coordinates=imzml.coordinates, tolerance=0.003)
+        img_data = MSImage(full_spectra, image=None, coordinates=imzml.coordinates, tolerance=14)
         img_data = msimage_for_visualization(img_data)
         return img_data
 
@@ -307,7 +307,7 @@ class MainController:
         # self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/synthetic.imzML")
 
         # self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/random.imzML")
-        self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/20210112_107x25_20um_Mouse_Spleen_DAN_Neg_mode_200-2000mz_70K_Laser37_6p5kV_350C_Slens90_Line_centroid_aligned.imzML")
+        self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/20210112_107x25_20um_Mouse_Spleen_DAN_Neg_mode_200-2000mz_70K_Laser37_6p5kV_350C_Slens90_Line_centroid.imzML")
         # self.open_file("/mnt/d/CouplageMSI-Immunofluo/20211102 DAN 5um - laser 39/IF/20211102 Rate3#6-BF 10x - Post scan DAN- washed.tif")
         # self.open_file("/mnt/d/CBMN/random.imzML")
 
@@ -506,8 +506,13 @@ class MainController:
                 else:
                     imageview.image.peaks = mzs_annotated
 
+                groups = sp.index_groups_start_end(imageview.image.peaks, imageview.image.tolerance)
+                before_len = len(imageview.image.peaks)
+                imageview.image.peaks = np.array([np.median(g) for g in groups])
+                after_len = len(imageview.image.peaks)
+                added_len = len(mzs_annotated) - (before_len - after_len)
                 self.display_peaks_mean_spectrum(imageview.image.peaks)
-                msg.setText("Added " + str(len(mzs_annotated)) + " peaks from METASPACE")
+                msg.setText("Added " + str(added_len) + " peaks from METASPACE")
             else:
                 msg.setText("Not a valid METASPACE file.")
                 msg.setInformativeText("Please supply a .csv file exported from METASPACE")
