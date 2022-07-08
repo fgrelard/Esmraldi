@@ -25,7 +25,7 @@ parser.add_argument("-i", "--input", help="Input .imzML")
 parser.add_argument("-m", "--mask", help="Mask image (any ITK format)")
 parser.add_argument("-r", "--regions", help="Subregions inside mask", nargs="+", type=str)
 parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given m/z", default=0)
-parser.add_argument("-o", "--output", help="Output .csv files with stats")
+parser.add_argument("-o", "--output", help="Output .xlsx files with stats")
 args = parser.parse_args()
 
 input_name = args.input

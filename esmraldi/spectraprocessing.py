@@ -15,6 +15,7 @@ import numpy as np
 import bisect
 from treelib import Node, Tree
 from functools import reduce
+import esmraldi.utils as utils
 from esmraldi.utils import progress
 from esmraldi.peakdetectiontree import PeakDetectionTree
 
@@ -1062,6 +1063,17 @@ def find_isotopic_pattern(neighbours, tolerance, nb_charges):
             pattern.append(n)
     return pattern
 
+def find_isotopic_pattern_theoretical_difference(neighbours, th_diff, tolerance, nb_charges, is_ppm=True):
+    pattern = [neighbours[0]]
+    for j in range(1, neighbours.shape[0]):
+        n = neighbours[j]
+        tol = utils.tolerance(n[0], tolerance, is_ppm=is_ppm)
+        previous = pattern[-1]
+        d_previous = n[0] - previous[0]
+        if th_diff - tol <= d_previous <= th_diff + tol:
+            pattern.append(n)
+    return pattern
+
 def peaks_max_intensity_isotopic_pattern(pattern):
     """
     Finds the peak with maximum intensity in
@@ -1257,3 +1269,67 @@ def deisotoping_simple(spectra, tolerance=0.1, nb_neighbours=8, nb_charges=5, av
         new_intensities = intensities[deisotoped_indices]
         deisotoped_spectra.append((new_mzs, new_intensities))
     return np.array(deisotoped_spectra)
+
+
+def deisotoping_simple_reference(spectra, th_diff=1.00335, tolerance=14, nb_neighbours=8, nb_charges=5, is_ppm=True):
+    """
+    Simple deisotoping depending on the mass of the
+    secondmost abundant isotope:
+
+      - Before this mass: uses the peak with max intensity
+        as reference
+
+      - After this mass: use the peak where the sign of the
+        derivative changes
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        peaklist
+    tolerance: float
+        acceptable mz delta
+    nb_neighbours: int
+        size of patterns
+    nb_charges: int
+        maximum number of charges in isotopic pattern
+    average_distribution: dict
+        maps atom mass to its average abundance
+
+    Returns
+    ----------
+    np.ndarray
+        deisotoped spectra
+
+    """
+    deisotoped_spectra = []
+    mzs = spectra[0][0]
+    peaks = spectra_max(spectra)
+    peaks = np.array([mzs, peaks])
+    deisotoped_indices = deisotoping_reference_indices(peaks, th_diff, tolerance, nb_neighbours, nb_charges, is_ppm)
+    for spectrum in spectra:
+        mzs, intensities = spectrum
+        new_mzs = mzs[deisotoped_indices]
+        new_intensities = intensities[deisotoped_indices]
+        deisotoped_spectra.append((new_mzs, new_intensities))
+    return np.array(deisotoped_spectra)
+
+
+def deisotoping_reference_indices(peaks, th_diff=1.00335, tolerance=14, nb_neighbours=8, nb_charges=5, is_ppm=True):
+    ignore_indices = []
+    deisotoped_indices = []
+    x = peaks.shape[-1]
+    for i in range(x):
+        if np.any([np.isclose(ignore_indices[j][0], peaks[0, i]) for j in range(len(ignore_indices))]):
+            continue
+        peak = peaks[..., i]
+
+        N = neighbours(i, nb_neighbours, peaks.T)
+        pattern = find_isotopic_pattern_theoretical_difference(N, th_diff, tolerance, nb_charges, is_ppm=is_ppm)
+        peaks_pattern = peaks_max_intensity_isotopic_pattern(pattern)
+
+        isotopes = isotopes_from_pattern(pattern, peaks_pattern)
+        ignore_indices.extend(isotopes)
+        indices = [peak_to_index(peak, pattern) for peak in peaks_pattern]
+        deisotoped_indices.extend([i+j for j in indices if i+j not in deisotoped_indices])
+    deisotoped_indices = np.array(deisotoped_indices)
+    return deisotoped_indices
