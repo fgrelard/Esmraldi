@@ -8,6 +8,7 @@ import inspect
 import numbers
 
 import esmraldi.spectraprocessing as sp
+import esmraldi.utils as utils
 from gui.viewboxdirac import ViewBoxDirac
 from gui.scatterplotitemdirac import ScatterPlotItemDirac
 from gui.crosshair import Crosshair, CrosshairDrawing
@@ -985,10 +986,7 @@ class ImageViewExtended(pg.ImageView):
                     cut_off = 0
                 if new_value:
                     actual_value = self.image.mzs[np.abs(value - self.image.mzs).argmin()]
-                    if self.image.is_ppm:
-                        tol = self.image.tolerance_ppm(actual_value)
-                    else:
-                        tol = self.image.tolerance
+                    tol = utils.tolerance(actual_value, self.image.tolerance, self.image.is_ppm)
                     norm_img = self.image.get_ion_image_mzs(actual_value, tol, tol)
                     norm_img[norm_img <= cut_off] = -1
                     self.image.normalization_image = norm_img

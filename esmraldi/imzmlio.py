@@ -20,7 +20,7 @@ from mmappickle.dict import mmapdict
 from mmappickle.stubs import EmptyNDArray
 
 from esmraldi.sparsematrix import SparseMatrix
-from esmraldi.utils import progress, factors
+from esmraldi.utils import progress, factors, attempt_reshape
 import esmraldi.spectraprocessing as sp
 import time
 import math

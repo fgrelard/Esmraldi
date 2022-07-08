@@ -506,7 +506,7 @@ class MainController:
                 else:
                     imageview.image.peaks = mzs_annotated
 
-                groups = sp.index_groups_start_end(imageview.image.peaks, imageview.image.tolerance)
+                groups = sp.index_groups_start_end(imageview.image.peaks, imageview.image.tolerance, is_ppm=imageview.image.is_ppm)
                 before_len = len(imageview.image.peaks)
                 imageview.image.peaks = np.array([np.median(g) for g in groups])
                 after_len = len(imageview.image.peaks)
