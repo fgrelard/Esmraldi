@@ -9,7 +9,6 @@ import xlsxwriter
 import os
 
 from skimage.color import rgb2gray
-from sklearn.metrics import roc_auc_score
 
 
 def read_image(image_name):
@@ -26,6 +25,7 @@ parser.add_argument("-m", "--mask", help="Mask image (any ITK format)")
 parser.add_argument("-r", "--regions", help="Subregions inside mask", nargs="+", type=str)
 parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given m/z", default=0)
 parser.add_argument("-o", "--output", help="Output .xlsx files with stats")
+parser.add_argument("-w", "--weight", help="Weight ROC by amount of points in each condition", action="store_true")
 args = parser.parse_args()
 
 input_name = args.input
@@ -33,6 +33,7 @@ mask_name = args.mask
 region_names = args.regions
 output_name = args.output
 normalization = float(args.normalization)
+is_weighted = args.weight
 
 if input_name.lower().endswith(".imzml"):
     imzml = io.open_imzml(input_name)
@@ -84,6 +85,10 @@ n = len(np.where(mask>0)[0])
 norm_img = None
 if normalization > 0:
     norm_img = imageutils.get_norm_image(images, normalization, mzs)
+    for i in range(images.shape[-1]):
+        images[..., i] = imageutils.normalize_image(images[...,i], norm_img)
+
+averages = np.mean(images, axis=(0,1))
 
 indices, indices_ravel = fusion.roc_indices(mask, images.shape[:-1], norm_img)
 
@@ -95,10 +100,13 @@ for worksheet in worksheets:
     worksheet.freeze_panes(1, 1)
 
 region_bool = fusion.region_to_bool(regions, indices_ravel, images.shape[:-1])
-roc_auc_scores = fusion.roc_auc_analysis(images, indices, region_bool, norm_img)
+roc_auc_scores = fusion.roc_auc_analysis(images, indices, region_bool, norm_img, is_weighted=is_weighted)
+
 
 for (i, j), auc in np.ndenumerate(roc_auc_scores):
     worksheet.write(0, i+1, mzs[i], header_format)
     worksheet.write(j+1, i+1, auc)
+
+worksheet.write_row(j+2, 1, averages)
 
 workbook.close()

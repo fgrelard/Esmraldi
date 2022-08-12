@@ -6,7 +6,7 @@ analysis of images
 import esmraldi.imzmlio as imzmlio
 import numpy as np
 import cv2 as cv
-from sklearn import metrics
+import sklearn.metrics as metrics
 from sklearn.decomposition import PCA
 from sklearn.decomposition import NMF
 from sklearn.cluster import KMeans, AffinityPropagation
@@ -14,7 +14,6 @@ from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity, cosine_distances
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import roc_auc_score
 from skimage.filters import threshold_multiotsu
 
 def clustering_affinity(X_r):
@@ -484,41 +483,65 @@ def region_to_bool(regions, indices_ravel, shape):
     region_bool = []
     for region in regions:
         indices_regions = np.ravel_multi_index(np.where(region > 0), shape, order='F')
-        inside_region = np.in1d(indices_ravel, indices_regions).astype(int)
+        inside_region = np.in1d(indices_ravel, indices_regions).astype(bool)
         is_same = np.all(inside_region == inside_region[0])
         if not is_same:
             region_bool.append(inside_region)
     return region_bool
 
+def weighted_roc_curve(y_true, y_score, *, pos_label=None, sample_weight=None, drop_intermediate=True):
+    fpr, tpr, thresholds = metrics.roc_curve(y_true, y_score, pos_label=pos_label, sample_weight=sample_weight, drop_intermediate=drop_intermediate)
+    nb_ones = np.count_nonzero(y_true)
+    nb_zeros = np.count_nonzero(~y_true)
+    weights_tns = nb_ones / nb_zeros
+    fps = fpr * nb_zeros
+    tps = tpr * nb_ones
+    tns = fps[-1] - fps
+    fns = tps[-1] - tps
+    fpr = fps / (tns * weights_tns + fps) # (tns * weights_tns + fps * weights_tns)
+    tpr = tps / (fns * weights_tns + tps)
+    dfp = tns * weights_tns + fps
+    dtp = fns * weights_tns + tps
+    print(tns + fps, fns+ tps, dfp, dtp)
+    return fpr, tpr, thresholds
 
-def single_roc_auc(image, indices, region_bool):
+def weighted_auc_roc(y_true, y_score, sample_weight=None, max_fpr=None):
+    fpr, tpr, _ = weighted_roc_curve(y_true, y_score, sample_weight=sample_weight)
+    return metrics.auc(fpr, tpr)
+
+def roc_curve(y_true, y_score, *, pos_label=None, sample_weight=None, drop_intermediate=True, is_weighted=False):
+    if is_weighted:
+        return weighted_roc_curve(y_true, y_score, sample_weight=sample_weight)
+    return metrics.roc_curve(y_true, y_score, sample_weight=sample_weight)
+
+def single_roc_auc(image, indices, region_bool, is_weighted=False):
     sub_region = image[indices]
     current_values = sub_region.flatten()
     rocs = np.zeros(len(region_bool))
     for j, binary_label in enumerate(region_bool):
-        rocs[j] = roc_auc_score(binary_label, current_values)
+        if is_weighted:
+            auc = weighted_auc_roc(binary_label, current_values)
+        else:
+            auc = metrics.roc_auc_score(binary_label, current_values)
+        rocs[j] = auc
     return rocs
 
-def roc_auc_analysis(images, indices, region_bool, norm_img=None, thresholded_variants=False):
+def roc_auc_analysis(images, indices, region_bool, norm_img=None, thresholded_variants=False, is_weighted=False):
     nreg = len(region_bool)
     roc_auc_scores = np.zeros((images.shape[-1], nreg))
     for i in range(images.shape[-1]):
         current_image = images[..., i]
-        if norm_img is not None:
-            return_img = np.zeros_like(current_image)
-            np.divide(current_image, norm_img, out=return_img, where=norm_img!=0)
-            current_image = return_img
 
         if thresholded_variants:
             current_image = image_to_thresholded_variants(current_image)
             for j, im in enumerate(current_image):
-                auc_scores = single_roc_auc(im, indices, region_bool)
+                auc_scores = single_roc_auc(im, indices, region_bool, is_weighted=is_weighted)
                 if j == 0:
                     roc_auc_scores[i, :] = auc_scores
                 else:
                     roc_auc_scores[i, :] = np.minimum(roc_auc_scores[i, :], auc_scores)
         else:
-            roc_auc_scores[i, :] = single_roc_auc(current_image, indices, region_bool)
+            roc_auc_scores[i, :] = single_roc_auc(current_image, indices, region_bool, is_weighted=is_weighted)
 
     return roc_auc_scores
 
