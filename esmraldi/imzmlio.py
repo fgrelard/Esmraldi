@@ -16,6 +16,7 @@ import bisect
 import matplotlib.pyplot as plt
 import h5py
 
+from skimage import exposure, img_as_ubyte
 from mmappickle.dict import mmapdict
 from mmappickle.stubs import EmptyNDArray
 

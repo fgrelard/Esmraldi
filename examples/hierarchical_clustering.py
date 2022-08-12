@@ -4,14 +4,16 @@ import SimpleITK as sitk
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from mpl_toolkits.mplot3d import Axes3D
+import mplcursors
 import xlsxwriter
 import os
 
 from skimage.color import rgb2gray
 from skimage.metrics import structural_similarity
-from skimage.filters import threshold_multiotsu
+from skimage.filters import threshold_multiotsu, threshold_niblack, threshold_sauvola, threshold_otsu
 from sklearn.cluster import AgglomerativeClustering, MeanShift, estimate_bandwidth, DBSCAN, KMeans
 from sklearn.manifold import MDS, LocallyLinearEmbedding, Isomap, TSNE
+from sklearn.decomposition import KernelPCA
 from sklearn.metrics import silhouette_score
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn import preprocessing
@@ -20,13 +22,16 @@ from sewar.full_ref import mse, rmse, psnr, uqi, ssim, ergas, scc, rase, sam, ms
 import scipy.cluster.hierarchy as hc
 import scipy.spatial.distance as distance
 from scipy.stats import pearsonr, norm
-
+from scipy.signal import correlate
 import esmraldi.imzmlio as io
 import esmraldi.fusion as fusion
 import esmraldi.imageutils as imageutils
 import networkx as nx
 from sklearn.mixture import GaussianMixture
 from skimage import feature
+from skimage.exposure import match_histograms
+import umap
+
 
 def read_image(image_name):
     sitk.ProcessObject_SetGlobalWarningDisplay(False)
@@ -38,6 +43,18 @@ def read_image(image_name):
 def find_indices(image, shape):
     indices = np.where(image > 0)
     return np.ravel_multi_index(indices, shape, order='F')
+
+def onpick(event, mzs, image, im_display):
+    ind = event.ind
+    if not ind.size:
+        return
+    ind = ind[0]
+    print(mzs[ind])
+    currimg = image[..., ind]
+    im_display.set_data(currimg.T)
+    im_display.set_clim(vmin=currimg.min(), vmax=currimg.max())
+    im_display.axes.figure.canvas.draw()
+
 
 def onclick(event, linkage, pos_array, shape):
     if event.inaxes != ax[0]:
@@ -85,7 +102,7 @@ def get_linkage(model):
 
 
 
-def draw_graph(matrix, mzs, is_mds, new_separation=False):
+def draw_graph(matrix, mzs, is_mds, new_separation=False, color_regions="b"):
     ax_scatter.clear()
     print(is_mds)
     diffs = matrix[matrix>0]
@@ -104,7 +121,11 @@ def draw_graph(matrix, mzs, is_mds, new_separation=False):
     if is_mds:
         # mds = TSNE(n_components=2, metric="precomputed")
         mds = MDS(n_components=2, dissimilarity="precomputed")
+        # mds = KernelPCA(n_components=2, kernel='rbf', gamma=10)
+        mds = umap.UMAP(random_state=0)
         pos_array = mds.fit_transform(distance_matrix).T
+        print(pos_array.shape)
+
 
     else:
         np.divide(1.0, distance_matrix, out=distance_matrix, where=distance_matrix!=0)
@@ -118,7 +139,8 @@ def draw_graph(matrix, mzs, is_mds, new_separation=False):
         pos_array = np.array(list(pos.values())).T
 
     print(pos_array.shape)
-    ax_scatter.scatter(*pos_array, marker='o', s=50, edgecolor='None')
+    ax_scatter.scatter(*pos_array, marker='o', s=50, edgecolor='None', c=color_regions, picker=True)
+    # mplcursors.cursor(multiple=True).connect("add", lambda sel: sel.annotation.set_text("{:.3f}".format(mzs[sel.target.index])))
     for k, p in enumerate(pos_array.T):
         ax_scatter.text(*p, "{:.2f}".format(mzs[k]))
 
@@ -162,21 +184,28 @@ def plot_tree(P, ax, pos=None):
         ax.set_ylim(ymin, ymax + 0.1*abs(ymax))
 
 def on_lims_change(axes):
-    global current_image
-    xmin, xmax = axes.xaxis.get_view_interval()
+    global current_image, color_regions
+    if axes == ax[1]:
+        return
+    print("Lims change")
+    xmin, xmax = ax[0].xaxis.get_view_interval()
     xs = dendro["icoord"]
     if xmin < np.amin(xs) and xmax > np.amax(xs):
-        pos_array = draw_graph(distance_matrix, mzs, is_mds, new_separation=False)
-        current_image = image
-    indices = np.where((xs >= xmin) & (xs <= xmax))[0]
-    indices, order = np.unique(indices, return_index=True)
-    indices = indices[np.argsort(order)]
-    indices_mzs = np.array(dendro["leaves"])[indices]
-    m = mzs[indices_mzs]
-    print("mzs", m)
-    current_image = image[..., indices_mzs]
-    d = distance_matrix[indices_mzs, :][:, indices_mzs]
-    pos_array = draw_graph(d, m, is_mds, new_separation=True)
+        print("Full reset")
+        pos_array = draw_graph(distance_matrix, mzs, is_mds, new_separation=False, color_regions=color_regions)
+        # current_image = current_image
+    else:
+        print("Partial view")
+        indices = np.where((xs >= xmin) & (xs <= xmax))[0]
+        indices, order = np.unique(indices, return_index=True)
+        indices = indices[np.argsort(order)]
+        indices_mzs = np.array(dendro["leaves"])[indices]
+        m = mzs[indices_mzs]
+        print(color_regions.shape)
+        c = color_regions[indices_mzs]
+        # current_image = current_image[..., indices_mzs]
+        d = distance_matrix[indices_mzs, :][:, indices_mzs]
+        pos_array = draw_graph(d, m, is_mds, new_separation=True, color_regions=c)
     # plot_tree(dendro, axes, pos=indices)
 
 
@@ -212,14 +241,45 @@ def cosdistance(x,y):
     y = y.astype(float)
     return 1-(np.dot(x, y)/(np.sqrt(np.dot(x,x))*np.sqrt(np.dot(y,y))))
 
-def cosw(x,y,w):
-    return distance.cosine(x,y,w)
+def cosw(x,y):
+    xn = x.astype(float)
+    yn = y.astype(float)
+    return distance.cosine(xn, yn)
+
+def metric_histmatching(x,y,s):
+    x = x.astype(float)
+    y = y.astype(float)
+    xn = x.reshape(image.shape[:-1])
+    yn = y.reshape(image.shape[:-1])
+    matched = match_histograms(yn, xn).astype(float)
+    metric = getattr(distance, s)
+    # fig, ax = plt.subplots(1, 3)
+    # ax[0].imshow(xn)
+    # ax[1].imshow(matched)
+    # ax[2].imshow(d.reshape(image.shape[:-1]))
+    # plt.show()
+    return metric(x, matched.flatten())
+
+def correlation_histmatching(x,y):
+    x = x.astype(float)
+    y = y.astype(float)
+    xn = x.reshape(image.shape[:-1])
+    yn = y.reshape(image.shape[:-1])
+    matched = match_histograms(yn, xn).astype(float)
+    return distance.correlation(x, matched.flatten())
 
 def cospos(x,y):
     cond = (x>0) & (y>0)
-    x_n = x[cond]
-    y_n = y[cond]
+    x_n = x[cond].astype(float)
+    y_n = y[cond].astype(float)
     return distance.cosine(x_n,y_n)
+
+def eucnorm(x,y):
+    x = x.astype(float)
+    y = y.astype(float)
+    x /= np.linalg.norm(x)
+    y /= np.linalg.norm(y)
+    return distance.sqeuclidean(x, y)
 
 
 def analyse_intensity_distributions(image_norm):
@@ -277,11 +337,13 @@ parser.add_argument("-i", "--input", help="Input .imzML")
 parser.add_argument("-p", "--preprocess", help="Normalize", action="store_true")
 parser.add_argument("-n", "--normalization", help="Normalize w.r.t. to given m/z", default=0)
 parser.add_argument("-o", "--output", help="Output .csv files with stats")
+parser.add_argument("-r", "--regions", help="Subregions inside mask", nargs="+", type=str)
 parser.add_argument("--mds", help="Use Multidimensional scaling to project points", action="store_true")
 args = parser.parse_args()
 
 input_name = args.input
 output_name = args.output
+region_names = args.regions
 is_normalized = args.preprocess
 normalization = float(args.normalization)
 is_mds = args.mds
@@ -309,12 +371,41 @@ norm_img = None
 if normalization>0:
     norm_img = imageutils.get_norm_image(image, normalization, mzs)
     for i in range(image.shape[-1]):
-        image[..., i] = imageutils.normalize_image(image[..., i], norm_img)
+        image[..., i] = imageutils.normalize_image(image[...,i], norm_img)
 
 if is_normalized:
+    # for i in range(image.shape[-1]):
+    #     currimg = image[..., i]
+    #     image[..., i] = currimg/np.std(currimg)
     image = io.normalize(image)
 
-current_image = image
+color_regions = ["m"] * image.shape[-1]
+regions = []
+if region_names is not None:
+    c = ["r", "g", "b"]
+    for i, region_name in enumerate(region_names):
+        region = read_image(region_name)
+        if is_normalized:
+            region = io.normalize(region)
+        regions.append(region)
+        mzs = np.append(mzs, -1)
+        color_regions.append(c[i%3])
+    image = np.dstack((image, np.dstack(regions)))
+
+color_regions = np.array(color_regions)
+current_image = image.copy()
+
+# w=7
+# for i in range(image.shape[-1]):
+#     currimg = image[..., i]
+#     thresholded = threshold_sauvola(currimg, window_size=w, k=1)
+#     otsu = threshold_otsu(thresholded)
+#     thresholded = np.where(thresholded > otsu, currimg, 0)
+#     image[..., i] = thresholded
+
+
+
+
 is_spectral = True
 image_norm = fusion.flatten(image, is_spectral=True)
 
@@ -327,36 +418,45 @@ if not is_spectral:
 print(image_norm.shape)
 print(image.shape)
 
-mzs_target = [837.549, 773.534, 869.554, #dispersion
-           859.531372070312, 861.549438476562, 857.518188476562, #LB
-           644.5015869,	788.5460815,	670.5178223, #LT
-           286.9776, 296.0708]
+# mzs_target = [837.549, 863.56,
+#               773.534, 771.51,
+#               885.549, 437.2670,
+#               871.57, 405.2758,#dispersion
+#               859.531372070312, 714.5078, #LB
+#               644.5015869, 715.5759, #LT
+#               287.0937, 296.0824]
 
-
+mzs_target = [837.549, 871.57]
 indices = [np.abs(mzs - mz).argmin() for mz in mzs_target]
-current_image = current_image[..., indices]
-image_norm = image_norm[indices, ...]
+color_regions[indices] = "y"
 
-analyse_intensity_distributions(image_norm)
+# current_image = current_image[..., indices]
+# image_norm = image_norm[indices, ...]
+# mzs = np.array(mzs_target)
 
-mzs = np.array(mzs_target)
+# # analyse_intensity_distributions(image_norm)
+metrics = ["cosine", "correlation", "euclidean", "sqeuclidean", "cityblock", "hamming", "chebyshev", "canberra", "braycurtis", "jensenshannon"]
 
-
-# distance_matrix = distance.squareform(distance.pdist(image_norm, metric=lambda u,v: 1-corr(u,v,np.maximum(u,v))))
-distance_matrix = distance.squareform(distance.pdist(image_norm, metric="cosine"))
-distance_matrix = distance.squareform(distance.pdist(image_norm, metric=lambda u,v: cosdistance(u,v)))
-print(distance_matrix)
-
-plt.imshow(distance_matrix, cmap="RdBu", interpolation="nearest")
-pos = np.arange(0, len(mzs))
-plt.xticks(pos, np.around(mzs, 2))
-plt.yticks(pos, np.around(mzs, 2))
-plt.show()
+metrics = ["correlation"]
+# fig, ax = plt.subplots(2, len(metrics)//2)
+for i, s in enumerate(metrics):
+    # distance_matrix = distance.squareform(distance.pdist(image_norm, metric=lambda u, v: metric_histmatching(u,v,s)))
+    distance_matrix = distance.squareform(distance.pdist(image_norm, metric=lambda u, v: correlation_histmatching(u,v)))
+   #  ix = i//(len(metrics)//2)
+#     iy = i%(len(metrics)//2)
+#     ax[ix, iy].set_title(metrics[i])
+#     ax[ix, iy].imshow(distance_matrix, cmap="RdBu", interpolation="nearest")
+#     pos = np.arange(0, len(mzs))
+#     ax[ix, iy].set_xticks(pos)
+#     ax[ix, iy].set_xticklabels(np.around(mzs, 2))
+#     ax[ix, iy].set_yticks(pos)
+#     ax[ix, iy].set_yticklabels(np.around(mzs, 2))
+# plt.show()
 
 model = AgglomerativeClustering(linkage="average", affinity="precomputed", n_clusters=None, distance_threshold=0)
 model = model.fit(distance_matrix)
 
-fig, ax = plt.subplots(1, 2)
+fig, ax = plt.subplots(1, 3)
 linkage_matrix = get_linkage(model)
 
 # Plot the corresponding dendrogram
@@ -372,9 +472,10 @@ if is_3D:
 else:
     ax_scatter = ax[1]
 
-pos_array = draw_graph(distance_matrix, mzs, is_mds)
-
+pos_array = draw_graph(distance_matrix, mzs, is_mds, False, color_regions)
+im_display = ax[2].imshow(image[..., 0].T)
 cid = fig.canvas.mpl_connect('button_press_event', lambda event:onclick(event, linkage_matrix, pos_array, shape))
+fig.canvas.mpl_connect('pick_event', lambda event: onpick(event, mzs, current_image, im_display))
 ax[0].callbacks.connect('xlim_changed', on_lims_change)
 
 plt.tight_layout()
