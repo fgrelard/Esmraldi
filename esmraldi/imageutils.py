@@ -657,7 +657,7 @@ def get_norm_image(images, norm, mzs):
         closest_mz_index = np.abs(mzs - norm).argmin()
         img_norm = images[..., closest_mz_index]
 
-    return img_norm
+    return img_norm.copy()
 
 def normalize_image(current_image, norm_img):
     return_img = np.zeros_like(current_image)

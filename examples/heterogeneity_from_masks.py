@@ -98,6 +98,7 @@ for i in range(images.shape[-1]):
     otsu = threshold_otsu(thresholded)
     thresholded = (thresholded > otsu)*1
 
+    tpr_ref, fpr_ref = 0, 0
     for j, r in enumerate(regions):
         if j == len(regions)-1:
             continue
@@ -109,6 +110,8 @@ for i in range(images.shape[-1]):
         fpr = fp/n
         if tpr > 0.4 and fpr < 0.2:
             indices_toremove.append(i)
+            tpr_ref=tpr
+            fpr_ref=fpr
         h = pearsonr(currimg.flatten(), r.flatten())[0]
         # h, a, m = segmentation.heterogeneity_mask(currimg, r, 50)
         heterogeneities.append(h)
@@ -116,7 +119,7 @@ for i in range(images.shape[-1]):
         # maxs.append(m)
 
     ind = np.argmax(heterogeneities)
-    H.append(heterogeneities[ind])
+    H.append((tpr_ref, fpr_ref))
     # print("mzs", mzs_target[i], "Region", region_names[ind].split("crop ")[-1].split("-")[0], "hetero", heterogeneities[ind])
 
 indices_toremove = np.unique(indices_toremove)
@@ -124,8 +127,11 @@ indices_sort = np.argsort(H)
 
 fig, ax  = plt.subplots(1)
 img_data = images[..., indices_toremove]
+HI = np.array(H)[indices_toremove]
+mzsI = mzs[indices_toremove]
+print(mzsI.shape, HI.shape)
 print(img_data.shape)
-labels = np.vstack((mzs[indices_toremove], np.array(H)[indices_toremove])).T
+labels = np.column_stack((mzsI, HI))
 tracker = SliceViewer(ax, np.transpose(img_data, (2, 1, 0)), labels=labels)
 fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
 plt.show()

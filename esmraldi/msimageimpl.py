@@ -161,7 +161,7 @@ class MSImageImplementation(MSImageBase):
         current_mz = self.mzs[index]
         return self.get_ion_image_mzs(current_mz)
 
-    def get_ion_image_mzs(self, current_mz):
+    def get_ion_image_mzs(self, current_mz, tl=0, tr=0):
         tol = utils.tolerance(current_mz, self.tolerance, self.is_ppm)
         min_mz = current_mz - tol
         max_mz = current_mz + tol
