@@ -37,6 +37,7 @@ normalization = float(args.normalization)
 mz = float(args.mz)
 is_weighted = args.weight
 
+unique_image = False
 if input_name.lower().endswith(".imzml"):
 
     imzml = io.open_imzml(input_name)
@@ -56,8 +57,12 @@ if input_name.lower().endswith(".imzml"):
 else:
     image_itk = sitk.ReadImage(input_name)
     images = sitk.GetArrayFromImage(image_itk).T
-    mzs = np.loadtxt(os.path.splitext(input_name)[0] + ".csv")
-
+    pathcsv = os.path.splitext(input_name)[0] + ".csv"
+    if os.path.isfile(pathcsv):
+        mzs = np.loadtxt(pathcsv)
+    else:
+        mzs = np.array([0])
+        unique_image = True
 
 
 mask = read_image(mask_name)
@@ -80,17 +85,27 @@ norm_img = None
 if normalization > 0:
     norm_img = imageutils.get_norm_image(images, normalization, mzs)
 
-indices, indices_ravel = fusion.roc_indices(mask, images.shape[:-1], norm_img)
+shape = images.shape[:-1]
+if unique_image:
+    shape = images.shape
+
+indices, indices_ravel = fusion.roc_indices(mask, shape, norm_img)
+
+region_bool = fusion.region_to_bool(regions, indices_ravel, shape)
+
+if unique_image:
+    current_image = images
+else:
+    region_bool = fusion.region_to_bool(regions, indices_ravel, shape)
+
+    closest_mz_index = np.abs(mzs - mz).argmin()
+    print("Found", mzs[closest_mz_index], mz)
+
+    current_image = images[..., closest_mz_index]
+    if normalization > 0:
+        current_image = imageutils.normalize_image(current_image, norm_img)
 
 
-region_bool = fusion.region_to_bool(regions, indices_ravel, images.shape[:-1])
-
-closest_mz_index = np.abs(mzs - mz).argmin()
-print("Found", mzs[closest_mz_index], mz)
-
-current_image = images[..., closest_mz_index]
-if normalization > 0:
-    current_image = imageutils.normalize_image(current_image, norm_img)
 
 
 sub_region = current_image[indices]

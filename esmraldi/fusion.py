@@ -498,11 +498,10 @@ def weighted_roc_curve(y_true, y_score, *, pos_label=None, sample_weight=None, d
     tps = tpr * nb_ones
     tns = fps[-1] - fps
     fns = tps[-1] - tps
-    fpr = fps / (tns * weights_tns + fps) # (tns * weights_tns + fps * weights_tns)
+    fpr = fps / (tns * weights_tns + fps)
     tpr = tps / (fns * weights_tns + tps)
     dfp = tns * weights_tns + fps
     dtp = fns * weights_tns + tps
-    print(tns + fps, fns+ tps, dfp, dtp)
     return fpr, tpr, thresholds
 
 def weighted_auc_roc(y_true, y_score, sample_weight=None, max_fpr=None):
