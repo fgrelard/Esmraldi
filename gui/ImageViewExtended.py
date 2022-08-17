@@ -130,7 +130,6 @@ class ImageViewExtended(pg.ImageView):
         self.levelMin, self.levelMax = None, None
         self.isNewImage = False
 
-        tracemalloc.start()
         self.number = 0
 
         super().__init__(parent, name, view, imageItem, *args)
@@ -217,7 +216,6 @@ class ImageViewExtended(pg.ImageView):
         self.imageChangedSignal = Signal()
 
         self.ui.histogram.setHistogramRange = lambda mn, mx, padding=0.1: setHistogramRange(self.ui.histogram, mn, mx, padding)
-
 
         vb = ViewBoxDirac()
         self.winPlot = pg.PlotWidget(viewBox=vb, size=(1,1), enableMenu=False)
@@ -602,8 +600,6 @@ class ImageViewExtended(pg.ImageView):
         else:
             self.get_current_image()
 
-        snapshot = tracemalloc.take_snapshot()
-        snapshot.dump("snapshot"+str(self.number)+".pickle")
         self.number += 1
 
     def roi_scroll_bar(self, ev):
@@ -705,14 +701,15 @@ class ImageViewExtended(pg.ImageView):
         self.setCurrentIndices(self.actualIndex)
         self.signal_mz_change.emit(self.tVals[self.currentIndex])
         self.update_label()
+        self.get_current_image()
+        self.current_image = self.normalize_ms(False)
+        # Update slider values
         self.roiChanged()
 
 
     def getProcessedImage(self):
-        if self.isNewImage and self.levelMin is not None:
+        if (self.isNewImage and self.levelMin is not None) or self.imageDisp is None:
             self.imageDisp = self.image
-        elif self.imageDisp is None:
-            self.imageDisp = self.normalize(self.image)
         if self.hasTimeAxis():
             self.get_current_image()
             self.levelMin, self.levelMax = np.amin(self.current_image), np.amax(self.current_image)
@@ -726,6 +723,7 @@ class ImageViewExtended(pg.ImageView):
 
     def autoLevels(self):
         self._imageLevels = [(self.levelMin, self.levelMax)]
+        self.ui.histogram.vb.setYRange(self.levelMin, self.levelMax)
         super().autoLevels()
 
 
@@ -765,7 +763,11 @@ class ImageViewExtended(pg.ImageView):
     def intensity_value_slider(self, image):
         min_slider, max_slider = self.ui.rangeSliderThreshold.value()
         max_value = self.ui.rangeSliderThreshold.maximum()
-        min_thresh = min_slider * np.amax(image) / max_value
+        threshold_percentile = np.percentile(image, 99)
+        if threshold_percentile == 0:
+            threshold_percentile = np.amax(image)
+        max_image = np.amax(image[image <= threshold_percentile])
+        min_thresh = min_slider * max_image / max_value
         max_thresh = max_slider * np.amax(image) / max_value
 
         min_thresh = min_thresh - np.finfo(min_thresh.dtype).eps
@@ -830,7 +832,6 @@ class ImageViewExtended(pg.ImageView):
         elif self.ui.roiPolygon.isChecked():
             self.previousRoiPositions = [[handle["pos"].x(), handle["pos"].y()] for handle in self.roi.handles]
 
-        self.get_current_image()
         current_image = self.current_image
         colmaj = self.imageItem.axisOrder == 'col-major'
         dim = len(current_image.shape)
@@ -867,13 +868,15 @@ class ImageViewExtended(pg.ImageView):
 
 
     def finalize_roi_change(self):
-        self.setCurrentIndices(self.actualIndex)
-        current_image = self.normalize_ms()
+        # self.setCurrentIndices(self.actualIndex)
+        # current_image = self.normalize_ms()
 
-        if len(current_image.shape) >= 3:
-            return
+        # if len(current_image.shape) >= 3:
+        #     return
 
-        image_roi = current_image.T[tuple(self.coords_roi)]
+        # Update render with ROI
+        self.imageItem.updateImage(self.imageItem.image, autoLevels=False)
+        image_roi = self.current_image.T[tuple(self.coords_roi)]
 
         if not image_roi.size:
             image_roi = [0]
@@ -919,10 +922,6 @@ class ImageViewExtended(pg.ImageView):
         vb = ViewBoxDirac(selectable=False)
         plot = pg.PlotWidget(viewBox=vb, enableMenu=False)
 
-        min_slider, max_slider = self.ui.rangeSliderThreshold.value()
-        min_value = self.ui.rangeSliderThreshold.minimum()
-        max_value = self.ui.rangeSliderThreshold.maximum()
-
         linear = np.ravel_multi_index(self.coords_roi, self.imageItem.image.T.shape, order="F")
         linear = np.unique(linear)
         ind = tuple([linear, Ellipsis])
@@ -962,7 +961,7 @@ class ImageViewExtended(pg.ImageView):
     def changeNorm(self, button, is_toggled):
         if not is_toggled:
             return
-        self.normalize_ms(True)
+        self.current_image = self.normalize_ms(True)
 
     def normalize_ms(self, new_value=False):
         self.get_current_image()
@@ -997,7 +996,7 @@ class ImageViewExtended(pg.ImageView):
             if new_value:
                 self.buildPlot()
 
-        self.renderRoi(current_image)
+        self.imageItem.updateImage(current_image, autoLevels=True)
         self.levelMin, self.levelMax = np.amin(self.imageItem.image), np.amax(self.imageItem.image)
         self.autoLevels()
         return current_image
