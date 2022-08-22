@@ -14,7 +14,7 @@ from skimage.color import rgb2gray, rgba2rgb, gray2rgb
 
 class WorkerRegistrationSelection(QtCore.QObject):
 
-    signal_end = QtCore.pyqtSignal(object, object)
+    signal_end = QtCore.pyqtSignal(object)
     signal_progress = QtCore.pyqtSignal(int)
 
     def __init__(self, fixed, moving, points_fixed, points_moving):
@@ -30,7 +30,7 @@ class WorkerRegistrationSelection(QtCore.QObject):
         processed_image = image
         shape = ((2,) if image.ndim == 3 else ()) + (0, 1)
         if is_ms_image:
-            processed_image = processed_image.image
+            processed_image = processed_image.image.T
         else:
             processed_image = np.transpose(image, shape)
         return processed_image, is_ms_image
@@ -60,7 +60,6 @@ class WorkerRegistrationSelection(QtCore.QObject):
         fixed_dim = fixed.ndim
         dim = register.ndim
         size = np.array(register.shape)[::-1]
-
         if fixed_dim == 2:
             fixed_itk = sitk.GetImageFromArray(fixed)
             resampler = reg.initialize_resampler(fixed_itk, landmark_transform)
@@ -101,17 +100,16 @@ class WorkerRegistrationSelection(QtCore.QObject):
         moving, is_ms_moving = self.preprocess_image(self.moving)
         # fixed, self.points_fixed = self.crop_image(fixed, self.points_fixed)
 
+        print(is_ms_moving)
         print(self.points_fixed, self.points_moving)
         landmark_transform = sitk.LandmarkBasedTransformInitializer(sitk.AffineTransform(2), self.points_fixed, self.points_moving)
 
         deformed = self.apply_registration(fixed, moving, landmark_transform)
 
-        ref_fixed = self.fixed if is_ms_fixed else None
         ref_deformed = self.moving if is_ms_moving else None
-        fixed = self.postprocess_image(fixed, ref_fixed)
         deformed = self.postprocess_image(deformed, ref_deformed)
         print("Fixed", fixed.shape, deformed.shape)
-        self.signal_end.emit(fixed, deformed)
+        self.signal_end.emit(deformed)
 
     def abort(self):
         self.is_abort = True

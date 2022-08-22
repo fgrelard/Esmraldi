@@ -861,13 +861,13 @@ class ImageViewExtended(pg.ImageView):
         offset = np.array(self.roi.pos()) + np.array([self.roi.boundingRect().topLeft().x(), self.roi.boundingRect().topLeft().y()])
         if not self.ui.roiImage.isChecked():
             self.coords_roi = self.roi_to_coordinates(coords_image, min_t, max_t, offset, self.mask_roi)
-        # if len(current_image.shape) >= 3 and not any([c is Ellipsis for c in self.coords_roi]):
+        # if len(self.current_image.shape) >= 3 and not any([c is Ellipsis for c in self.coords_roi]):
         #     self.coords_roi = (Ellipsis,) + tuple(self.coords_roi)
-        self.finalize_roi_change()
+        self.finalize_roi_change(coords_image)
 
 
 
-    def finalize_roi_change(self):
+    def finalize_roi_change(self, coords_image):
         # self.setCurrentIndices(self.actualIndex)
         # current_image = self.normalize_ms()
 
@@ -876,7 +876,7 @@ class ImageViewExtended(pg.ImageView):
 
         # Update render with ROI
         self.imageItem.updateImage(self.imageItem.image, autoLevels=False)
-        image_roi = self.current_image.T[tuple(self.coords_roi)]
+        image_roi = coords_image[tuple(self.coords_roi)]
 
         if not image_roi.size:
             image_roi = [0]

@@ -1,6 +1,5 @@
 import os
 import sys
-import webbrowser
 
 import numpy as np
 import qtawesome as qta
@@ -539,12 +538,9 @@ class MainController:
         self.mainview.set_frame(self.mainview.registrationselectionview)
 
     def compute_registration_selection(self):
-        def end_computation(fixed_cropped, registered):
-            name_cropped = self.imagehandlecontroller.current_name
-            new_name_cropped = "registered_" + name_cropped
+        def end_computation(registered):
             name = self.imagehandlecontroller2.current_name
             new_name = "registered_" + name
-            self.end_open(fixed_cropped, new_name_cropped, first=True)
             self.end_open(registered, new_name, first=False)
             self.mainview.hide_run()
         self.mainview.show_run()
