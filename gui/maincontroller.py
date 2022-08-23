@@ -112,6 +112,7 @@ class WorkerOpen(QObject):
         try:
             im_itk = sitk.ReadImage(self.path)
         except:
+            print("Reading with OpenCV")
             return cv2.imread(self.path)
 
         return sitk.GetArrayFromImage(im_itk)
@@ -166,11 +167,12 @@ class WorkerSave(QObject):
     def save_other_formats(self):
         try:
             if len(self.image.shape) >= 3:
-                root, ext = os.path.splitext(self.path)
-                io.to_csv(self.image.mzs, root + ".csv")
-                sitk.WriteImage(sitk.GetImageFromArray(self.image.image.astype(np.float32)), self.path)
-            elif self.image.shape[-1] <= 4:
-                sitk.WriteImage(sitk.GetImageFromArray(self.image, isVector=True), self.path)
+                if self.image.shape[-1] <= 4:
+                    sitk.WriteImage(sitk.GetImageFromArray(self.image, isVector=True), self.path)
+                else:
+                    root, ext = os.path.splitext(self.path)
+                    io.to_csv(self.image.mzs, root + ".csv")
+                    sitk.WriteImage(sitk.GetImageFromArray(self.image.image.astype(np.float32)), self.path)
             else:
                 sitk.WriteImage(sitk.GetImageFromArray(self.image), self.path)
         except:
