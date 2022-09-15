@@ -40,7 +40,8 @@ from image_similarity_measures.quality_metrics import fsim
 def read_image(image_name):
     sitk.ProcessObject_SetGlobalWarningDisplay(False)
     mask = sitk.GetArrayFromImage(sitk.ReadImage(image_name))
-    mask = rgb2gray(mask)
+    if mask.ndim > 2:
+        mask = rgb2gray(mask)
     mask = mask.T
     return mask
 
@@ -58,8 +59,6 @@ def onpick(event, mzs, image, im_display):
     im_display.set_data(currimg.T)
     im_display.set_clim(vmin=currimg.min(), vmax=currimg.max())
     im_display.axes.figure.canvas.draw()
-
-
 
 def onclick(event, linkage, pos_array, shape):
     if event.inaxes != ax[0]:
@@ -124,10 +123,10 @@ def draw_graph(matrix, mzs, is_mds, new_separation=False, color_regions="b"):
         k = 5
         distance_matrix = matrix*k
     if is_mds:
-        # mds = TSNE(n_components=2, metric="precomputed")
-        mds = MDS(n_components=2, dissimilarity="precomputed")
+        mds = TSNE(n_components=2, metric="precomputed")
+        # mds = MDS(n_components=2, dissimilarity="precomputed")
         # mds = KernelPCA(n_components=2, kernel='rbf', gamma=10)
-        mds = umap.UMAP(random_state=0)
+        # mds = umap.UMAP(random_state=0)
         pos_array = mds.fit_transform(distance_matrix).T
         print(pos_array.shape)
 
@@ -245,6 +244,17 @@ def cosdistance(x,y):
     x = x.astype(float)
     y = y.astype(float)
     return 1-(np.dot(x, y)/(np.sqrt(np.dot(x,x))*np.sqrt(np.dot(y,y))))
+
+def cosdistanceweighted(x,y):
+    x = x.astype(float)
+    y = y.astype(float)
+    x = x / np.linalg.norm(x)
+    y = y / np.linalg.norm(y)
+    product = x*y
+    w = np.minimum(x, y)
+    product[w < np.percentile(w, 15)] = 1
+    distance = 1-(np.sum(product))
+    return distance
 
 def cosw(x,y):
     xn = x.astype(float)
@@ -451,24 +461,24 @@ color_regions = np.array(color_regions)
 #     image[..., i] = thresholded
 
 
-mzs_target = [837.549, 863.56,
-              773.534, 771.51,
-              885.549, 437.2670,
-              871.57, 405.2758,#dispersion
-              859.531372070312, 714.5078, #LB
-              644.5015869, 715.5759, #LT
-              287.0937, 296.0824, 746.512]
+# mzs_target = [837.549, 863.56,
+#               773.534, 771.51,
+#               885.549, 437.2670,
+#               871.57, 405.2758,#dispersion
+#               859.531372070312, 714.5078, #LB
+#               644.5015869, 715.5759, #LT
+#               287.0937, 296.0824, 746.512]
 
-# mzs_target = [837.549, 871.57]
+mzs_target = [837.549, 871.57]
 indices = [np.abs(mzs - mz).argmin() for mz in mzs_target]
-mzs = np.array(mzs_target)
 
 color_regions[indices] = "y"
-
-
 current_image = image.copy()
-current_image = current_image[..., indices]
-current_image = current_image.astype(float)
+
+# mzs = np.array(mzs_target)
+# color_regions = color_regions[indices]
+# current_image = current_image[..., indices]
+# current_image = current_image.astype(float)
 
 image_norm = fusion.flatten(current_image, is_spectral=True)
 
@@ -486,12 +496,13 @@ print(image.shape)
 # # analyse_intensity_distributions(image_norm)
 metrics = ["cosine", "correlation", "euclidean", "sqeuclidean", "cityblock", "hamming", "chebyshev", "canberra", "braycurtis", "jensenshannon"]
 
-metrics = ["correlation"]
+metrics = ["cosine"]
 
-# fig, ax = plt.subplots(2, len(metrics)//2)
+fig, ax = plt.subplots(2, max(2,len(metrics)//2))
 for i, s in enumerate(metrics):
-    distance_matrix = distance.squareform(distance.pdist(image_norm, metric=lambda u, v: vifp(u.reshape(current_image.shape[:-1])[..., np.newaxis],v.reshape(current_image.shape[:-1])[..., np.newaxis])))
+    # distance_matrix = distance.squareform(distance.pdist(image_norm, metric=lambda u, v: vifp(u.reshape(current_image.shape[:-1])[..., np.newaxis],v.reshape(current_image.shape[:-1])[..., np.newaxis])))
     # distance_matrix = distance.squareform(distance.pdist(image_norm, metric=lambda u, v: call_metrics(u,v,s)))
+    distance_matrix = distance.squareform(distance.pdist(image_norm, metric="cosine"))
     # distance_matrix = distance.squareform(distance.pdist(image_norm, metric=lambda u, v: correlation_histmatching(u,v)))
     # plt.imshow(distance_matrix, cmap="RdBu", interpolation="nearest")
     # ix = i//(len(metrics)//2)
@@ -503,8 +514,8 @@ for i, s in enumerate(metrics):
     # ax[ix, iy].set_xticklabels(np.around(mzs, 2))
     # ax[ix, iy].set_yticks(pos)
     # ax[ix, iy].set_yticklabels(np.around(mzs, 2))
-plt.imshow(distance_matrix, cmap="RdBu", interpolation="nearest")
-plt.show()
+# plt.imshow(distance_matrix, cmap="RdBu", interpolation="nearest")
+# plt.show()
 
 model = AgglomerativeClustering(linkage="average", affinity="precomputed", n_clusters=None, distance_threshold=0)
 model = model.fit(distance_matrix)

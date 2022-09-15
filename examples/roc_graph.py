@@ -7,6 +7,7 @@ import SimpleITK as sitk
 import matplotlib.pyplot as plt
 import xlsxwriter
 import os
+import mplcursors
 
 from skimage.color import rgb2gray
 
@@ -22,11 +23,12 @@ def read_image(image_name):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input .imzML")
-parser.add_argument("-m", "--mask", help="Mask image (any ITK format)", default=None)
+parser.add_argument("-m", "--mask", help="Mask image (any ITK format)")
 parser.add_argument("-r", "--regions", help="Subregions inside mask", nargs="+", type=str)
 parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given m/z", default=0)
 parser.add_argument("-o", "--output", help="Output .xlsx files with stats")
 parser.add_argument("-w", "--weight", help="Weight ROC by amount of points in each condition", action="store_true")
+parser.add_argument("-f", "--function", help="Cutoff function", default="distance")
 args = parser.parse_args()
 
 input_name = args.input
@@ -35,6 +37,7 @@ region_names = args.regions
 output_name = args.output
 normalization = float(args.normalization)
 is_weighted = args.weight
+function = args.function
 
 if input_name.lower().endswith(".imzml"):
     imzml = io.open_imzml(input_name)
@@ -56,32 +59,23 @@ else:
     images = sitk.GetArrayFromImage(image_itk).T
     mzs = np.loadtxt(os.path.splitext(input_name)[0] + ".csv")
 
-print(images.shape)
-workbook = xlsxwriter.Workbook(output_name, {'strings_to_urls': False})
-header_format = workbook.add_format({'bold': True,
-                                     'align': 'center',
-                                     'valign': 'vcenter',
-                                     'fg_color': '#D7E4BC',
-                                     'border': 1})
+if function == "distance":
+    print("Choosing distance cutoff function")
+    fn = fusion.cutoff_distance
+else:
+    print("Choosing half TPR cutoff function")
+    fn = fusion.cutoff_half_tpr
 
-left_format = workbook.add_format({'align': 'left'})
+print(images.shape)
+
 
 name = "No norm"
 if normalization > 0:
     name = str(normalization)
 
-worksheet = workbook.add_worksheet(name)
 
-worksheets = []
-worksheets.append(worksheet)
-
-if mask_name is not None:
-    mask = read_image(mask_name)
-else:
-    mask = np.ones_like(images[..., 0])
-
+mask = read_image(mask_name)
 regions = []
-print("Read image")
 for region_name in region_names:
     region = read_image(region_name)
     regions.append(region)
@@ -89,7 +83,6 @@ for region_name in region_names:
 n = len(np.where(mask>0)[0])
 
 norm_img = None
-print("normalization")
 if normalization > 0:
     norm_img = imageutils.get_norm_image(images, normalization, mzs)
     for i in range(images.shape[-1]):
@@ -99,22 +92,18 @@ averages = np.mean(images, axis=(0,1))
 
 indices, indices_ravel = fusion.roc_indices(mask, images.shape[:-1], norm_img)
 
-for worksheet in worksheets:
-    for i, region in enumerate(regions):
-        region_name = region_names[i]
-        name = os.path.splitext(os.path.basename(region_name))[0]
-        worksheet.write(i+1, 0, name, header_format)
-    worksheet.freeze_panes(1, 1)
 
-print("Starting ROC AUC")
 region_bool = fusion.region_to_bool(regions, indices_ravel, images.shape[:-1])
 roc_auc_scores = fusion.roc_auc_analysis(images, indices, region_bool, norm_img, is_weighted=is_weighted)
+roc_cutoffs = fusion.roc_cutoff_analysis(images, indices, region_bool, is_weighted=is_weighted, fn=fn)
+roc_cutoffs_half = fusion.roc_cutoff_analysis(images, indices, region_bool, is_weighted=is_weighted, fn=fusion.cutoff_half_tpr)
+roc_cutoffs_d2 = fusion.roc_cutoff_analysis(images, indices, region_bool, is_weighted=is_weighted, fn=fusion.cutoff_distance2)
+
+np.savetxt("/mnt/d/CouplageMSI-Immunofluo/Rate4#36/stats_cutoffs_2.csv", np.column_stack((mzs, roc_auc_scores, roc_cutoffs, roc_cutoffs_half, roc_cutoffs_d2)), delimiter=",", header="m/z, auc, distance, half tpr", fmt="%f")
 
 
-for (i, j), auc in np.ndenumerate(roc_auc_scores):
-    worksheet.write(0, i+1, mzs[i], header_format)
-    worksheet.write(j+1, i+1, auc)
-
-worksheet.write_row(j+2, 1, averages)
-
-workbook.close()
+plt.scatter(roc_auc_scores, roc_cutoffs_d2)
+plt.xlabel("ROC-AUC")
+plt.ylabel(function)
+mplcursors.cursor(multiple=True).connect("add", lambda sel: sel.annotation.set_text("{:.3f}".format(mzs[sel.index])))
+plt.show()

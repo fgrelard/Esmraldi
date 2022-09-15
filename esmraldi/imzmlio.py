@@ -87,14 +87,25 @@ def normalize(image):
     np.ndarray
         normalized image
     """
+    def norm_img(image):
+        min_value = image.min()
+        max_value = np.percentile(image, 99)
+        if min_value == max_value:
+            max_value = image.max()
+        image_normalized = ((image - min_value) / (max_value - min_value))*255
+        image_normalized = np.clip(image_normalized, 0, 255)
+        return image_normalized
+
     image_normalized = np.zeros_like(image, dtype=np.uint8)
     if len(image.shape) <= 2:
-        image_normalized = np.uint8(cv.normalize(image, None, 0, 255, cv.NORM_MINMAX))
+        image_normalized = norm_img(image)
+        # image_normalized = np.uint8(cv.normalize(image, None, 0, 255, cv.NORM_MINMAX))
     else:
         z = image.shape[-1]
         for k in range(z):
             slice2D = image[..., k]
-            slice2DNorm = np.uint8(cv.normalize(slice2D, None, 0, 255, cv.NORM_MINMAX))
+            slice2DNorm = norm_img(slice2D)
+            # slice2DNorm = np.uint8(cv.normalize(slice2D, None, 0, 255, cv.NORM_MINMAX))
             image_normalized[..., k] = slice2DNorm
     return image_normalized
 

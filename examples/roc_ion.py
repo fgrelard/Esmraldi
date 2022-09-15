@@ -16,7 +16,8 @@ from skimage.color import rgb2gray
 def read_image(image_name):
     sitk.ProcessObject_SetGlobalWarningDisplay(False)
     mask = sitk.GetArrayFromImage(sitk.ReadImage(image_name))
-    mask = rgb2gray(mask)
+    if mask.ndim > 2:
+        mask = rgb2gray(mask)
     mask = mask.T
     return mask
 
@@ -26,7 +27,7 @@ parser.add_argument("-i", "--input", help="Input .imzML")
 parser.add_argument("-m", "--mask", help="Mask image (any ITK format)")
 parser.add_argument("-r", "--regions", help="Subregions inside mask", nargs="+", type=str)
 parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given m/z", default=0)
-parser.add_argument("--mz", help="M/Z")
+parser.add_argument("--mz", help="M/Z", nargs="+", type=float)
 parser.add_argument("-w", "--weight", help="Weight ROC by amount of points in each condition", action="store_true")
 args = parser.parse_args()
 
@@ -34,7 +35,7 @@ input_name = args.input
 mask_name = args.mask
 region_names = args.regions
 normalization = float(args.normalization)
-mz = float(args.mz)
+mz = args.mz
 is_weighted = args.weight
 
 unique_image = False
@@ -98,29 +99,35 @@ if unique_image:
 else:
     region_bool = fusion.region_to_bool(regions, indices_ravel, shape)
 
-    closest_mz_index = np.abs(mzs - mz).argmin()
-    print("Found", mzs[closest_mz_index], mz)
+    closest_mz_indices = []
+    for m in mz:
+        closest_mz_index = np.abs(mzs - m).argmin()
+        closest_mz_indices.append(closest_mz_index)
+        print("Found", mzs[closest_mz_index], mz)
+    closest_mz_indices = np.array(closest_mz_indices)
 
-    current_image = images[..., closest_mz_index]
+    current_image = images[..., closest_mz_indices]
+
+colors = ["k", "g", "r"]
+for i in range(current_image.shape[-1]):
+    c = current_image[..., i]
     if normalization > 0:
-        current_image = imageutils.normalize_image(current_image, norm_img)
+        c = imageutils.normalize_image(c, norm_img)
 
 
+    sub_region = c[indices]
+    current_values = sub_region.flatten()
 
-
-sub_region = current_image[indices]
-current_values = sub_region.flatten()
-
-colors = ["g", "r", "b"]
-
-for j, binary_label in enumerate(region_bool):
-    fpr, tpr, thresholds = fusion.roc_curve(binary_label, current_values, is_weighted=is_weighted)
-    current_values = current_values.astype(np.float64)
-    # A = current_values.max() - current_values
-    # ppv, recall, _ = precision_recall_curve(binary_label, current_values)
-    # npv, recall2, _ = precision_recall_curve(binary_label, A, pos_label=0)
-    plt.plot(fpr, tpr, color=colors[j], label=region_names[j])
-    print(fusion.single_roc_auc(current_image, indices, [binary_label], is_weighted=is_weighted))
+    for j, binary_label in enumerate(region_bool):
+        fpr, tpr, thresholds = fusion.roc_curve(binary_label, current_values, is_weighted=is_weighted)
+        current_values = current_values.astype(np.float64)
+        # A = current_values.max() - current_values
+        # ppv, recall, _ = precision_recall_curve(binary_label, current_values)
+        # npv, recall2, _ = precision_recall_curve(binary_label, A, pos_label=0)
+        plt.plot(fpr, tpr, color=colors[i], label=region_names[j])
+        plt.plot([0,1], [0,1], "--", c="k")
+        print("Cutoff", fusion.single_roc_cutoff(c, indices, [binary_label], fusion.cutoff_half_tpr, is_weighted=is_weighted))
+        print(fusion.single_roc_auc(c, indices, [binary_label], is_weighted=is_weighted))
 
 # plt.plot([0, 1], [0, 1], color="k", linestyle="--")
 plt.show()

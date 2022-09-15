@@ -525,6 +525,33 @@ def single_roc_auc(image, indices, region_bool, is_weighted=False):
         rocs[j] = auc
     return rocs
 
+def single_roc_cutoff(image, indices, region_bool, fn, is_weighted=False):
+    sub_region = image[indices]
+    current_values = sub_region.flatten()
+    cutoffs = np.zeros(len(region_bool))
+    for j, binary_label in enumerate(region_bool):
+            fpr, tpr, thresholds = roc_curve(binary_label, current_values, is_weighted=is_weighted)
+            cutoff = fn(fpr, tpr, thresholds)
+            cutoffs[j] = cutoff
+    return cutoffs
+
+def cutoff_distance2(fpr, tpr, thresholds):
+    d2h = (1 - tpr) ** 2 + (fpr)**2
+    d2b = tpr**2 + (1-fpr)**2
+    indexh  = np.argmin(d2h)
+    indexb = np.argmin(d2b)
+    return min(np.sqrt(d2h[indexh]), np.sqrt(d2b[indexb]))
+
+def cutoff_distance(fpr, tpr, thresholds):
+    index = np.argmin(np.abs(tpr - (1-fpr)))
+    t, f = tpr[index], fpr[index]
+    distance = np.linalg.norm(np.array([f-0, t-1]))
+    return distance
+
+def cutoff_half_tpr(fpr, tpr, thresholds):
+    index = np.searchsorted(tpr, 0.5)
+    return fpr[index]
+
 def roc_auc_analysis(images, indices, region_bool, norm_img=None, thresholded_variants=False, is_weighted=False):
     nreg = len(region_bool)
     roc_auc_scores = np.zeros((images.shape[-1], nreg))
@@ -543,6 +570,14 @@ def roc_auc_analysis(images, indices, region_bool, norm_img=None, thresholded_va
             roc_auc_scores[i, :] = single_roc_auc(current_image, indices, region_bool, is_weighted=is_weighted)
 
     return roc_auc_scores
+
+def roc_cutoff_analysis(images, indices, region_bool, is_weighted=False, fn=cutoff_distance):
+    nreg = len(region_bool)
+    roc_cutoff_scores = np.zeros((images.shape[-1], nreg))
+    for i in range(images.shape[-1]):
+        current_image = images[..., i]
+        roc_cutoff_scores[i, :] = single_roc_cutoff(current_image, indices, region_bool, fn, is_weighted=is_weighted)
+    return roc_cutoff_scores
 
 
 def image_to_thresholded_variants(image, n=3):

@@ -437,7 +437,7 @@ def normalization_tic(spectra):
         new_y = y.copy()
         if t > 0:
             new_y /= t
-        spectra_normalized[i, 1, :] = new_y
+        spectra_normalized[i, 1] = new_y
     return spectra_normalized
 
 def normalization_sic(spectra, indices_peaks, width_peak=10):

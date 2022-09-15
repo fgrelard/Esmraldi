@@ -454,7 +454,7 @@ def local_max_dt(image):
     return local_max_itk
 
 
-def export_figure_matplotlib(f_name, arr, arr2=None, dpi=200, resize_fact=1, plt_show=False):
+def export_figure_matplotlib(f_name, arr, arr2=None, dpi=200, resize_fact=1, cmaps=["gray", "Reds"], alpha=0.5, plt_show=False):
     """
     Export array as figure in original resolution
     :param arr: array of image to save in original resolution
@@ -468,9 +468,9 @@ def export_figure_matplotlib(f_name, arr, arr2=None, dpi=200, resize_fact=1, plt
     ax = plt.Axes(fig, [0., 0., 1., 1.])
     ax.set_axis_off()
     fig.add_axes(ax)
-    ax.imshow(arr, cmap="gray")
+    ax.imshow(arr, cmap=cmaps[0])
     if arr2 is not None:
-        ax.imshow(arr2, cmap="Reds", alpha=0.5)
+        ax.imshow(arr2, cmap=cmaps[1], alpha=alpha)
     plt.savefig(f_name, dpi=(dpi * resize_fact))
     if plt_show:
         plt.show()
