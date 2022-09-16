@@ -12,6 +12,7 @@ from sklearn.manifold import MDS, LocallyLinearEmbedding, Isomap, TSNE
 from sklearn.cluster import KMeans
 import re
 import esmraldi.imageutils as imageutils
+from matplotlib.colors import ListedColormap
 
 def display_matrix(distance_matrix, region_names, test_region_names):
     mds = MDS(n_components=2, dissimilarity="precomputed")
@@ -52,7 +53,7 @@ def subtract(target, source):
     return out
 
 def extract_coordinates(array):
-    coords = array[:, 0]
+    coords = array[:, 0].astype(int)
     inside = array[:, -1]
     return coords[inside == 1]
 
@@ -67,6 +68,20 @@ def extract_mean_spectra_coordinates(spectra, coordinates, mzs, is_subtract, mea
         # plt.show()
         all_spectra.append(mean_spectra)
     return np.array(all_spectra)
+
+def mapping_neighbors(image, radius):
+    r = radius
+    size = 2*r+1
+    img_padded = np.pad(image, (r,r), 'constant')
+    mapping_matrix = np.zeros_like(image)
+    for index in np.ndindex(image.shape[:-1]):
+        i, j = index
+        neighbors = image[i-r:i+r+1, j-r:j+r+1]
+        if neighbors.shape[0] != size or neighbors.shape[1] != size:
+            continue
+        neighbors = neighbors.reshape((size**2, neighbors.shape[-1]))
+        mapping_matrix[index] = np.mean(neighbors, axis=0)
+    return mapping_matrix
 
 
 parser = argparse.ArgumentParser()
@@ -168,23 +183,45 @@ if clustering:
     imsize = max_x*max_y*max_z
     full_spectra = io.get_full_spectra_sparse(spectra, imsize)
     images = io.get_images_from_spectra(full_spectra, shape)
+    images = mapping_neighbors(images, radius=1)
     image_flatten = fusion.flatten(images, is_spectral=True).T
-    norm = np.linalg.norm(image_flatten.astype(float), axis=-1)[:, None]
-    norm[norm == 0] = 1
-    image_flatten = image_flatten / norm
-    centers = av_spectra / np.linalg.norm(av_spectra.astype(float), axis=-1)[:, None]
-    kmeans = KMeans(n_clusters=len(unique_names), init=centers, random_state=0, algorithm="elkan", n_init=1).fit(image_flatten)
-    distances = kmeans.transform(image_flatten)
-    min_distance = distances.min(axis=0)
-    max_distance = distances.max(axis=0)
-    cluster_distance = distances.min(axis=-1)
-    labels = kmeans.labels_
-    norm_distance = (cluster_distance - min_distance[labels]) / (max_distance[labels] - min_distance[labels])
+    if is_subtract:
+        for i, spectra in enumerate(image_flatten):
+            image_flatten[i, :] = subtract(spectra, mean_spectra_matrix)
+    centers = av_spectra
+    is_norm = False
+    if is_norm:
+        norm = np.linalg.norm(image_flatten.astype(float), axis=-1)[:, None]
+        norm[norm == 0] = 1
+        image_flatten /=  norm
+        centers /= np.linalg.norm(centers.astype(float), axis=-1)[:, None]
+    distances = distance.cdist(image_flatten.astype(float), centers.astype(float), metric="cosine")
+    distances = np.nan_to_num(distances, nan=1.0)
+    labels = np.argmin(distances, axis=-1)
+    labels[(distances.min(axis=-1) == 1.0) | (distances.min(axis=-1) == 0.0)] = len(unique_names)-1
+    sp = image_flatten[(labels == 3), :]
+    print(sp.shape, av_spectra.shape)
+    # for s in sp:
+    #     fig, ax = plt.subplots(1, 2)
+    #     ax[0].plot(mzs, s)
+    #     ax[1].plot(mzs, av_spectra[3])
+    #     plt.show()
+
+    # kmeans = KMeans(n_clusters=len(unique_names), init=centers, random_state=0, algorithm="elkan", n_init=1).fit(image_flatten)
+    # distances = kmeans.transform(image_flatten)
+    # labels = kmeans.labels_
+    # min_distance = distances.min(axis=0)
+    # max_distance = distances.max(axis=0)
+    # cluster_distance = distances.min(axis=-1)
+    # norm_distance = (cluster_distance - min_distance[labels]) / (max_distance[labels] - min_distance[labels])
+    norm_distance = np.take_along_axis(distances, labels[:, None], axis=-1)
     opacity_image = np.reshape(norm_distance, images.shape[:-1])
     label_image = np.reshape(labels, images.shape[:-1])
     blacks = np.zeros_like(label_image.T)
     outname_fig = os.path.splitext(outname)[0] + ".png"
-    imageutils.export_figure_matplotlib(outname_fig, blacks, label_image.T, cmaps=["gray", "Set1"], alpha=1-opacity_image.T, plt_show=True)
+    colors = np.array([[0.067, 0.114, 0.669], [0.608, 0.125, 0.093], [1,1,1], [1, 0.671, 0], [0,0,0]])
+    newcmp = ListedColormap(colors)
+    imageutils.export_figure_matplotlib(outname_fig, blacks, label_image.T, cmaps=["gray", newcmp], alpha=1-opacity_image.T, plt_show=True)
     print(images.shape)
 
 for i, test in enumerate(spectra_test):
@@ -197,6 +234,7 @@ np.savetxt(outname, out_spectra.T, delimiter=",", header="mzs, " + ", ".join(uni
 
 
 for i, s in enumerate(av_spectra):
+    plt.figure()
     plt.stem(mzs, s)
     plt.title(unique_names[i])
     plt.xlabel("m/z")
