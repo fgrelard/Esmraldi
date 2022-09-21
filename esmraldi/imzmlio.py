@@ -129,27 +129,30 @@ def get_full_spectra_sparse(spectra, imsize):
     full_spectra_sparse = SparseMatrix(coordinates, data, shape)
     return full_spectra_sparse
 
+def get_full_spectra_dense(spectra, coordinates, shape):
+    mzs, ints = spectra[0, ...]
+    number_points = len(mzs)
+    imsize = np.prod(shape)
+    full_spectra = np.zeros((imsize, 2, number_points))
+    full_spectra[:,0,:] = mzs
+    for i, (x, y, z) in enumerate(coordinates):
+        real_index = (x-1) + (y-1) * shape[0] + (z-1) * shape[0] * shape[1]
+        mz, ints = spectra[i, ...]
+        full_spectra[real_index, 0] = mz
+        full_spectra[real_index, 1] = ints
+    return full_spectra
+
 def get_full_spectra(imzml):
     max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
     max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
     max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
 
     spectra = get_spectra(imzml)
+    shape = (max_x, max_y, max_z)
     if len(spectra.shape) == 2:
-        imsize = max_x*max_y*max_z
-        full_spectra_sparse = get_full_spectra_sparse(spectra, imsize)
-        return full_spectra_sparse
+        return get_full_spectra_sparse(spectra, np.prod(shape))
 
-    mzs, ints = imzml.getspectrum(0)
-    number_points = len(ints)
-    full_spectra = np.zeros((max_x*max_y*max_z, 2, number_points))
-    full_spectra[:,0,:] = mzs
-    for i, (x, y, z) in enumerate(imzml.coordinates):
-        real_index = (x-1) + (y-1) * max_x + (z-1) * max_x * max_y
-        mz, ints = imzml.getspectrum(i)
-        full_spectra[real_index, 0] = mz
-        full_spectra[real_index, 1] = ints
-
+    return get_full_spectra_dense(spectra, imzml.coordinates, shape)
 
     return full_spectra
 

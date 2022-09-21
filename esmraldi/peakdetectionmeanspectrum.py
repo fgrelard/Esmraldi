@@ -47,8 +47,9 @@ class PeakDetectionMeanSpectrum:
         size = self.mean_spectrum.shape[0]
         median_signal = np.median(self.mean_spectrum)
         threshold_prominence = median_signal * self.factor_prominence
+        self.factor_prominence = threshold_prominence
         peak_indices = self.find_peak_indices(widths=(widths,None))
-        groups = sp.index_groups_start_end(self.mzs[peak_indices], self.step_ppm, True)
+        groups = sp.index_groups_start_end(self.mzs[peak_indices], self.step_ppm//2, True)
         filtered_indices = []
         cumlen = 0
         for g in groups:

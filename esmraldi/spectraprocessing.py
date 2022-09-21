@@ -16,7 +16,7 @@ import bisect
 from treelib import Node, Tree
 from functools import reduce
 import esmraldi.utils as utils
-from esmraldi.utils import progress
+from esmraldi.utils import progress, indices_search_sorted
 from esmraldi.peakdetectiontree import PeakDetectionTree
 
 def spectra_sum(spectra):
@@ -958,15 +958,7 @@ def realign_generic(spectra, peaks, step=np.inf, is_ppm=False):
     print("Realigning")
     for i, spectrum in enumerate(spectra):
         mz, I = spectrum
-
-        indices = np.clip(np.searchsorted(peaks, mz), 0, n-1)
-        indices2 = np.clip(indices-1, 0, n-1)
-
-        diff1 = peaks[indices] - mz
-        diff2 = mz - peaks[indices2]
-
-        indices = np.where(diff1 <= diff2, indices, indices2)
-
+        indices = indices_search_sorted(mz, peaks)
         current_I = I
         if step != np.inf:
             current_step = step
@@ -1333,3 +1325,18 @@ def deisotoping_reference_indices(peaks, th_diff=1.00335, tolerance=14, nb_neigh
         deisotoped_indices.extend([i+j for j in indices if i+j not in deisotoped_indices])
     deisotoped_indices = np.array(deisotoped_indices)
     return deisotoped_indices
+
+def subtract_spectra(target, source):
+    out = target - source
+    out[out < 0] = np.finfo(float).eps
+    return out
+
+def extract_mean_spectra_coordinates(spectra, coordinates, mzs, is_subtract, mean_spectra_matrix):
+    all_spectra = []
+    for i, c in enumerate(coordinates):
+        restricted_spectra = spectra[c]
+        mean_spectra = spectra_mean_centroided(restricted_spectra, mzs)
+        if is_subtract:
+            mean_spectra = subtract_spectra(mean_spectra, mean_spectra_matrix)
+        all_spectra.append(mean_spectra)
+    return np.array(all_spectra)

@@ -8,6 +8,8 @@ import pyimzml.ImzMLParser as imzmlparser
 import scipy.spatial.distance as dist
 import esmraldi.imageutils as imageutils
 import esmraldi.imzmlio as io
+import esmraldi.spectraprocessing as sp
+import esmraldi.fusion as fusion
 import cv2 as cv
 import SimpleITK as sitk
 
@@ -794,3 +796,32 @@ def heterogeneity_mask(image, region, size=10):
     average = np.median(averages)
     average /= np.median(max_values)/2
     return average, averages, max_values
+
+
+def mapping_neighbors_average(image, radius):
+    r = radius
+    size = 2*r+1
+    img_padded = np.pad(image, (r,r), 'constant')
+    mapping_matrix = np.zeros_like(image)
+    for index in np.ndindex(image.shape[:-1]):
+        i, j = index
+        neighbors = image[i-r:i+r+1, j-r:j+r+1]
+        if neighbors.shape[0] != size or neighbors.shape[1] != size:
+            continue
+        neighbors = neighbors.reshape((size**2, neighbors.shape[-1]))
+        mapping_matrix[index] = np.mean(neighbors, axis=0)
+    return mapping_matrix
+
+def clustering_with_centers(images, centers, is_subtract, metric, mean_spectra_matrix=None, radius=0):
+    images = mapping_neighbors_average(images, radius=radius)
+    image_flatten = fusion.flatten(images, is_spectral=True).T
+    if is_subtract:
+        for i, spectra in enumerate(image_flatten):
+            image_flatten[i, :] = sp.subtract_spectra(spectra, mean_spectra_matrix)
+    distances = dist.cdist(image_flatten.astype(float), centers.astype(float), metric=metric)
+    distances = np.nan_to_num(distances, nan=1.0)
+    labels = np.argmin(distances, axis=-1)
+    norm_distance = np.take_along_axis(distances, labels[:, None], axis=-1)
+    confidence = np.reshape(norm_distance, images.shape[:-1])
+    label_image = np.reshape(labels, images.shape[:-1])
+    return label_image, confidence
