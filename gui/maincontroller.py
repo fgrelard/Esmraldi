@@ -285,8 +285,6 @@ class MainController:
         self.thresholdingcontroller.trigger_compute.signal.connect(self.manual_thresholding)
         self.thresholdingcontroller.trigger_end.signal.connect(self.mainview.clear_frame)
 
-        self.imagehandlecontroller.imageview.imageChangedSignal.signal.connect(self.update_threshold_values)
-
         #shortcuts
         shortcut_link = QShortcut(QKeySequence('Ctrl+L'), self.mainview.parent)
         shortcut_link.activated.connect(self.link_views)
@@ -430,17 +428,6 @@ class MainController:
         comboboxRoi1.blockSignals(False)
         comboboxRoi2.blockSignals(False)
 
-    def update_threshold_values(self):
-        imageview = self.mainview.imagehandleview.imageview
-        displayed_image = imageview.imageItem.image
-
-        min_value, max_value = displayed_image.min(), displayed_image.max()
-        self.mainview.rangeSliderThreshold.setRange(min_value, max_value)
-        self.mainview.rangeSliderThreshold.setValue((min_value, max_value))
-        if len(displayed_image.shape) >= 3:
-            displayed_image = (color.rgb2gray(displayed_image[..., :3]) * 255).astype(np.uint8)
-        displayed_image = displayed_image.T
-        # imageview.coords_threshold = imageview.roi_to_coordinates(displayed_image, min_value, max_value)
 
     def display_peaks_mean_spectrum(self, peaks):
         imageview = self.mainview.imagehandleview.imageview

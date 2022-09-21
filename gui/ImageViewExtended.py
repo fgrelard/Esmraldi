@@ -760,9 +760,9 @@ class ImageViewExtended(pg.ImageView):
             self.roi.sigRegionChangeFinished.connect(self.roiChanged)
         self.roiChanged()
 
-    def intensity_value_slider(self, image):
-        min_slider, max_slider = self.ui.rangeSliderThreshold.value()
-        max_value = self.ui.rangeSliderThreshold.maximum()
+    def intensity_value_slider(self, image, range_slider):
+        min_slider, max_slider = range_slider.value()
+        max_value = range_slider.maximum()
         threshold_percentile = np.percentile(image, 99)
         if threshold_percentile == 0:
             threshold_percentile = np.amax(image)
@@ -807,7 +807,7 @@ class ImageViewExtended(pg.ImageView):
         for i in range(data.shape[image.spectral_axis]):
             index = [i if j == image.spectral_axis else slice(None) for j in range(image.ndim)]
             im2D = data[tuple(index)].T
-            min_t, max_t = self.intensity_value_slider(im2D)
+            min_t, max_t = self.intensity_value_slider(im2D, self.ui.rangeSliderThreshold)
             offset = np.array(self.roi.pos()) + np.array([self.roi.boundingRect().topLeft().x(), self.roi.boundingRect().topLeft().y()])
             coords_2D = self.roi_to_coordinates(im2D, min_t, max_t, offset, self.mask_roi)
             linear = np.ravel_multi_index(coords_2D, self.imageItem.image.T.shape)
@@ -857,7 +857,7 @@ class ImageViewExtended(pg.ImageView):
         image_roi = data.T
         self.mask_roi = self.roi.renderShapeMask(image_roi.shape[axes[0]], image_roi.shape[axes[1]])
 
-        min_t, max_t = self.intensity_value_slider(coords_image)
+        min_t, max_t = self.intensity_value_slider(coords_image, self.ui.rangeSliderThreshold)
         offset = np.array(self.roi.pos()) + np.array([self.roi.boundingRect().topLeft().x(), self.roi.boundingRect().topLeft().y()])
         if not self.ui.roiImage.isChecked():
             self.coords_roi = self.roi_to_coordinates(coords_image, min_t, max_t, offset, self.mask_roi)
