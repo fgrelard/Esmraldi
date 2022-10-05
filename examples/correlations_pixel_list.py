@@ -13,6 +13,7 @@ from sklearn.manifold import MDS, LocallyLinearEmbedding, Isomap, TSNE
 import re
 import esmraldi.imageutils as imageutils
 from matplotlib.colors import ListedColormap
+from skimage.color import rgb2gray
 
 def display_matrix(distance_matrix, region_names, test_region_names):
     mds = MDS(n_components=2, dissimilarity="precomputed")

@@ -413,7 +413,7 @@ def tic_values(spectra):
         tic[i] = spectra_sum
     return tic
 
-def normalization_tic(spectra):
+def normalization_tic(spectra, inplace=False):
     """
     TIC (total ion count) normalization.
 
@@ -430,14 +430,15 @@ def normalization_tic(spectra):
     np.ndarray
         normalized spectrum
     """
-    spectra_normalized = spectra.copy()
+    if inplace:
+        spectra_normalized = spectra
+    else:
+        spectra_normalized = spectra.copy()
     tic = tic_values(spectra)
     for i, (x,y) in enumerate(spectra):
         t = tic[i]
-        new_y = y.copy()
         if t > 0:
-            new_y /= t
-        spectra_normalized[i, 1] = new_y
+            spectra_normalized[i, 1] /= t
     return spectra_normalized
 
 def normalization_sic(spectra, indices_peaks, width_peak=10):

@@ -9,6 +9,10 @@ import esmraldi.utils as utils
 import SimpleITK as sitk
 import scipy.spatial.distance as distance
 from sklearn.cross_decomposition import PLSRegression, CCA
+from skimage.color import rgb2gray
+import skimage.morphology as morphology
+import joblib
+import gc
 
 def read_image(image_name):
     sitk.ProcessObject_SetGlobalWarningDisplay(False)
@@ -18,11 +22,12 @@ def read_image(image_name):
     mask = mask.T
     return mask
 
+
+
 def read_imzml(input_name, normalization):
     if input_name.lower().endswith(".imzml"):
         imzml = io.open_imzml(input_name)
         spectra = io.get_spectra(imzml)
-        print(spectra.shape)
         coordinates = imzml.coordinates
         max_x = max(coordinates, key=lambda item:item[0])[0]
         max_y = max(coordinates, key=lambda item:item[1])[1]
@@ -32,11 +37,14 @@ def read_imzml(input_name, normalization):
         mzs = mzs[mzs>0]
     return spectra, mzs, shape, imzml.coordinates
 
-def indices_peaks(peaks, other_peaks):
+def indices_peaks(peaks, other_peaks, full=False):
     indices = utils.indices_search_sorted(other_peaks, peaks)
     current_step = 14 * other_peaks / 1e6
     indices_ppm = np.abs(peaks[indices] - other_peaks) < current_step
-    indices = indices[indices_ppm]
+    if full:
+        indices[~indices_ppm] = -1
+    else:
+        indices = indices[indices_ppm]
     return indices
 
 def extract_common_mzs(mzs):
@@ -52,10 +60,20 @@ def extract_common_mzs(mzs):
         mzs_indices.append(indices)
     return peaks, mzs_indices
 
+def extract_all_mzs_nodup(mzs):
+    peaks, mzs_indices = extract_common_mzs(mzs)
+    for i, indices in enumerate(mzs_indices):
+        current_mzs = mzs[i]
+        common_mzs = current_mzs[indices]
+        other_mzs = np.setdiff1d(current_mzs, common_mzs)
+        peaks = np.append(peaks, other_mzs)
+    peaks = np.sort(peaks)
+    return peaks
+
 def normalize_flatten(spectra, coordinates, shape, normalization=True):
     if normalization:
         print("normalization")
-        spectra = sp.normalization_tic(spectra)
+        spectra = sp.normalization_tic(spectra, inplace=True)
     full_spectra = io.get_full_spectra_dense(spectra, coordinates, shape)
     images = io.get_images_from_spectra(full_spectra, shape)
     images = io.normalize(images)
@@ -64,7 +82,7 @@ def normalize_flatten(spectra, coordinates, shape, normalization=True):
 
 def read_regions(region_names):
     regions = []
-    print("Read image")
+    region_shapes = []
     for region_name in region_names:
         region = read_image(region_name)
         regions.append(region)
@@ -72,7 +90,7 @@ def read_regions(region_names):
     regions = np.transpose(np.array(regions), (1,2,0))
     regions = io.normalize(regions)
     region_flatten = fusion.flatten(regions, is_spectral=True).T
-    return region_flatten
+    return region_flatten, region.shape
 
 def extract_indexslices_regions(super_regions):
     L = []
@@ -103,6 +121,36 @@ def extract_indices_combined_regions(super_regions, indices_combined):
     return super_slices, super_indices
 
 
+def coordinates_from_sampled_regions(super_regions, super_shapes, size, erosion_radius=0):
+    super_coords = []
+    for i, regions in enumerate(super_regions):
+        current_coords = []
+        for j in range(regions.shape[-1]):
+            region = regions[..., j].copy()
+            im_region = np.reshape(region, super_shapes[i])
+            footprint = morphology.disk(erosion_radius)
+            im_region = morphology.erosion(im_region, footprint)
+            im_region = im_region.flatten()
+            coords = np.argwhere(im_region > 0)
+            np.random.shuffle(coords)
+            coords = coords[:size]
+            current_coords += coords.flatten().tolist()
+        super_coords.append(current_coords)
+    return super_coords
+
+def sample_image(super_regions, super_coords):
+    new_regions = []
+    for i, regions in enumerate(super_regions):
+        coords = super_coords[i]
+        current_regions = []
+        for j in range(regions.shape[-1]):
+            current_region = regions[..., j]
+            current_region = current_region[coords]
+            current_regions.append(current_region)
+        current_regions = np.transpose(current_regions, (1, 0))
+        new_regions.append(current_regions)
+    print(new_regions[0].shape)
+    return new_regions
 
 def indices_category_region(names):
     unique, indices = np.unique(names, return_inverse=True)
@@ -115,6 +163,7 @@ parser.add_argument("-i", "--input", help="Input .imzML", nargs="+", type=str)
 parser.add_argument("-r", "--regions", help="Subregions inside mask", nargs="+", type=str, action="append")
 parser.add_argument("-t", "--target", help="Target .imzML")
 parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given m/z", action="store_true")
+parser.add_argument("--sample_size", help="Sample size (in pixels)", default=0)
 parser.add_argument("-o", "--output", help="Output files")
 args = parser.parse_args()
 
@@ -122,12 +171,20 @@ input_name = args.input
 target_name = args.target
 region_names = args.regions
 normalization = args.normalization
+sample_size = int(args.sample_size)
 outname = args.output
 
 super_regions = []
+region_shapes = []
 for dataset_regions in region_names:
-    regions = read_regions(dataset_regions)
+    regions, reg_shape = read_regions(dataset_regions)
+    region_shapes.append(reg_shape)
     super_regions.append(regions)
+
+if sample_size > 0:
+    sampled_coords = coordinates_from_sampled_regions(super_regions, region_shapes, sample_size, 1)
+    super_regions = sample_image(super_regions, sampled_coords)
+
 
 shape_super_regions = np.sum([s.shape for s in super_regions], axis=0)
 
@@ -180,29 +237,51 @@ for name in input_name:
     super_shapes.append(shape)
     super_coordinates.append(coords)
 
-spectra, mzs, shape, coords = read_imzml(target_name, normalization)
-super_mzs.append(mzs)
+if target_name is not None:
+    spectra, mzs, shape, coords = read_imzml(target_name, normalization)
+    super_mzs.append(mzs)
+    super_shapes.append(shape)
 
 mzs, indices = extract_common_mzs(super_mzs)
+mzs = extract_all_mzs_nodup(super_mzs)
+indices = []
+for i, super_mz in enumerate(super_mzs):
+    ind = indices_peaks(super_mzs[i], mzs, full=True)
+    indices.append(ind)
+
+np.savetxt(os.path.splitext(outname)[0] + "_mzs.csv", mzs, delimiter=",")
+np.savetxt(os.path.splitext(outname)[0] + "_names.csv", unique_names, delimiter=",", fmt="%s")
 
 image_flatten = []
 for i, spectra in enumerate(super_spectra):
+    print(spectra.shape, super_shapes[i], normalization)
+    coords = sampled_coords[i]
     im = normalize_flatten(spectra, super_coordinates[i], super_shapes[i], normalization=normalization)
+    im = im[coords]
+    print(im.shape)
+    blank_image = np.zeros((im.shape[0], 1))
+    target_im = np.hstack((im, blank_image))
     im = im[..., indices[i]]
+    print(im.shape)
     image_flatten.append(im)
-
-target_im = normalize_flatten(spectra, coords, shape, normalization=normalization)
-target_im = target_im[..., indices[i]]
 
 image_flatten = np.concatenate(image_flatten)
 
+
+if target_name is not None:
+    target_im = normalize_flatten(spectra, coords, shape, normalization=normalization)
+    target_im = target_im[..., indices[i]]
+
 print(mzs.shape)
 print(image_flatten.shape)
-print(target_im.shape)
 
-regression = CCA(n_components=combined_regions.shape[-1], scale=True).fit(image_flatten, combined_regions)
+regression = PLSRegression(n_components=combined_regions.shape[-1], scale=False).fit(image_flatten, combined_regions)
+
+joblib.dump(regression, outname)
 
 out = regression.predict(image_flatten)
+if target_name is not None:
+    out_target = regression.predict(target_im)
 coef = regression.coef_
 
 # names = [os.path.splitext(os.path.basename(r))[0] for r in region_names[0]]
@@ -215,12 +294,26 @@ for i in range(regression.coef_.shape[-1]):
     score = out[..., i]
     current_region = combined_regions[..., i]
     fig, ax = plt.subplots(2, max(len(super_regions), 2))
+    plt.title(unique_names[i])
     for j, r in enumerate(super_regions):
         s = unique_slices[j]
-        im_region = np.reshape(current_region[s], super_shapes[j][:-1])
-        im_score = np.reshape(score[s], super_shapes[j][:-1])
+        if sample_size > 0:
+            shape = (current_region[s].shape[0], 1)
+            # shape = (sample_size, super_regions[j].shape[-1])
+        else:
+            shape = super_shapes[j][:-1]
+        im_region = np.reshape(current_region[s], shape)
+        im_score = np.reshape(score[s], shape)
         ax[0, j].imshow(im_region)
         ax[1, j].imshow(im_score)
-    plt.figure()
-    plt.plot(mzs, coef[..., i])
+
+    if target_name is not None:
+        plt.figure()
+        score_target = out_target[..., i]
+        im_target = np.reshape(score_target, super_shapes[-1][:-1])
+        plt.title(unique_names[i])
+        plt.imshow(im_target)
+        plt.figure()
+        plt.title(unique_names[i])
+        plt.plot(mzs, coef[..., i])
     plt.show()

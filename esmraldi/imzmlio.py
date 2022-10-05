@@ -109,11 +109,11 @@ def normalize(image):
             image_normalized[..., k] = slice2DNorm
     return image_normalized
 
-def get_full_spectra_sparse(spectra, imsize):
+def sparse_coordinates(spectra, imsize):
     mzs = spectra[:, 0]
     unique_mzs, indices_mzs = np.unique(np.hstack(mzs), return_inverse=True)
     number_points = len(unique_mzs)
-    pixel_numbers = np.hstack([np.repeat(i, int(len(mzs[i]))) for i in range(len(mzs))])
+    pixel_numbers = np.hstack([np.repeat(i, int(len(mzs[i]))) for i in range(len(mzs))]).astype(np.int32)
     shape = (imsize, 2, number_points)
     coordinates = np.zeros((2*len(pixel_numbers), 3), dtype=np.int32)
     for j in range(2):
@@ -122,11 +122,14 @@ def get_full_spectra_sparse(spectra, imsize):
             coordinates[i+j*len(pixel_numbers)] = coord
 
     coordinates = coordinates.T
+    return coordinates, shape
 
+def get_full_spectra_sparse(spectra, imsize):
+    coordinates, shape = sparse_coordinates(spectra, imsize)
     if spectra.ndim < 3:
         spectra = spectra.T.flatten()
-    data = np.hstack(spectra).flatten()
-    full_spectra_sparse = SparseMatrix(coordinates, data, shape)
+    data = np.hstack(spectra).flatten().astype(np.float32)
+    full_spectra_sparse = SparseMatrix(coordinates, data, shape, sorted=True, has_duplicates=False)
     return full_spectra_sparse
 
 def get_full_spectra_dense(spectra, coordinates, shape):
