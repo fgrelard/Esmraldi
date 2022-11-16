@@ -727,7 +727,12 @@ def find_similar_images_dispersion(image_maldi, factor, quantiles=[], in_sample=
             binaryimg = image2D.copy()
             binaryimg[mask] = 1
             binaryimg[~mask] = 0
+
+
             moments = measure.moments(binaryimg, order=1)
+            number_non_zero = np.count_nonzero(binaryimg)
+            if (number_non_zero == 0):
+                continue
             centroid = [moments[1, 0]/moments[0, 0], moments[0, 1]/moments[0, 0]]
             ind = np.argwhere(mask)
             diff = np.linalg.norm(ind - centroid, axis=-1)
@@ -737,22 +742,23 @@ def find_similar_images_dispersion(image_maldi, factor, quantiles=[], in_sample=
                 min_value = variance
                 min_value_sample = value_sample
                 c = ind
+        if min_value == sys.maxsize:
+            min_value = 0
+            min_value_sample = 0
         values.append(min_value)
         values_sample.append(min_value_sample)
         coords.append(c)
     value_array = np.array(values)
     value_sample_array = np.array(values_sample)
     coords = np.array(coords)
-    print(coords.shape)
     if in_sample:
         off_sample_image, off_sample_cond = determine_on_off_sample(image_maldi, value_sample_array)
-        print(off_sample_cond)
         # off_sample_cond = np.array([np.median(off_sample_image[coord.T[0], coord.T[1]]) for coord in coords])
     indices = (value_array < factor) & (off_sample_cond < 0.5)
     similar_images = image_maldi[..., indices]
     to_return = (similar_images,)
     if return_indices:
-        to_return += (indices,)
+        to_return += (value_array, indices)
     if in_sample:
         to_return += (off_sample_image, off_sample_cond)
     return to_return

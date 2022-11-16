@@ -106,7 +106,7 @@ def get_linkage(model):
 
 
 
-def draw_graph(matrix, mzs, is_mds, new_separation=False, color_regions="b"):
+def draw_graph(matrix, mzs, is_mds, new_separation=False, color_regions="b", is_text=True):
     ax_scatter.clear()
     print(is_mds)
     diffs = matrix[matrix>0]
@@ -123,10 +123,10 @@ def draw_graph(matrix, mzs, is_mds, new_separation=False, color_regions="b"):
         k = 5
         distance_matrix = matrix*k
     if is_mds:
-        mds = TSNE(n_components=2, metric="precomputed")
+        mds = TSNE(n_components=2, metric="precomputed", perplexity=2, learning_rate="auto", early_exaggeration=5)
         # mds = MDS(n_components=2, dissimilarity="precomputed")
         # mds = KernelPCA(n_components=2, kernel='rbf', gamma=10)
-        # mds = umap.UMAP(random_state=0)
+        # mds = umap.UMAP(random_state=0, n_neighbors=3, min_dist=0.4, metric="euclidean")
         pos_array = mds.fit_transform(distance_matrix).T
         print(pos_array.shape)
 
@@ -145,8 +145,9 @@ def draw_graph(matrix, mzs, is_mds, new_separation=False, color_regions="b"):
     print(pos_array.shape)
     ax_scatter.scatter(*pos_array, marker='o', s=50, edgecolor='None', c=color_regions, picker=True)
     # mplcursors.cursor(multiple=True).connect("add", lambda sel: sel.annotation.set_text("{:.3f}".format(mzs[sel.target.index])))
-    for k, p in enumerate(pos_array.T):
-        ax_scatter.text(*p, "{:.2f}".format(mzs[k]))
+    if is_text:
+        for k, p in enumerate(pos_array.T):
+            ax_scatter.text(*p, "{:.2f}".format(mzs[k]))
 
     if not is_3D:
         ax_scatter.axis('equal')
@@ -452,15 +453,6 @@ if region_names is not None:
 color_regions = np.array(color_regions)
 
 
-# w=7
-# for i in range(image.shape[-1]):
-#     currimg = image[..., i]
-#     thresholded = threshold_sauvola(currimg, window_size=w, k=1)
-#     otsu = threshold_otsu(thresholded)
-#     thresholded = np.where(thresholded > otsu, currimg, 0)
-#     image[..., i] = thresholded
-
-
 # mzs_target = [837.549, 863.56,
 #               773.534, 771.51,
 #               885.549, 437.2670,
@@ -469,10 +461,11 @@ color_regions = np.array(color_regions)
 #               644.5015869, 715.5759, #LT
 #               287.0937, 296.0824, 746.512]
 
-mzs_target = [837.549, 871.57]
-indices = [np.abs(mzs - mz).argmin() for mz in mzs_target]
+# mzs_target = [837.549, 871.57]
+# indices = [np.abs(mzs - mz).argmin() for mz in mzs_target]
 
-color_regions[indices] = "y"
+# color_regions[indices] = "y"
+
 current_image = image.copy()
 
 # mzs = np.array(mzs_target)
@@ -537,10 +530,14 @@ else:
     ax_scatter = ax[1]
 
 pos_array = draw_graph(distance_matrix, mzs, is_mds, False, color_regions)
+
 im_display = ax[2].imshow(image[..., 0].T)
 cid = fig.canvas.mpl_connect('button_press_event', lambda event:onclick(event, linkage_matrix, pos_array, shape))
 fig.canvas.mpl_connect('pick_event', lambda event: onpick(event, mzs, current_image, im_display))
 ax[0].callbacks.connect('xlim_changed', on_lims_change)
+
+fig, ax_scatter = plt.subplots()
+draw_graph(distance_matrix, mzs, is_mds, False, color_regions, is_text=True)
 
 plt.tight_layout()
 plt.show()

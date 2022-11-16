@@ -438,7 +438,7 @@ def normalization_tic(spectra, inplace=False):
     for i, (x,y) in enumerate(spectra):
         t = tic[i]
         if t > 0:
-            spectra_normalized[i, 1] /= t
+            spectra_normalized[i, 1] = spectra_normalized[i, 1] / t
     return spectra_normalized
 
 def normalization_sic(spectra, indices_peaks, width_peak=10):

@@ -124,12 +124,12 @@ def sparse_coordinates(spectra, imsize):
     coordinates = coordinates.T
     return coordinates, shape
 
-def get_full_spectra_sparse(spectra, imsize):
+def get_full_spectra_sparse(spectra, imsize, sorted=False):
     coordinates, shape = sparse_coordinates(spectra, imsize)
     if spectra.ndim < 3:
         spectra = spectra.T.flatten()
     data = np.hstack(spectra).flatten().astype(np.float32)
-    full_spectra_sparse = SparseMatrix(coordinates, data, shape, sorted=True, has_duplicates=False)
+    full_spectra_sparse = SparseMatrix(coordinates, data, shape, sorted=sorted, has_duplicates=False)
     return full_spectra_sparse
 
 def get_full_spectra_dense(spectra, coordinates, shape):
@@ -145,12 +145,13 @@ def get_full_spectra_dense(spectra, coordinates, shape):
         full_spectra[real_index, 1] = ints
     return full_spectra
 
-def get_full_spectra(imzml):
+def get_full_spectra(imzml, spectra=None):
     max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
     max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
     max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
 
-    spectra = get_spectra(imzml)
+    if spectra is None:
+        spectra = get_spectra(imzml)
     shape = (max_x, max_y, max_z)
     if len(spectra.shape) == 2:
         return get_full_spectra_sparse(spectra, np.prod(shape))

@@ -90,25 +90,37 @@ else:
 
 print(img_data.shape)
 
+norm_img = None
+if normalization > 0:
+    norm_img = imageutils.get_norm_image(img_data, normalization, mzs)
+    for i in range(img_data.shape[-1]):
+        img_data[..., i] = imageutils.normalize_image(img_data[..., i], norm_img)
+
+
 img_data = imzmlio.normalize(img_data)
+
 
 roc_values_df = pd.read_excel(roc_name)
 mzs = roc_values_df.columns[1:]
 end = 4
 roc_auc_scores = np.array(roc_values_df)[:4, 1:].T
-print(roc_auc_scores)
 value = 0.7
 cond = (roc_auc_scores > 1 - value) & (roc_auc_scores < value)
 indices_roc = np.all(cond, axis=-1)
 indices_roc = np.where(indices_roc)[0]
 
-similar_images, indices, off_sample_image, off_sample_cond = seg.find_similar_images_dispersion(img_data, factor, quantiles=quantiles, in_sample=True, return_indices=True)
 
 
+similar_images, value_array, indices, off_sample_image, off_sample_cond = seg.find_similar_images_dispersion(img_data, factor, quantiles=quantiles, in_sample=True, return_indices=True)
+
+# np.savetxt("test.csv", value_array, delimiter=",", newline=" ")
 plt.imsave("off_sample.png", off_sample_image.T)
 
-im_off = img_data[..., off_sample_cond >= 0.95]
-im_incert = img_data[..., (off_sample_cond < 0.95) & (off_sample_cond > 0.5)]
+indice = np.argmin(np.abs(mzs - 837.54))
+print(value_array[indice])
+threshold_off = 0.95
+im_off = img_data[..., off_sample_cond >= threshold_off]
+im_incert = img_data[..., (off_sample_cond < threshold_off) & (off_sample_cond > 0.5)]
 im_on = img_data[..., off_sample_cond <= 0.5]
 
 print(im_on.shape, im_off.shape, im_incert.shape)

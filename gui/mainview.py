@@ -85,6 +85,7 @@ class Ui_MainView(object):
         self.actionPeakPicking = QtWidgets.QAction(MainView)
         self.actionPeakPickingMeanSpectrum = QtWidgets.QAction(MainView)
         self.actionPeakMetaspace = QtWidgets.QAction(MainView)
+        self.actionClearPeaks = QtWidgets.QAction(MainView)
         self.actionSpectraAlignment = QtWidgets.QAction(MainView)
 
         self.menuSegmentation = QtWidgets.QMenu(self.menubar)
@@ -168,6 +169,7 @@ class Ui_MainView(object):
         self.menuProcess.setObjectName("menuProcess")
         self.actionPeakPicking.setObjectName("actionPeakPicking")
         self.actionPeakMetaspace.setObjectName("actionPeakMetaspace")
+        self.actionClearPeaks.setObjectName("actionClearPeaks")
         self.actionPeakPickingMeanSpectrum.setObjectName("actionPeakPickingMeanSpectrum")
         self.actionSpectraAlignment.setObjectName("actionSpectraAlignment")
         self.menuSegmentation.setObjectName("menuSegmentation")
@@ -189,6 +191,8 @@ class Ui_MainView(object):
         self.menuProcess.addAction(self.actionPeakPicking)
         self.menuProcess.addAction(self.actionPeakPickingMeanSpectrum)
         self.menuProcess.addAction(self.actionPeakMetaspace)
+        self.menuProcess.addAction(self.actionClearPeaks)
+        self.menuProcess.addSeparator()
         self.menuProcess.addAction(self.actionSpectraAlignment)
 
         self.menuRegistration.addAction(self.actionRegistrationSelection)
@@ -279,6 +283,7 @@ class Ui_MainView(object):
         self.actionPeakPicking.setText(_translate("MainView", "Peak picking"))
         self.actionPeakPickingMeanSpectrum.setText(_translate("MainView", "Peak picking - Mean spectrum"))
         self.actionPeakMetaspace.setText(_translate("MainView", "METASPACE peak import (.csv)"))
+        self.actionClearPeaks.setText(_translate("MainView", "Clear peaks"))
         self.actionSpectraAlignment.setText(_translate("MainView", "Spectra alignment"))
 
         self.actionRegistrationSelection.setText(_translate("MainView", "Fiducials - Selection"))

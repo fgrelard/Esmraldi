@@ -11,6 +11,7 @@ import scipy.spatial.distance as distance
 from sklearn.cross_decomposition import PLSRegression, CCA
 from skimage.color import rgb2gray
 import skimage.morphology as morphology
+from sklearn.linear_model import Lasso
 import joblib
 import gc
 
@@ -149,7 +150,6 @@ def sample_image(super_regions, super_coords):
             current_regions.append(current_region)
         current_regions = np.transpose(current_regions, (1, 0))
         new_regions.append(current_regions)
-    print(new_regions[0].shape)
     return new_regions
 
 def indices_category_region(names):
@@ -249,24 +249,23 @@ for i, super_mz in enumerate(super_mzs):
     ind = indices_peaks(super_mzs[i], mzs, full=True)
     indices.append(ind)
 
-np.savetxt(os.path.splitext(outname)[0] + "_mzs.csv", mzs, delimiter=",")
-np.savetxt(os.path.splitext(outname)[0] + "_names.csv", unique_names, delimiter=",", fmt="%s")
 
 image_flatten = []
 for i, spectra in enumerate(super_spectra):
-    print(spectra.shape, super_shapes[i], normalization)
     coords = sampled_coords[i]
     im = normalize_flatten(spectra, super_coordinates[i], super_shapes[i], normalization=normalization)
     im = im[coords]
-    print(im.shape)
     blank_image = np.zeros((im.shape[0], 1))
     target_im = np.hstack((im, blank_image))
     im = im[..., indices[i]]
-    print(im.shape)
     image_flatten.append(im)
 
-image_flatten = np.concatenate(image_flatten)
 
+# av_spectra = np.array(av_spectra)
+# image_flatten = np.concatenate(image_flatten)
+# intensities = av_spectra.mean(axis=0)
+# np.savetxt(os.path.splitext(outname)[0] + os.path.sep + os.path.splitext(os.path.basename(outname))[0] + "_intensities.csv", np.column_stack((mzs, intensities)), delimiter=",")
+# exit(0)
 
 if target_name is not None:
     target_im = normalize_flatten(spectra, coords, shape, normalization=normalization)
@@ -275,14 +274,26 @@ if target_name is not None:
 print(mzs.shape)
 print(image_flatten.shape)
 
-regression = PLSRegression(n_components=combined_regions.shape[-1], scale=False).fit(image_flatten, combined_regions)
-
-joblib.dump(regression, outname)
+regression = CCA(n_components=combined_regions.shape[-1], scale=False, max_iter=5000).fit(image_flatten, combined_regions)
+# regression = Lasso(normalize=False).fit(image_flatten, combined_regions)
 
 out = regression.predict(image_flatten)
 if target_name is not None:
     out_target = regression.predict(target_im)
 coef = regression.coef_
+
+
+#Outputs
+name_dir = os.path.splitext(outname)[0]
+prefix_name = name_dir + os.path.sep
+os.makedirs(name_dir, exist_ok=True)
+
+joblib.dump(regression, prefix_name + os.path.basename(outname))
+np.savetxt(prefix_name + os.path.splitext(os.path.basename(outname))[0] + "_mzs.csv", mzs, delimiter=",")
+
+np.savetxt(prefix_name + os.path.splitext(os.path.basename(outname))[0] + "_names.csv", unique_names, delimiter=",", fmt="%s")
+np.savetxt(prefix_name + os.path.splitext(os.path.basename(outname))[0] + "_train.csv", out, delimiter=",")
+np.savetxt(prefix_name + os.path.splitext(os.path.basename(outname))[0] + "_y.csv", combined_regions, delimiter=",")
 
 # names = [os.path.splitext(os.path.basename(r))[0] for r in region_names[0]]
 # out_spectra = np.vstack((mzs, coef.T))

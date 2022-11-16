@@ -98,11 +98,12 @@ roc_auc_scores = fusion.roc_auc_analysis(images, indices, region_bool, norm_img,
 roc_cutoffs = fusion.roc_cutoff_analysis(images, indices, region_bool, is_weighted=is_weighted, fn=fn)
 roc_cutoffs_half = fusion.roc_cutoff_analysis(images, indices, region_bool, is_weighted=is_weighted, fn=fusion.cutoff_half_tpr)
 roc_cutoffs_d2 = fusion.roc_cutoff_analysis(images, indices, region_bool, is_weighted=is_weighted, fn=fusion.cutoff_distance2)
-
+roc_cutoffs_youden = fusion.roc_cutoff_analysis(images, indices, region_bool, is_weighted=is_weighted, fn=fusion.cutoff_generalized_youden)
+roc_cutoffs_efficiency = fusion.roc_cutoff_analysis(images, indices, region_bool, is_weighted=is_weighted, fn=fusion.cutoff_efficiency)
 np.savetxt("/mnt/d/CouplageMSI-Immunofluo/Rate4#36/stats_cutoffs_2.csv", np.column_stack((mzs, roc_auc_scores, roc_cutoffs, roc_cutoffs_half, roc_cutoffs_d2)), delimiter=",", header="m/z, auc, distance, half tpr", fmt="%f")
 
 
-plt.scatter(roc_auc_scores, roc_cutoffs_d2)
+plt.scatter(roc_auc_scores, roc_cutoffs_youden)
 plt.xlabel("ROC-AUC")
 plt.ylabel(function)
 mplcursors.cursor(multiple=True).connect("add", lambda sel: sel.annotation.set_text("{:.3f}".format(mzs[sel.index])))

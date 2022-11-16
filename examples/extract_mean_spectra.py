@@ -19,7 +19,8 @@ from esmraldi.peakdetectionmeanspectrum import PeakDetectionMeanSpectrum
 def read_image(image_name):
     sitk.ProcessObject_SetGlobalWarningDisplay(False)
     mask = sitk.GetArrayFromImage(sitk.ReadImage(image_name))
-    mask = rgb2gray(mask)
+    if mask.ndim > 2:
+        mask = rgb2gray(mask)
     mask = mask.T
     return mask
 
@@ -50,6 +51,8 @@ left_format = workbook.add_format({'align': 'left'})
 name = "No norm"
 if normalization > 0:
     name = str(normalization)
+elif normalization == -1:
+    name = "tic"
 
 worksheet = workbook.add_worksheet(name)
 
@@ -96,6 +99,8 @@ if normalization > 0:
         else:
             new_intensities = np.zeros_like(intensities)
         spectra[i, 1] = new_intensities
+elif normalization == -1:
+    spectra = sp.normalization_tic(spectra)
 
 regions = []
 for i, region_name in enumerate(region_names):

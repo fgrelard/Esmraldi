@@ -52,7 +52,6 @@ regions = np.array(data_df.columns[~data_df.columns.str.match("Unnamed")])
 
 second_indices = (regions == "20220622 Rate2#19 LymphB") | (regions == "20220622 Rate2#19 LymphT") | (regions == "20220622 Rate2#19 Macrophage")
 print(second_indices)
-colors = ["r", "g", "b"]
 intensities = intensities.astype(np.float64)
 intensities[intensities==0] = intensities[intensities>0].min()
 intensities = intensities[:, second_indices]
@@ -84,7 +83,7 @@ print(kendrick_mass_defect.shape, size_intensities.shape)
 #Iterating over ROIs
 # for i in range(mzs.shape[-1]):
 for i in range(1):
-    pc = ax.scatter(mzs, kendrick_mass_defect, s=size_intensities, c=colors, picker=True, ec=None)
+    pc = ax.scatter(mzs, kendrick_mass_defect, s=size_intensities, c=colors, picker=True, ec=colors/2)
     #blending colors
     # operator_t.EXCLUSION.patch_artist(pc)
     #picking events

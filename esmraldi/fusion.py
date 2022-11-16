@@ -530,27 +530,42 @@ def single_roc_cutoff(image, indices, region_bool, fn, is_weighted=False):
     current_values = sub_region.flatten()
     cutoffs = np.zeros(len(region_bool))
     for j, binary_label in enumerate(region_bool):
-            fpr, tpr, thresholds = roc_curve(binary_label, current_values, is_weighted=is_weighted)
-            cutoff = fn(fpr, tpr, thresholds)
-            cutoffs[j] = cutoff
+        nb_ones = np.count_nonzero(binary_label)
+        nb_zeros = np.count_nonzero(~binary_label)
+        fpr, tpr, thresholds = roc_curve(binary_label, current_values, is_weighted=is_weighted)
+        cutoff = fn(fpr, tpr, thresholds, nb_zeros, nb_ones)
+        cutoffs[j] = cutoff
     return cutoffs
 
-def cutoff_distance2(fpr, tpr, thresholds):
+def cutoff_distance2(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0):
     d2h = (1 - tpr) ** 2 + (fpr)**2
     d2b = tpr**2 + (1-fpr)**2
     indexh  = np.argmin(d2h)
     indexb = np.argmin(d2b)
     return min(np.sqrt(d2h[indexh]), np.sqrt(d2b[indexb]))
 
-def cutoff_distance(fpr, tpr, thresholds):
+def cutoff_distance(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0):
     index = np.argmin(np.abs(tpr - (1-fpr)))
     t, f = tpr[index], fpr[index]
     distance = np.linalg.norm(np.array([f-0, t-1]))
     return distance
 
-def cutoff_half_tpr(fpr, tpr, thresholds):
+def cutoff_half_tpr(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0):
     index = np.searchsorted(tpr, 0.5)
     return fpr[index]
+
+def cutoff_generalized_youden(fpr, tpr, thresholds, nb_zeros, nb_ones):
+    p = nb_ones/(nb_ones+nb_zeros)
+    r = 4
+    yg = tpr + ((1 - p)/(r*p)) * (1 - fpr) - 1
+    # w = nb_zeros/nb_ones
+    # yg = tpr + w * (1 - fpr) -1
+    return yg.max()
+
+def cutoff_efficiency(fpr, tpr, thresholds, nb_zeros, nb_ones):
+    p = nb_ones/(nb_ones+nb_zeros)
+    eff = tpr * p  + (1 - fpr) * (1-p)
+    return eff.max()
 
 def roc_auc_analysis(images, indices, region_bool, norm_img=None, thresholded_variants=False, is_weighted=False):
     nreg = len(region_bool)

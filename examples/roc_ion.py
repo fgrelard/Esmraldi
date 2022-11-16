@@ -108,7 +108,7 @@ else:
 
     current_image = images[..., closest_mz_indices]
 
-colors = ["k", "g", "r"]
+colors = ["b", "r", "g"]
 for i in range(current_image.shape[-1]):
     c = current_image[..., i]
     if normalization > 0:
@@ -120,14 +120,20 @@ for i in range(current_image.shape[-1]):
 
     for j, binary_label in enumerate(region_bool):
         fpr, tpr, thresholds = fusion.roc_curve(binary_label, current_values, is_weighted=is_weighted)
+        nb_ones = np.count_nonzero(binary_label)
+        nb_zeros = np.count_nonzero(~binary_label)
         current_values = current_values.astype(np.float64)
         # A = current_values.max() - current_values
         # ppv, recall, _ = precision_recall_curve(binary_label, current_values)
         # npv, recall2, _ = precision_recall_curve(binary_label, A, pos_label=0)
-        plt.plot(fpr, tpr, color=colors[i], label=region_names[j])
+        plt.plot(fpr, tpr, color=colors[j], label=region_names[j])
         plt.plot([0,1], [0,1], "--", c="k")
-        print("Cutoff", fusion.single_roc_cutoff(c, indices, [binary_label], fusion.cutoff_half_tpr, is_weighted=is_weighted))
+        plt.xlim((0, 1))
+        plt.ylim((0, 1))
+        plt.title(mzs[closest_mz_indices[i]])
+        print("Cutoff", fusion.single_roc_cutoff(c, indices, [binary_label], lambda fpr, tpr, thresholds: fusion.cutoff_generalized_youden(fpr, tpr, thresholds, nb_zeros, nb_ones), is_weighted=is_weighted))
         print(fusion.single_roc_auc(c, indices, [binary_label], is_weighted=is_weighted))
+    plt.show()
 
 # plt.plot([0, 1], [0, 1], color="k", linestyle="--")
 plt.show()

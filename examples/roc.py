@@ -26,6 +26,7 @@ parser.add_argument("-m", "--mask", help="Mask image (any ITK format)", default=
 parser.add_argument("-r", "--regions", help="Subregions inside mask", nargs="+", type=str)
 parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given m/z", default=0)
 parser.add_argument("-o", "--output", help="Output .xlsx files with stats")
+parser.add_argument("--cutoffs", action="store_true", help="Compute cutoff analysis")
 parser.add_argument("-w", "--weight", help="Weight ROC by amount of points in each condition", action="store_true")
 args = parser.parse_args()
 
@@ -35,6 +36,7 @@ region_names = args.regions
 output_name = args.output
 normalization = float(args.normalization)
 is_weighted = args.weight
+is_cutoffs = args.cutoffs
 
 if input_name.lower().endswith(".imzml"):
     imzml = io.open_imzml(input_name)
@@ -56,7 +58,7 @@ else:
     images = sitk.GetArrayFromImage(image_itk).T
     mzs = np.loadtxt(os.path.splitext(input_name)[0] + ".csv")
 
-print(images.shape)
+
 workbook = xlsxwriter.Workbook(output_name, {'strings_to_urls': False})
 header_format = workbook.add_format({'bold': True,
                                      'align': 'center',
@@ -72,8 +74,16 @@ if normalization > 0:
 
 worksheet = workbook.add_worksheet(name)
 
+
 worksheets = []
 worksheets.append(worksheet)
+
+if is_cutoffs:
+    worksheets += [workbook.add_worksheet("Distance"),
+                   workbook.add_worksheet("Generalized Youden"),
+                   workbook.add_worksheet("Half TPR"),
+                   workbook.add_worksheet("Efficiency")]
+
 
 if mask_name is not None:
     mask = read_image(mask_name)
@@ -108,13 +118,31 @@ for worksheet in worksheets:
 
 print("Starting ROC AUC")
 region_bool = fusion.region_to_bool(regions, indices_ravel, images.shape[:-1])
+
+L = []
 roc_auc_scores = fusion.roc_auc_analysis(images, indices, region_bool, norm_img, is_weighted=is_weighted)
+L.append(roc_auc_scores)
 
+print("End AUC")
 
-for (i, j), auc in np.ndenumerate(roc_auc_scores):
-    worksheet.write(0, i+1, mzs[i], header_format)
-    worksheet.write(j+1, i+1, auc)
+if is_cutoffs:
+    print("Cutoff distance")
+    distances = fusion.roc_cutoff_analysis(images, indices, region_bool, is_weighted=is_weighted, fn=fusion.cutoff_distance2)
+    print("Cutoff Youden")
+    youden = fusion.roc_cutoff_analysis(images, indices, region_bool, is_weighted=is_weighted, fn=fusion.cutoff_generalized_youden)
+    print("Cutoff Half-TPR")
+    half_tpr = fusion.roc_cutoff_analysis(images, indices, region_bool, is_weighted=is_weighted, fn=fusion.cutoff_half_tpr)
+    print("Cutoff Efficiency")
+    efficiency = fusion.roc_cutoff_analysis(images, indices, region_bool, is_weighted=is_weighted, fn=fusion.cutoff_efficiency)
+    L += [distances, youden, half_tpr, efficiency]
 
-worksheet.write_row(j+2, 1, averages)
+for worksheet_index, values in enumerate(L):
+    for (i, j), individual_value in np.ndenumerate(values):
+        worksheets[worksheet_index].write(0, i+1, mzs[i], header_format)
+        worksheets[worksheet_index].write(j+1, i+1, individual_value)
+
+# for (i, j), auc in np.ndenumerate(roc_auc_scores):
+#     worksheet.write(0, i+1, mzs[i], header_format)
+#     worksheet.write(j+1, i+1, auc)
 
 workbook.close()

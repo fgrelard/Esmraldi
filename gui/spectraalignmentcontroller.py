@@ -32,7 +32,7 @@ class WorkerSpectraAlignment(QtCore.QObject):
         print("End realign")
         if self.is_abort:
             return
-        full_spectra_sparse = imzmlio.get_full_spectra_sparse(realigned_spectra, np.prod(image_size))
+        full_spectra_sparse = imzmlio.get_full_spectra_sparse(realigned_spectra, np.prod(image_size), sorted=True)
         if self.is_abort:
             return
         print("End full spectra sparse")
