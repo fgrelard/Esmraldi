@@ -586,6 +586,22 @@ def roc_auc_analysis(images, indices, region_bool, norm_img=None, thresholded_va
 
     return roc_auc_scores
 
+def single_average(current_image, indices, region_bool):
+    sub_region = current_image[indices]
+    current_values = sub_region.flatten()
+    means = np.zeros(len(region_bool))
+    for j, binary_label in enumerate(region_bool):
+        means[j] = np.mean(current_values)
+    return means
+
+def averages_per_region(images, indices, region_bool):
+    nreg = len(region_bool)
+    averages_per_scores = np.zeros((images.shape[-1], nreg))
+    for i in range(images.shape[-1]):
+        current_image = images[..., i]
+        averages_per_scores[i, :] = single_average(current_image, indices, region_bool)
+    return averages_per_scores
+
 def roc_cutoff_analysis(images, indices, region_bool, is_weighted=False, fn=cutoff_distance):
     nreg = len(region_bool)
     roc_cutoff_scores = np.zeros((images.shape[-1], nreg))

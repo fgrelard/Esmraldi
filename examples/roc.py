@@ -74,9 +74,9 @@ if normalization > 0:
 
 worksheet = workbook.add_worksheet(name)
 
-
-worksheets = []
-worksheets.append(worksheet)
+worksheets = [worksheet,
+              workbook.add_worksheet("Averages"),
+              workbook.add_worksheet("Averages per")]
 
 if is_cutoffs:
     worksheets += [workbook.add_worksheet("Distance"),
@@ -99,15 +99,16 @@ for region_name in region_names:
 n = len(np.where(mask>0)[0])
 
 norm_img = None
-print("normalization")
+
+print("normalization", normalization)
 if normalization > 0:
     norm_img = imageutils.get_norm_image(images, normalization, mzs)
     for i in range(images.shape[-1]):
         images[..., i] = imageutils.normalize_image(images[...,i], norm_img)
 
-averages = np.mean(images, axis=(0,1))
 
 indices, indices_ravel = fusion.roc_indices(mask, images.shape[:-1], norm_img)
+
 
 for worksheet in worksheets:
     for i, region in enumerate(regions):
@@ -119,9 +120,16 @@ for worksheet in worksheets:
 print("Starting ROC AUC")
 region_bool = fusion.region_to_bool(regions, indices_ravel, images.shape[:-1])
 
-L = []
+averages = np.mean(images, axis=(0,1))[:, np.newaxis]
+print(averages.shape)
+
+averages_per = fusion.averages_per_region(images, indices, region_bool)
+
+print("av per", averages_per.shape)
+
 roc_auc_scores = fusion.roc_auc_analysis(images, indices, region_bool, norm_img, is_weighted=is_weighted)
-L.append(roc_auc_scores)
+
+L = [roc_auc_scores, averages, averages_per]
 
 print("End AUC")
 
