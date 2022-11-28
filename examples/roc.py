@@ -110,12 +110,6 @@ if normalization > 0:
 indices, indices_ravel = fusion.roc_indices(mask, images.shape[:-1], norm_img)
 
 
-for worksheet in worksheets:
-    for i, region in enumerate(regions):
-        region_name = region_names[i]
-        name = os.path.splitext(os.path.basename(region_name))[0]
-        worksheet.write(i+1, 0, name, header_format)
-    worksheet.freeze_panes(1, 1)
 
 print("Starting ROC AUC")
 region_bool = fusion.region_to_bool(regions, indices_ravel, images.shape[:-1])
@@ -143,6 +137,14 @@ if is_cutoffs:
     print("Cutoff Efficiency")
     efficiency = fusion.roc_cutoff_analysis(images, indices, region_bool, is_weighted=is_weighted, fn=fusion.cutoff_efficiency)
     L += [distances, youden, half_tpr, efficiency]
+
+for worksheet in worksheets:
+    for i, region in enumerate(regions):
+        region_name = region_names[i]
+        name = os.path.splitext(os.path.basename(region_name))[0]
+        worksheet.write(i+1, 0, name, header_format)
+    worksheet.freeze_panes(1, 1)
+
 
 for worksheet_index, values in enumerate(L):
     for (i, j), individual_value in np.ndenumerate(values):
