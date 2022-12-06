@@ -7,7 +7,9 @@ import matplotlib.pyplot as plt
 
 def compute_complementary(dirname):
     print(dirname)
-    os.remove(dircur + os.path.sep + "Matrix_Tape.tif")
+    out_name = dircur + os.path.sep + "Matrix_Tape.tif"
+    if os.path.exists(out_name):
+        os.remove(out_name)
     for imagename in os.listdir(dirname):
         if (imagename.endswith(".tif")):
             image = sitk.GetArrayFromImage(sitk.ReadImage(dirname + os.path.sep + imagename))
@@ -29,8 +31,7 @@ def compute_complementary(dirname):
     plt.imshow(out_image)
     plt.show()
 
-    outname = dircur + os.path.sep + "Matrix_Tape.tif"
-    sitk.WriteImage(sitk.GetImageFromArray(out_image), outname)
+    sitk.WriteImage(sitk.GetImageFromArray(out_image), out_name)
 
 
 parser = argparse.ArgumentParser()

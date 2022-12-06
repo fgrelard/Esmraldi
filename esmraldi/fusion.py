@@ -481,12 +481,13 @@ def roc_indices(mask, shape, norm_img=None):
 
 def region_to_bool(regions, indices_ravel, shape):
     region_bool = []
-    for region in regions:
+    for i, region in enumerate(regions):
         indices_regions = np.ravel_multi_index(np.where(region > 0), shape, order='F')
         inside_region = np.in1d(indices_ravel, indices_regions).astype(bool)
-        is_same = np.all(inside_region == inside_region[0])
-        if not is_same:
-            region_bool.append(inside_region)
+        # is_same = np.all(inside_region == inside_region[0])
+        # if not is_same:
+        #     region_bool.append(inside_region)
+        region_bool.append(inside_region)
     return region_bool
 
 def weighted_roc_curve(y_true, y_score, *, pos_label=None, sample_weight=None, drop_intermediate=True):
@@ -518,7 +519,9 @@ def single_roc_auc(image, indices, region_bool, is_weighted=False):
     current_values = sub_region.flatten()
     rocs = np.zeros(len(region_bool))
     for j, binary_label in enumerate(region_bool):
-        if is_weighted:
+        if np.all(binary_label == binary_label[0]):
+            auc = 0
+        elif is_weighted:
             auc = weighted_auc_roc(binary_label, current_values)
         else:
             auc = metrics.roc_auc_score(binary_label, current_values)
@@ -532,22 +535,27 @@ def single_roc_cutoff(image, indices, region_bool, fn, is_weighted=False):
     for j, binary_label in enumerate(region_bool):
         nb_ones = np.count_nonzero(binary_label)
         nb_zeros = np.count_nonzero(~binary_label)
-        fpr, tpr, thresholds = roc_curve(binary_label, current_values, is_weighted=is_weighted)
-        cutoff = fn(fpr, tpr, thresholds, nb_zeros, nb_ones)
+        if np.all(binary_label == binary_label[0]):
+            cutoff = 0
+        else:
+            fpr, tpr, thresholds = roc_curve(binary_label, current_values, is_weighted=is_weighted)
+            cutoff = fn(fpr, tpr, thresholds, nb_zeros, nb_ones)
         cutoffs[j] = cutoff
     return cutoffs
 
 def cutoff_distance2(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0):
-    d2h = (1 - tpr) ** 2 + (fpr)**2
+    d2h = (1 - tpr)**2 + (fpr)**2
     d2b = tpr**2 + (1-fpr)**2
     indexh  = np.argmin(d2h)
     indexb = np.argmin(d2b)
     return min(np.sqrt(d2h[indexh]), np.sqrt(d2b[indexb]))
 
-def cutoff_distance(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0):
+def cutoff_distance(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0, return_index=False):
     index = np.argmin(np.abs(tpr - (1-fpr)))
     t, f = tpr[index], fpr[index]
     distance = np.linalg.norm(np.array([f-0, t-1]))
+    if return_index:
+        return distance, index
     return distance
 
 def cutoff_half_tpr(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0):

@@ -13,6 +13,7 @@ import scipy.spatial.distance as distance
 from sklearn.manifold import MDS, LocallyLinearEmbedding, Isomap, TSNE
 import umap
 from mpl_toolkits import mplot3d
+
 def normalize_flatten(spectra, coordinates, shape, normalization=True):
     if normalization:
         print("normalization")

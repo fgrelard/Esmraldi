@@ -87,7 +87,9 @@ def coordinates_from_sampled_regions(super_regions, super_shapes, size, all_name
             region = regions[..., j].copy()
             im_region = np.reshape(region, super_shapes[i])
             footprint = morphology.disk(erosion_radius)
-            im_region = morphology.erosion(im_region, footprint)
+            im_eroded = morphology.erosion(im_region, footprint)
+            if im_eroded[im_eroded > 0].size > size:
+                im_region = im_eroded
             im_region = im_region.flatten()
             coords = np.argwhere(im_region > 0)
             np.random.shuffle(coords)
@@ -110,9 +112,6 @@ def balance_counts_per_name(all_names, indices):
         balanced_counts += counts.tolist()
     return np.array(balanced_names), np.array(balanced_counts)
 
-def balance_regions(super_coords, super_regions, size):
-    print(super_coords)
-    exit(0)
 
 def sample_image(super_regions, super_coords):
     new_regions = []
@@ -147,14 +146,26 @@ def normalize_flatten(spectra, coordinates, shape, normalization_tic=True, norma
 def read_regions(region_names):
     regions = []
     region_shapes = []
+    names = []
     for region_name in region_names:
+        trimmed_name = os.path.splitext(os.path.basename(region_name))[0]
         region = read_image(region_name)
         regions.append(region)
-
+        if "&" in trimmed_name:
+            binders = trimmed_name.split("_")[0]
+            pigment = trimmed_name.split("_")[1]
+            binder1 = binders.split('&')[0]
+            binder2 = binders.split('&')[1]
+            names.append(binder1 + "_" + pigment)
+            names.append(binder2 + "_" + pigment)
+            #Add this region twice
+            regions.append(region)
+        else:
+            names.append(trimmed_name)
     regions = np.transpose(np.array(regions), (1,2,0))
     regions = io.normalize(regions)
     region_flatten = fusion.flatten(regions, is_spectral=True).T
-    return region_flatten, region.shape
+    return region_flatten, region.shape, names
 
 def extract_indexslices_regions(super_regions):
     L = []
@@ -199,20 +210,21 @@ normalization = args.normalization
 sample_size = int(args.sample_size)
 outname = args.output
 
-all_names = [os.path.splitext(os.path.basename(name))[0] for r in region_names for name in r]
-binders = [n.split("_")[0] for n in all_names]
-pigments = [n.split("_")[1] for n in all_names]
 
-unique_pigments, indices_pigments = indices_category_region(pigments)
-unique_binders, indices_binders = indices_category_region(binders)
 
 super_regions = []
 region_shapes = []
+all_names = []
 for dataset_regions in region_names:
-    regions, reg_shape = read_regions(dataset_regions)
+    regions, reg_shape, names = read_regions(dataset_regions)
     region_shapes.append(reg_shape)
     super_regions.append(regions)
+    all_names += names
 
+binders = [n.split("_")[0] for n in all_names]
+pigments = [n.split("_")[1] for n in all_names]
+unique_pigments, indices_pigments = indices_category_region(pigments)
+unique_binders, indices_binders = indices_category_region(binders)
 
 if sample_size > 0:
     balanced_names, balanced_counts = balance_counts_per_name(all_names, indices_binders)
@@ -221,8 +233,6 @@ if sample_size > 0:
     super_regions = sample_image(super_regions, sampled_coords)
 
 shape_super_regions = np.sum([s.shape for s in super_regions], axis=0)
-
-
 
 unique_names = np.concatenate((unique_pigments, unique_binders))
 indices = indices_pigments + indices_binders
@@ -255,10 +265,13 @@ for i, slices in enumerate(slices_combined):
 print("index combined,", index_combined)
 
 root = os.path.splitext(outname)[0]
+
+region_dir = os.path.dirname(outname) + os.path.sep + "regions" + os.path.sep
+os.makedirs(region_dir, exist_ok=True)
 for i, region_name in enumerate(unique_names):
     current_region = combined_regions[..., i][:, np.newaxis].astype(np.float32)
     print(current_region.shape)
-    sitk.WriteImage(sitk.GetImageFromArray(current_region),  os.path.dirname(outname) + os.path.sep + "regions/" + region_name + ".tif")
+    sitk.WriteImage(sitk.GetImageFromArray(current_region), region_dir  + region_name + ".tif")
 
 image_flatten = []
 super_mzs = []

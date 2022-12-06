@@ -3,6 +3,7 @@ import argparse
 import numpy as np
 import os
 from sklearn.cross_decomposition import PLSRegression, CCA
+from sklearn.preprocessing import StandardScaler
 import esmraldi.imzmlio as io
 import esmraldi.utils as utils
 import esmraldi.imageutils as imageutils
@@ -64,8 +65,8 @@ peaks = np.loadtxt(mzs_name)
 names = np.loadtxt(names_name, dtype=str)
 
 cm = plt.get_cmap("Set3")
-array_colors = cm(np.linspace(0, 1.0, len(names)))
-k = np.array([0, 0, 0, 1])
+array_colors = np.array(cm.colors)
+k = np.array([0, 0, 0])
 ind = np.where(names == "Matrix")
 array_colors[ind, :] = k
 cm = colors.ListedColormap(array_colors)
@@ -77,15 +78,25 @@ indices = indices_peaks(mzs, peaks)
 
 target_im = normalize_flatten(spectra, coords, shape, normalization_tic=normalization, normalization_minmax=True)
 blank_image = np.zeros((target_im.shape[0], 1))
-print(blank_image.shape, target_im.shape)
 target_im = np.hstack((target_im, blank_image))
-print(target_im.shape)
 target_im = target_im[..., indices]
 
 # Load data from file
 regression = joblib.load(input_name)
+coef = regression.coef_
+if coef.shape[0] < coef.shape[1]:
+    coef = coef.T
+
+
+data = np.column_stack((peaks, coef))
+peaks_coef_name = os.path.splitext(outname)[0] + ".csv"
+np.savetxt(peaks_coef_name, data, header="mzs,"+",".join(names), delimiter=",", comments="")
+
+
+# scaler = StandardScaler()
+# target_im = scaler.fit_transform(target_im)
 out = regression.predict(target_im)
-print(regression.coef_.shape)
+print(out.shape)
 # separation = np.array([len(s.split("_")) for s in names])
 # end_pigments = np.where(separation==2)[0][-1]
 # end_binders = np.where(separation==1)[0][-1]
@@ -95,7 +106,6 @@ labels = np.argmax(out, axis=-1)
 min_value, max_value = np.amin(out, axis=0), np.amax(out, axis=0)
 opacity = (out - min_value) / (max_value - min_value)
 opacity = np.take_along_axis(opacity, labels[:, None], axis=-1)
-print(opacity.shape)
 
 opacity_image = np.reshape(opacity, shape[:-1]).T
 label_image = np.reshape(labels, shape[:-1]).T
@@ -110,9 +120,7 @@ plt.axis("off")
 plt.savefig(outname, bbox_inches='tight', pad_inches = 0)
 # plt.show()
 
-# coef = regression.coef_
-# if shape[0] < shape[1]:
-#     coef = coef.T
+
 # for i in range(coef.shape[-1]):
 #     plt.title(names[i])
 #     score = out[..., i]
