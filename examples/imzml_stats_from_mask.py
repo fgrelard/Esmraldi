@@ -99,7 +99,7 @@ indices, indices_ravel = fusion.roc_indices(mask, images.shape[:-1], norm_img)
 
 region_bool = fusion.region_to_bool(regions, indices_ravel, images.shape[:-1])
 print(len(region_bool))
-sub = True
+sub = False
 if sub:
     mzs_target = [837.549, 863.56,
                   773.534, 771.51,

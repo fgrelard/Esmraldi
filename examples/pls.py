@@ -24,10 +24,6 @@ def read_image(image_name):
     mask = mask.T
     return mask
 
-
-
-
-
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input .imzML")
 parser.add_argument("-r", "--regions", help="Subregions inside mask", nargs="+", type=str)

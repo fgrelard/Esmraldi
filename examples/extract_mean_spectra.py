@@ -102,7 +102,7 @@ if ions is not None:
 print("Normalization")
 norm_img = None
 if normalization > 0:
-    img_data = MSImageOnTheFly(spectra, coords=imzml.coordinates, tolerance=0.01)
+    img_data = MSImageOnTheFly(spectra, coords=imzml.coordinates, tolerance=14)
     norm_img = img_data.get_ion_image_mzs(normalization, img_data.tolerance, img_data.tolerance)
     norm_flatten = norm_img.flatten()[:, np.newaxis]
     for i, intensities in enumerate(spectra[:, 1]):
