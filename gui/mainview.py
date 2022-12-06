@@ -91,6 +91,8 @@ class Ui_MainView(object):
         self.menuSegmentation = QtWidgets.QMenu(self.menubar)
         self.actionExtractChannel = QtWidgets.QAction(MainView)
         self.actionThresholding = QtWidgets.QAction(MainView)
+        self.actionNewMask = QtWidgets.QAction(MainView)
+        self.actionMaskAdd = QtWidgets.QAction(MainView)
 
         self.menuRegistration = QtWidgets.QMenu(self.menubar)
 
@@ -175,6 +177,8 @@ class Ui_MainView(object):
         self.menuSegmentation.setObjectName("menuSegmentation")
         self.actionExtractChannel.setObjectName("actionExtractChannel")
         self.actionThresholding.setObjectName("actionThresholding")
+        self.actionNewMask.setObjectName("actionNewMask")
+        self.actionMaskAdd.setObjectName("actionMaskAdd")
         self.menuAnalyze.setObjectName("menuAnalyze")
         self.menuHelp.setObjectName("menuHelp")
         MainView.setMenuBar(self.menubar)
@@ -200,6 +204,9 @@ class Ui_MainView(object):
 
         self.menuSegmentation.addAction(self.actionExtractChannel)
         self.menuSegmentation.addAction(self.actionThresholding)
+        self.menuSegmentation.addSeparator()
+        self.menuSegmentation.addAction(self.actionNewMask)
+        self.menuSegmentation.addAction(self.actionMaskAdd)
 
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuProcess.menuAction())
@@ -291,3 +298,6 @@ class Ui_MainView(object):
 
         self.actionExtractChannel.setText(_translate("MainView", "Extract channels"))
         self.actionThresholding.setText(_translate("MainView", "Thresholding"))
+
+        self.actionNewMask.setText(_translate("MainView", "New mask"))
+        self.actionMaskAdd.setText(_translate("MainView", "Add ROI to mask"))

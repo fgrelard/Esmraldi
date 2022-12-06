@@ -287,6 +287,10 @@ class MainController:
         self.thresholdingcontroller.trigger_compute.signal.connect(self.manual_thresholding)
         self.thresholdingcontroller.trigger_end.signal.connect(self.mainview.clear_frame)
 
+
+        self.mainview.actionNewMask.triggered.connect(self.newMask)
+        self.mainview.actionMaskAdd.triggered.connect(self.maskAdd)
+
         #shortcuts
         shortcut_link = QShortcut(QKeySequence('Ctrl+L'), self.mainview.parent)
         shortcut_link.activated.connect(self.link_views)
@@ -346,13 +350,24 @@ class MainController:
 
 
     def save(self):
+        widget = self.mainview.gridLayout.itemAtPosition(0, 2).widget()
+        index = 0
+        if widget.isVisible():
+            name1 = self.imagehandlecontroller.current_name
+            name2 = self.imagehandlecontroller2.current_name
+            items = [name1, name2]
+            item, ok = QtWidgets.QInputDialog.getItem(self.mainview.centralwidget, "Select image to save", "Image to save", items, 0, editable=False)
+            index = items.index(item)
         filename, ext = QtWidgets.QFileDialog.getSaveFileName(self.mainview.centralwidget, "Select image filename", self.config['default']["imzmldir"])
         if not filename:
             return
-        self.save_file(filename)
+        self.save_file(filename, index)
 
-    def save_file(self, filename):
-        worker = WorkerSave(image=self.imagehandlecontroller.img_data, path=filename)
+    def save_file(self, filename, index=0):
+        data = self.imagehandlecontroller.img_data
+        if index == 1:
+            data = self.imagehandlecontroller2.img_data
+        worker = WorkerSave(image=data, path=filename)
         thread = QThread()
         worker.moveToThread(thread)
         worker.signal_start.connect(self.mainview.show_run)
@@ -393,7 +408,6 @@ class MainController:
 
 
     def update_number_view(self, number=1):
-        item = self.mainview.gridLayout.itemAtPosition(0,2)
         if number > 1:
             self.mainview.show_second_view()
         else:
@@ -572,6 +586,33 @@ class MainController:
         self.sig_abort_workers.signal.connect(self.thresholdingcontroller.worker.abort)
         self.thresholdingcontroller.thread.start()
         self.threads.append((self.thresholdingcontroller.thread, self.thresholdingcontroller.worker))
+
+    def newMask(self):
+        iview = self.imagehandlecontroller.imagehandleview.imageview
+        iview2 = self.imagehandlecontroller2.imagehandleview.imageview
+        image = np.zeros_like(iview.current_image, dtype=np.uint8)
+        self.end_open(image, "Mask", first=False)
+        self.mainview.show_second_view()
+
+
+    def maskAdd(self):
+        iview2 = self.imagehandlecontroller2.imagehandleview.imageview
+        name = self.imagehandlecontroller2.current_name
+        if name != "Mask":
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Information)
+            msg.setWindowTitle("Adding ROI to mask")
+            msg.setText("No mask image created.")
+            msg.setInformativeText("Please go to Segmentation > New mask")
+            msg.exec_()
+        else:
+            iview1 = self.imagehandlecontroller.imagehandleview.imageview
+            colmaj = iview1.imageItem.axisOrder == "col-major"
+            coords = iview1.coords_roi
+            if not colmaj:
+                image = iview2.current_image.T
+            image[tuple(coords)] = 255
+            iview2.updateImage()
 
     def link_views(self):
         def disconnect(signal, oldhandler):
