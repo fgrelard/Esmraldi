@@ -210,6 +210,6 @@ if tissue_regions_name is not None:
 worksheet.freeze_panes(1, 1)
 worksheet2.freeze_panes(1, 1)
 workbook.close()
-
+plt.show()
 fig_name = os.path.splitext(output_name)[0] + ".png"
 fig.savefig(fig_name, dpi=200)
