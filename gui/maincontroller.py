@@ -611,7 +611,7 @@ class MainController:
             coords = iview1.coords_roi
             if not colmaj:
                 image = iview2.current_image.T
-            image[tuple(coords)] = 255
+            image[tuple(coords)] = image.max()+1
             iview2.updateImage()
 
     def link_views(self):

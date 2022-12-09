@@ -953,7 +953,6 @@ def realign_mzs(spectra, mzs, reference="frequence", nb_occurrence=4, step=0.02,
 
 def realign_generic(spectra, peaks, step=np.inf, is_ppm=False):
     n = len(peaks)
-    print(n)
     shape = (spectra.shape[0], 2)
     out_spectra = np.zeros(shape, dtype=object)
     print("Realigning")

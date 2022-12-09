@@ -15,7 +15,7 @@ from scipy import stats
 from skimage import measure
 from skimage.color import rgb2gray
 import matplotlib.pyplot as plt
-
+from sklearn import linear_model
 from esmraldi.peakdetectionmeanspectrum import PeakDetectionMeanSpectrum
 
 def compute_average_from_region(curr_spectra, mzs, step, peaks=None):
@@ -49,15 +49,24 @@ def read_image(image_name):
     mask = mask.T
     return mask
 
-def plot_reg(x, y, ax, name):
-    res = stats.linregress(x,y)
+def plot_reg(x, y, std, ax, name):
+    # res = stats.linregress(x,y)
+    # print(res.slope, res.intercept, res.rvalue)
+    xr = x.reshape(-1, 1).astype(np.float128)
+    yr = y.reshape(-1, 1).astype(np.float128)
+    df = pd.DataFrame({"x": x, "y": y})
+    w = np.ones_like(std).astype(np.float128)
+    w = 1/np.divide(x, std, where=(std!=0) & (x!=0), out=w)
+    wregr = linear_model.LinearRegression(fit_intercept=True)
+    res = wregr.fit(xr, yr, sample_weight=w)
+    yw_pred = res.predict(xr)
     ax.set_title(name)
     ax.plot(x,y, "wo")
     # ax = plt.gca()
     # plt.errorbar(x, y, error, None, "o", ecolor="w", capsize=2)
-    ax.plot(x, res.intercept + res.slope*x, 'r', label='fitted line')
-    plt.text(0.8, 0.9, "R2="+"{:.3f}".format(res.rvalue), color="w", transform = ax.transAxes)
-    plt.text(0.05, 0.9, "y="+"{:.3e}".format(res.slope)+"x " + "{:.3e}".format(res.intercept), color="w", transform = ax.transAxes)
+    ax.plot(x, yw_pred.T[0].tolist(), 'r', label='fitted line')
+    plt.text(0.8, 0.9, "R2="+"{:.3f}".format(res.score(xr, yr, sample_weight=w)), color="w", transform = ax.transAxes)
+    plt.text(0.05, 0.9, "y="+"{:.3e}".format(res.coef_.flatten()[0])+"x " + "{:.3e}".format(res.intercept_.flatten()[0]), color="w", transform = ax.transAxes)
     ax.set_xlabel("Concentration (µg/g)")
     ax.set_ylabel("Mean abundance")
     return res
@@ -85,7 +94,6 @@ normalization = float(args.normalization)
 peak_list = args.peak_list
 
 region = read_image(mask_name)
-all_labels = measure.label(region, background=0)
 
 workbook = xlsxwriter.Workbook(output_name, {'strings_to_urls': False})
 header_format = workbook.add_format({'bold': True,
@@ -95,6 +103,18 @@ header_format = workbook.add_format({'bold': True,
                                      'border': 1})
 
 left_format = workbook.add_format({'align': 'left'})
+
+peaks = None
+
+if peak_list is not None:
+    data = pd.read_excel(peak_list)
+    peaks = np.array(data.mz)
+    ind_peaks = np.argsort(peaks)
+    names = np.array(data.names)
+    concentrations = np.array(data)[:, 2:]
+    peaks = peaks[ind_peaks]
+    names = names[ind_peaks]
+    concentrations = concentrations[ind_peaks]
 
 
 name = "No norm"
@@ -121,14 +141,6 @@ mzs = mzs[mzs>0]
 step = 14
 
 
-peaks = None
-
-if peak_list is not None:
-    data = pd.read_excel(peak_list)
-    peaks = np.array(data.mz)
-    names = np.array(data.names)
-    concentrations = np.array(data)[:, 2:]
-
 print("Normalization")
 norm_img = None
 if normalization > 0:
@@ -145,25 +157,19 @@ elif normalization == -1:
     spectra = sp.normalization_tic(spectra)
 
 print("Stats")
-
 all_intensities = []
 stds = []
-for i in range(1, all_labels.max()+1):
-    indices_regions = np.ravel_multi_index(np.where(all_labels == i), (max_x, max_y), order='F')
+for i in range(1, region.max()+1):
+    indices_regions = np.ravel_multi_index(np.where(region == i), (max_x, max_y), order='F')
     curr_spectra = spectra[indices_regions]
     intensities, std, n = compute_average_from_region(curr_spectra, mzs, step, peaks)
     all_intensities.append(intensities)
     stds.append(std)
-    step = 3
     curr_i = i-1
     if curr_i==0:
         curr_mzs = peaks if peaks is not None else mzs
         worksheet.write_column(1, 0, ["mean", "stddev", "slope", "intercept"], header_format)
 
-
-    # plt.plot(curr_mzs, intensities)
-    # plt.plot(mzs, mean_spectra)
-    # plt.show()
 
 all_intensities = np.array(all_intensities)
 stds = np.array(stds)
@@ -175,36 +181,40 @@ for i in range(all_intensities.shape[-1]):
     curr_i = all_intensities[:, i][ind]
     curr_stds = stds[:, i][ind]
     curr_c = np.sort(concentrations[i]).astype(float)
-    res = plot_reg(curr_c, curr_i, ax[i], names[i])
+    res = plot_reg(curr_c, curr_i, curr_stds, ax[i], names[i])
     regression_coefficients.append(res)
-    step = all_intensities.shape[0]+1
-    worksheet.merge_range(0, i*step+1, 0, i*step+step-1, peaks[i], header_format)
-    worksheet.write_row(1, i*step+1, curr_i)
-    worksheet.write_row(2, i*step+1, curr_stds)
-    worksheet.write(3, i*step+1, res.slope)
-    worksheet.write(4, i*step+1, res.intercept)
+    f = all_intensities.shape[0]+1
+    worksheet.merge_range(0, i*f+1, 0, i*f+f-1, peaks[i], header_format)
+    worksheet.write_row(1, i*f+1, curr_i)
+    worksheet.write_row(2, i*f+1, curr_stds)
+    worksheet.write(3, i*f+1, res.coef_)
+    worksheet.write(4, i*f+1, res.intercept_)
 
 if tissue_regions_name is not None:
     for i, region_name in enumerate(tissue_regions_name):
-        region = read_image(region_name)
-        indices_regions = np.ravel_multi_index(np.where(region > 0), (max_x, max_y), order='F')
+        region2 = read_image(region_name)
+        if region2.shape != region.shape:
+            print("Error: tissue regions and mask do not have matching size")
+            print("Please make sure the annotations were made on the same dataset")
+            exit(0)
+        indices_regions = np.ravel_multi_index(np.where(region2 > 0), (max_x, max_y), order='F')
         curr_spectra = spectra[indices_regions]
         intensities, stds, n = compute_average_from_region(curr_spectra, mzs, step, peaks)
         concentrations = []
         for j, res in enumerate(regression_coefficients):
-            c = (intensities[j]  - res.intercept) / res.slope
+            c = res.predict(np.array([intensities[j]]).reshape(-1, 1))
+            c = c.flatten()[0]
             concentrations.append(c)
-        print(intensities, concentrations)
         if i == 0:
             curr_mzs = peaks if peaks is not None else mzs
             worksheet2.write_row(0, 2, curr_mzs, header_format)
-        step = 4
+        f = 4
         mask_name = os.path.splitext(os.path.basename(region_name))[0]
-        worksheet2.merge_range(i*step+1, 0, i*step+step-1, 0, mask_name, header_format)
-        worksheet2.write_column(i*step+1, 1, ["mean", "stds", "concentrations"])
-        worksheet2.write_row(i*step+1, 2, intensities)
-        worksheet2.write_row(i*step+2, 2, stds)
-        worksheet2.write_row(i*step+3, 2, concentrations)
+        worksheet2.merge_range(i*f+1, 0, i*f+f-1, 0, mask_name, header_format)
+        worksheet2.write_column(i*f+1, 1, ["mean", "stds", "concentrations"])
+        worksheet2.write_row(i*f+1, 2, intensities)
+        worksheet2.write_row(i*f+2, 2, stds)
+        worksheet2.write_row(i*f+3, 2, concentrations)
 
 
 worksheet.freeze_panes(1, 1)
