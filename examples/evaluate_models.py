@@ -10,6 +10,7 @@ from sklearn.metrics import mean_squared_error
 from esmraldi.registration import precision, recall, quality_registration
 from sklearn.metrics import confusion_matrix, recall_score
 from natsort import natsorted
+import esmraldi.utils as utils
 
 def read_image(image_name):
     sitk.ProcessObject_SetGlobalWarningDisplay(False)
@@ -30,6 +31,19 @@ def average_value_from_roc(mzs, roc, name_cond):
     values = roc.loc[name_cond, mzs]
     return np.mean(values)
 
+def find(name, path):
+    for root, dirs, files in os.walk(path):
+        for f in files:
+            if name in f:
+                return os.path.join(root, f)
+
+def indices_peaks(peaks, other_peaks):
+    indices = utils.indices_search_sorted(other_peaks, peaks)
+    print(len(indices), len(other_peaks), len(peaks))
+    current_step = 14 * other_peaks / 1e6
+    indices_ppm = np.abs(peaks[indices] - other_peaks) < current_step
+    indices[~indices_ppm] = -1
+    return indices
 
 
 def analyze_model(input_name, x, y, region_names):
@@ -48,13 +62,21 @@ def analyze_model(input_name, x, y, region_names):
 
     y_predict = regression.predict(x)
 
+
     indices_y = np.array([n in names for n in region_names])
     indices_y_predict = np.array([n in region_names for n in names])
     y = y[..., indices_y]
     y_predict = y_predict[..., indices_y_predict]
 
+    labels = np.argmax(y_predict, axis=-1)
+    # y_predict = np.zeros_like(y_predict)
+
+    # for i in range(y_predict.shape[0]):
+    #     y_predict[i, labels[i]] = 255
+
     y_bin = np.where(y>0, 1, 0).astype(np.uint8)
     y_predict_bin = np.where(y_predict>0, 1, 0).astype(np.uint8)
+
     r = recall(y_bin, y_predict_bin)
     p = precision(y_bin, y_predict_bin)
     se = recall_score(y_bin.flatten(), y_predict_bin.flatten())
@@ -97,7 +119,15 @@ else:
 
 image_itk = sitk.ReadImage(msi_name)
 images = sitk.GetArrayFromImage(image_itk).T
+x_mzs = np.loadtxt(os.path.splitext(msi_name)[0] + ".csv")
+mzs_name = find("_mzs.csv", input_dir)
+peaks =  np.loadtxt(mzs_name)
+indices = indices_peaks(x_mzs, peaks)
 x = images.reshape(images.shape[1:])
+blank_image = np.zeros((x.shape[0], 1))
+x = np.hstack((x, blank_image))
+x = x[..., indices]
+
 
 region_names = os.path.dirname(msi_name) + os.path.sep + "regions" + os.path.sep + "*.tif"
 regions = []
@@ -120,6 +150,7 @@ if roc_name is not None:
 
 nb = []
 vals = []
+print(x.shape, y.shape)
 for root, dirs, files in os.walk(input_dir):
     for f in files:
         card = len(f.split("_"))
@@ -139,10 +170,16 @@ for root, dirs, files in os.walk(input_dir):
 vals = np.array(vals)
 
 fig, ax = plt.subplots(1, 5)
+ax[0].set_title("Recall")
+print(nb, vals)
 ax[0].scatter(nb, vals[:, 0])
+ax[1].set_title("Precision")
 ax[1].scatter(nb, vals[:, 1])
+ax[2].set_title("Specificity")
 ax[2].scatter(nb, vals[:, 2])
+ax[3].set_title("Sensitivity")
 ax[3].scatter(nb, vals[:, 3])
+ax[4].set_title("MSE")
 ax[4].scatter(nb, vals[:, 4])
 
 plt.show()

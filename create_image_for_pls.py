@@ -140,6 +140,7 @@ def normalize_flatten(spectra, coordinates, shape, normalization_tic=True, norma
     images = io.get_images_from_spectra(full_spectra, shape)
     if normalization_minmax:
         images = io.normalize(images)
+    images /= 255.0
     image_flatten = fusion.flatten(images, is_spectral=True).T
     return image_flatten
 

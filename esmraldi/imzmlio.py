@@ -92,6 +92,9 @@ def normalize(image):
         max_value = np.percentile(image, 99)
         if min_value == max_value:
             max_value = image.max()
+        if min_value == max_value:
+            max_value = 1
+            min_value = 0
         image_normalized = ((image - min_value) / (max_value - min_value))*255
         image_normalized = np.clip(image_normalized, 0, 255)
         return image_normalized

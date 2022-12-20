@@ -11,6 +11,7 @@ import esmraldi.fusion as fusion
 import esmraldi.spectraprocessing as sp
 import matplotlib.pyplot as plt
 from matplotlib import colors
+import matplotlib
 
 def normalize_flatten(spectra, coordinates, shape, normalization_tic=True, normalization_minmax=True):
     if normalization:
@@ -50,27 +51,26 @@ parser.add_argument("-i", "--input", help="Input json")
 parser.add_argument("-t", "--target", help="Target .imzML")
 parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given m/z", action="store_true")
 parser.add_argument("-o", "--output", help="Output files")
+parser.add_argument("--names", help="Names to analyze (default all)", nargs="+", type=str, default=None)
+parser.add_argument("--gmm", help="GMM model (.joblib)", default=None)
 args = parser.parse_args()
 
 input_name = args.input
 target_name = args.target
 normalization = args.normalization
 outname = args.output
-
-
+analysis_names = args.names
+gmm_name = args.gmm
 
 mzs_name = os.path.splitext(input_name)[0] + "_mzs.csv"
 names_name = os.path.splitext(input_name)[0] + "_names.csv"
 peaks = np.loadtxt(mzs_name)
 names = np.loadtxt(names_name, dtype=str)
 
-cm = plt.get_cmap("Set3")
-array_colors = np.array(cm.colors)
-k = np.array([0, 0, 0])
-ind = np.where(names == "Matrix")
-array_colors[ind, :] = k
-cm = colors.ListedColormap(array_colors)
 
+# cm = plt.get_cmap("terrain")
+cm = plt.get_cmap("Dark2")
+norm = matplotlib.colors.Normalize(vmin=0, vmax=len(analysis_names))
 spectra, mzs, shape, coords = read_imzml(target_name, normalization)
 
 
@@ -89,7 +89,7 @@ if coef.shape[0] < coef.shape[1]:
 
 
 data = np.column_stack((peaks, coef))
-peaks_coef_name = os.path.splitext(outname)[0] + ".csv"
+peaks_coef_name = os.path.dirname(outname) + os.path.sep + "coef.csv"
 np.savetxt(peaks_coef_name, data, header="mzs,"+",".join(names), delimiter=",", comments="")
 
 
@@ -102,19 +102,73 @@ print(out.shape)
 # end_binders = np.where(separation==1)[0][-1]
 # names_binders = names[end_pigments+1:end_binders+1]
 # out_binders = out[..., end_pigments+1:end_binders+1]
+
+if analysis_names is not None:
+    inside = np.in1d(names, analysis_names)
+    names = names[inside]
+    out = out[..., inside]
+
+if "ET&LO" in names:
+    order = np.array([0, 1, 3, 4, 5, 2])
+    names = names[order]
+    out = out[..., order]
+
+
 labels = np.argmax(out, axis=-1)
-min_value, max_value = np.amin(out, axis=0), np.amax(out, axis=0)
-opacity = (out - min_value) / (max_value - min_value)
-opacity = np.take_along_axis(opacity, labels[:, None], axis=-1)
 
-opacity_image = np.reshape(opacity, shape[:-1]).T
-label_image = np.reshape(labels, shape[:-1]).T
+if gmm_name is not None:
+    uncertain_label = len(analysis_names)
+    gmm = joblib.load(gmm_name)
+    labels = gmm.predict(out)
+    probas = gmm.predict_proba(out)
+    # t = 0.1
+    # cond = probas.max(axis=-1)[:, np.newaxis]-t
+    # numbers = np.count_nonzero(probas > cond, axis=-1)
+    # ind = np.where(probas > cond)
+    # vals, idx_start, count = np.unique(ind[0], return_counts=True, return_index=True)
+    # for i in range(len(idx_start)-1):
+    #     if count[i] > 1:
+    #         c = idx_start[i]
+    #         n = idx_start[i+1]
+    #         values = ind[1][c:n]
+    #         if 4 in values:
+    #             new_label = values[0]
+    #         else:
+    #             new_label = np.mean(values)
+    #             print(new_label, values)
+    #         labels[i] = new_label
+    labels[probas.max(axis=-1) < 0.95] = uncertain_label
+    label_image = np.reshape(labels, shape[:-1]).T
 
-handles = [plt.Rectangle((0, 0), 0, 0, color=cm(int(i)), label=name) for i, name in enumerate(names)]
-blacks = np.zeros_like(label_image)
+    array_colors = np.array(cm.colors)
+    gray = np.array([0.7, 0.7, 0.7])
+    array_colors[uncertain_label, :] = gray
+    names_array = np.array(analysis_names)
+    ind_mat = np.where((names_array == "Matrix") | (names_array == "Tape"))[0]
+    print(ind_mat, analysis_names)
+    black = np.array([0.1, 0.1, 0.1])
+    array_colors[ind_mat, :] = black
+    cm = colors.ListedColormap(array_colors)
+    plt.imshow(label_image, cmap=cm, vmin=0, vmax=cm.N, interpolation="nearest")
+    # plt.imshow(label_image, cmap=cm, vmin=0, vmax=label_image.max(), interpolation="nearest")
 
-plt.imshow(blacks, cmap="gray")
-plt.imshow(label_image, cmap=cm, vmin=0, vmax=cm.N, alpha=opacity_image, interpolation="nearest")
+    names = np.append(names, ["Uncertain"])
+else:
+    min_value, max_value = np.amin(out, axis=0), np.amax(out, axis=0)
+    opacity = (out - min_value) / (max_value - min_value)
+    opacity = np.take_along_axis(opacity, labels[:, None], axis=-1)
+
+    opacity_image = np.reshape(opacity, shape[:-1]).T
+    label_image = np.reshape(labels, shape[:-1]).T
+
+    blacks = np.zeros_like(label_image)
+
+    plt.imshow(blacks, cmap="gray")
+    plt.imshow(label_image, cmap=cm, vmin=0, vmax=cm.N, alpha=opacity_image, interpolation="nearest")
+
+handles = [plt.Rectangle((0, 0), 0, 0, color=cm(int(i)), label=name) for i, name in enumerate(analysis_names)]
+# handles = [plt.Rectangle((0, 0), 0, 0, color=cm(norm(i+1)), label=name) for i, name in enumerate(analysis_names)]
+
 plt.legend(handles=handles, title="Binders", loc='center left', bbox_to_anchor=(1, 0.5))
 plt.axis("off")
 plt.savefig(outname, bbox_inches='tight', pad_inches = 0)
