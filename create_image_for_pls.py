@@ -140,7 +140,7 @@ def normalize_flatten(spectra, coordinates, shape, normalization_tic=True, norma
     images = io.get_images_from_spectra(full_spectra, shape)
     if normalization_minmax:
         images = io.normalize(images)
-    images /= 255.0
+    images = images.astype(np.float128) / 255.0
     image_flatten = fusion.flatten(images, is_spectral=True).T
     return image_flatten
 
@@ -270,7 +270,7 @@ root = os.path.splitext(outname)[0]
 region_dir = os.path.dirname(outname) + os.path.sep + "regions" + os.path.sep
 os.makedirs(region_dir, exist_ok=True)
 for i, region_name in enumerate(unique_names):
-    current_region = combined_regions[..., i][:, np.newaxis].astype(np.float32)
+    current_region = combined_regions[..., i][:, np.newaxis].astype(np.float32) / 255.0
     print(current_region.shape)
     sitk.WriteImage(sitk.GetImageFromArray(current_region), region_dir  + region_name + ".tif")
 
