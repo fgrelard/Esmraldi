@@ -70,7 +70,6 @@ validation_keys = ["P3E3", "P2D3Tol", "P7C5"]
 train_keys += validation_keys
 
 test_keys = test_datasets.keys() - train_keys
-print(test_keys)
 
 suffix = ""
 # suffix = "_nosplit"
@@ -98,8 +97,7 @@ regions = ["*"]
 prefix_region_names = name_dir + "regions/"
 region_names = [prefix_region_names + r + ".tif " for r in regions]
 
-
-bootstrap_repetitions = 1
+bootstrap_repetitions = 10
 if is_train:
     names = [s.replace(" ", "\\ ") for s in train.values()]
     name_input = " ".join(names)
@@ -134,7 +132,7 @@ if is_bootstrap:
         print(out_bootstrap)
         if is_lasso:
             cmd_bootstrap += " --lasso"
-        os.makedirs(name_model_dir)
+        os.makedirs(name_model_dir, exist_ok=True)
         subprocess.call(cmd_bootstrap, shell=True)
 
 if is_validation:
@@ -157,42 +155,50 @@ if is_validation:
     subprocess.call(cmd_validation, shell=True)
 
 if is_test:
-    binders = ["Casein", "Collagen", "ET", "LO", "Matrix", "ET\&LO"]
+    binders = ["Casein", "Collagen", "ET", "LO", "Matrix"]
     pigments = ["CalciumCarbonate", "Leadwhite", "Ochre", "Sienna", "Tape", "Ultramarine", "Umber"]
+
+    binders.remove("Matrix")
+    pigments.remove("Tape")
+
     name_binders = " ".join(binders)
     name_pigments = " ".join(pigments)
     for i, name_model in enumerate(name_models):
         name_model_file = os.path.basename(name_model)
         name_model_dir = os.path.splitext(name_model)[0] + os.path.sep
         input_model = name_model_dir + name_model_file
-        os.makedirs(name_model_dir + "results/", exist_ok=True)
-        os.makedirs(name_model_dir + "results/binders", exist_ok=True)
-        os.makedirs(name_model_dir + "results/pigments", exist_ok=True)
+        # os.makedirs(name_model_dir + "results/", exist_ok=True)
+        # os.makedirs(name_model_dir + "results/binders", exist_ok=True)
+        # os.makedirs(name_model_dir + "results/pigments", exist_ok=True)
         if is_gmm:
-            gmm_binders = os.path.splitext(input_model)[0] + "_gmm_binders.joblib"
-            gmm_pigments = os.path.splitext(input_model)[0] + "_gmm_pigments.joblib"
+            gmm_binders = os.path.splitext(input_model)[0] + "_gmm_binders_nomatrix.joblib"
+            gmm_pigments = os.path.splitext(input_model)[0] + "_gmm_pigments_nomatrix.joblib"
             cmd_gmm_binders = "python3 -m examples.model_assign_gmm -i " + input_model +  " --msi " + name_dir + "0" + os.path.sep + "train.tif" + " --names " + name_binders + " -o " + gmm_binders
             cmd_gmm_pigments = "python3 -m examples.model_assign_gmm -i " + input_model +  " --msi " + name_dir + "0" + os.path.sep + "train.tif" + " --names " + name_pigments + " -o " + gmm_pigments
-            os.makedirs(name_model_dir + "results/gmm/binders", exist_ok=True)
-            os.makedirs(name_model_dir + "results/gmm/pigments", exist_ok=True)
+            # os.makedirs(name_model_dir + "results/gmm/binders", exist_ok=True)
+            # os.makedirs(name_model_dir + "results/gmm/pigments", exist_ok=True)
             subprocess.call(cmd_gmm_binders, shell=True)
             subprocess.call(cmd_gmm_pigments, shell=True)
-        for key in test_keys:
-            # for key, name_test in test_datasets.items():
-            name_test = test_datasets[key]
+        for key, name_test in test_datasets.items():
             name_test_escape = name_test.replace(" ", "\\ ")
-            outdir = name_model_dir + "results/"
+            outdir = name_model_dir + "results/nomatrix/"
             if is_gmm:
                 outdir += "gmm/"
-            out_binders_dir = outdir + "binders/" + key + ".png"
-            out_pigments_dir = outdir + "pigments/" + key + ".png"
-            if os.path.exists(out_binders_dir) and os.path.exists(out_pigments_dir):
-                continue
-            cmd_binders = "python3 -m examples.pls_test -i " + input_model + " -t " + name_test_escape + " -o " + out_binders_dir + " --names " + name_binders
-            cmd_pigments = "python3 -m examples.pls_test -i " + input_model + " -t " + name_test_escape + " -o " + out_pigments_dir + " --names " + name_pigments
-            print(cmd_binders)
-            if is_gmm:
-                cmd_binders += " --gmm " + gmm_binders
-                cmd_pigments += " --gmm " + gmm_pigments
-            subprocess.call(cmd_binders, shell=True)
-            subprocess.call(cmd_pigments, shell=True)
+            for i, name_condition in enumerate(["binders/", "pigments/"]):
+                outdircurr = outdir + name_condition
+                if key in test_keys:
+                    outdircurr += "test/"
+                else:
+                    outdircurr += "train/"
+                os.makedirs(outdircurr, exist_ok=True)
+                out_dir = outdircurr + key + ".png"
+                if i == 0:
+                    cmd_test = "python3 -m examples.pls_test -i " + input_model + " -t " + name_test_escape + " -o " + out_dir + " --names " + name_binders
+                    if is_gmm:
+                        cmd_test += " --gmm " + gmm_binders
+                else:
+                    cmd_test = "python3 -m examples.pls_test -i " + input_model + " -t " + name_test_escape + " -o " + out_dir + " --names " + name_pigments
+                    if is_gmm:
+                        cmd_test += " --gmm " + gmm_pigments
+                print(cmd_test)
+                subprocess.call(cmd_test, shell=True)
