@@ -79,7 +79,7 @@ print(image_flatten.shape)
 # scaler = StandardScaler()
 # image_flatten = scaler.fit_transform(image_flatten)
 if is_lasso:
-    regression = Lasso(alpha=alpha, normalize=False).fit(image_flatten, combined_regions)
+    regression = Lasso(alpha=alpha, tol=1e-3, selection="random", max_iter=5000).fit(image_flatten, combined_regions)
 else:
     regression = PLSRegression(n_components=nb_components, scale=False, max_iter=5000).fit(image_flatten, combined_regions)
 

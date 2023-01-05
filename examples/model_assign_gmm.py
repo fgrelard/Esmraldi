@@ -89,7 +89,7 @@ if analysis_names is not None:
 super_gmm = GaussianMixture(n_components=y.shape[-1], covariance_type="tied")
 
 n_repetitions = 10
-means_init = np.array([[255 if i == j else 0 for j in range(y.shape[-1]) ] for i in range(y.shape[-1])])
+means_init = np.array([[1 if i == j else 0 for j in range(y.shape[-1]) ] for i in range(y.shape[-1])])
 all_params = {}
 for i in range(n_repetitions):
     sample_size = 200

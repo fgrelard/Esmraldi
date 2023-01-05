@@ -21,6 +21,7 @@ def normalize_flatten(spectra, coordinates, shape, normalization_tic=True, norma
     images = io.get_images_from_spectra(full_spectra, shape)
     if normalization_minmax:
         images = io.normalize(images)
+    images = images.astype(np.float128) / 255.0
     image_flatten = fusion.flatten(images, is_spectral=True).T
     return image_flatten
 
@@ -116,6 +117,14 @@ if "ET&LO" in names:
 
 labels = np.argmax(out, axis=-1)
 
+array_colors = np.array(cm.colors)
+names_array = np.array(analysis_names)
+ind_mat = np.where((names_array == "Matrix") | (names_array == "Tape"))[0]
+print(ind_mat, analysis_names)
+black = np.array([0.1, 0.1, 0.1])
+array_colors[ind_mat, :] = black
+cm = colors.ListedColormap(array_colors)
+
 if gmm_name is not None:
     uncertain_label = len(analysis_names)
     gmm = joblib.load(gmm_name)
@@ -137,17 +146,12 @@ if gmm_name is not None:
     #             new_label = np.mean(values)
     #             print(new_label, values)
     #         labels[i] = new_label
-    labels[probas.max(axis=-1) < 0.95] = uncertain_label
+    labels[probas.max(axis=-1) < 0.9] = uncertain_label
     label_image = np.reshape(labels, shape[:-1]).T
 
     array_colors = np.array(cm.colors)
     gray = np.array([0.7, 0.7, 0.7])
     array_colors[uncertain_label, :] = gray
-    names_array = np.array(analysis_names)
-    ind_mat = np.where((names_array == "Matrix") | (names_array == "Tape"))[0]
-    print(ind_mat, analysis_names)
-    black = np.array([0.1, 0.1, 0.1])
-    array_colors[ind_mat, :] = black
     cm = colors.ListedColormap(array_colors)
     plt.imshow(label_image, cmap=cm, vmin=0, vmax=cm.N, interpolation="nearest")
     # plt.imshow(label_image, cmap=cm, vmin=0, vmax=label_image.max(), interpolation="nearest")
@@ -155,14 +159,14 @@ if gmm_name is not None:
     names = np.append(names, ["Uncertain"])
 else:
     min_value, max_value = np.amin(out, axis=0), np.amax(out, axis=0)
+    print(min_value, max_value)
     opacity = (out - min_value) / (max_value - min_value)
     opacity = np.take_along_axis(opacity, labels[:, None], axis=-1)
 
-    opacity_image = np.reshape(opacity, shape[:-1]).T
+    opacity_image = np.reshape(opacity, shape[:-1]).T.astype(np.float64)
     label_image = np.reshape(labels, shape[:-1]).T
 
     blacks = np.zeros_like(label_image)
-
     plt.imshow(blacks, cmap="gray")
     plt.imshow(label_image, cmap=cm, vmin=0, vmax=cm.N, alpha=opacity_image, interpolation="nearest")
 
