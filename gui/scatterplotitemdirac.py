@@ -4,7 +4,9 @@ from pyqtgraph.Qt import QtGui, QtCore
 import scipy.signal as signal
 
 class ScatterPlotItemDirac(pg.ScatterPlotItem):
-
+    """
+    Class allowing to plot diracs (e.g. for spectra)
+    """
 
     def __init__(self, *args, **kwds):
 

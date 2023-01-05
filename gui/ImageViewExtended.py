@@ -41,30 +41,6 @@ from collections import ChainMap
 import tracemalloc
 
 
-def PaintingROI(parent, roi, brush, **kwargs):
-    class WrapROI(parent):
-        def __init__(self, roi, brush=None):
-            c = ChainMap({"angle":roi.angle(), "invertible":roi.invertible, "maxBounds":roi.maxBounds, "snapSize":roi.snapSize, "scaleSnap":roi.scaleSnap, "translateSnap":roi.translateSnap, "rotateSnap":roi.rotateSnap, "parent":None, "pen":roi.pen, "hoverPen":roi.hoverPen, "handlePen":roi.handlePen, "handleHoverPen":roi.handleHoverPen, "movable":roi.translatable, "rotatable":roi.rotatable, "resizable":roi.resizable, "removable":roi.removable}, **kwargs)
-            if parent == PolyLineROI:
-                positions = [[handle["pos"].x(), handle["pos"].y()] for handle in roi.handles]
-                super().__init__(positions, roi.closed, pos=roi.pos(), **c)
-            else:
-                super().__init__(pos=roi.pos(), size=roi.size(), **c)
-            self.brush =  brush
-
-        def setBrush(self, brush):
-            self.brush = brush
-
-        def paint(self, p, opt, widget):
-            p.setBrush(self.brush)
-            if parent == PolyLineROI:
-                p.setPen(self.currentPen)
-                p.fillPath(self.shape(), self.brush)
-            else:
-                super().paint(p, opt, widget)
-
-    return WrapROI(roi, brush)
-
 
 def addNewGradientFromMatplotlib( name):
     """
@@ -86,6 +62,10 @@ def addNewGradientFromMatplotlib( name):
     pg.graphicsItems.GradientEditorItem.Gradients[name] = {'ticks':L, 'mode': 'rgb'}
 
 def setHistogramRange(obj, mn, mx, padding):
+    """
+    New function to define the histogram
+    range
+    """
     lmin = float(mn)
     lmax = float(mx)
     obj.vb.enableAutoRange(obj.vb.YAxis, False)
@@ -94,6 +74,7 @@ def setHistogramRange(obj, mn, mx, padding):
 class ImageViewExtended(pg.ImageView):
     """
     Image view extending pyqtgraph.ImageView
+    Able to display MS and non-MS images
 
     Attributes
     ----------
@@ -105,6 +86,26 @@ class ImageViewExtended(pg.ImageView):
         Mouse position x
     mouse_y: int
         Mouse position y
+    current_image: np.ndarray
+        Displayed image from the view
+    actualIndex: int
+        current index associated to image number
+    mask_roi: np.ndarray
+        w*h matrix defining the shape of the ROI
+    coords_roi: np.ndarray
+        Coordinates of the ROI in the image
+    coords_threshold: np.ndarray
+        Coordinates of the ROI with intensity threshold
+    plot: ScatterPlotItemDirac
+        Display for mean spectra
+    displayed_spectra: np.ndarray
+        Mean spectra
+    is_focused: bool
+        whether this image view is focused or not
+    is_linked: bool
+        whether this view is linked to another view
+    is_clickable: bool
+        whether this view is clickable or not
     """
 
     signal_abort = QtCore.pyqtSignal()
@@ -411,6 +412,9 @@ class ImageViewExtended(pg.ImageView):
         self.roiClicked()
 
     def hide_win_roi(self, ev):
+        """
+        Hide window for ROI management
+        """
         ev.ignore()
         self.winPlotROI.hide()
 
@@ -432,6 +436,10 @@ class ImageViewExtended(pg.ImageView):
 
 
     def join_pixmap(self, p1, p2, mode=QtGui.QPainter.CompositionMode_SourceOver):
+        """
+        Joining pixmaps from QtGui.QPixmap to draw roi on top
+        of the image (in red)
+        """
         s = p1.size().expandedTo(p2.size())
         result =  QtGui.QPixmap(s)
         result.fill(QtCore.Qt.transparent)
@@ -444,6 +452,10 @@ class ImageViewExtended(pg.ImageView):
         return result
 
     def render(self):
+        """
+        Display the image, along with the ROI
+        if selected
+        """
         pg.ImageItem.render(self.imageItem)
         if self.imageItem is None or self.imageItem.qimage is None:
             return
@@ -462,7 +474,6 @@ class ImageViewExtended(pg.ImageView):
         pixmap_roi = QtGui.QPixmap.fromImage(qimage_roi)
         pixmap_overlay = self.join_pixmap(pixmap_image, pixmap_roi)
         self.imageItem.qimage = QtGui.QPixmap.toImage(pixmap_overlay)
-
         pixel_value = QtGui.qRgba(255, 0, 0, 255)
         if self.coords_threshold is not None:
             coords_threshold = np.array(self.coords_threshold)
@@ -471,12 +482,14 @@ class ImageViewExtended(pg.ImageView):
             if npoints != th_npoints:
                 for x,y in coords_threshold.T:
                     self.imageItem.qimage.setPixel(x, y, pixel_value)
-
         self.imageItem._renderRequired = False
         self.imageItem._unrenderable = False
 
 
     def renderRoi(self, current_image):
+        """
+        Rendering ROI
+        """
         if False and self.ui.roiBtn.isChecked() and self.coords_roi is not None:
             roi_image = np.zeros_like(current_image)
             coords = tuple(c for c in self.coords_roi[::-1])
@@ -485,8 +498,11 @@ class ImageViewExtended(pg.ImageView):
         else:
             self.imageItem.updateImage(current_image, autoLevels=True)
 
-
     def mouseClickEventImageItem(self, ev):
+        """
+        Overriden method
+        Handling click events on the image
+        """
         pg.ImageItem.mouseClickEvent(self.imageItem, ev)
         pos = ev.pos()
         if self.is_drawable:
@@ -502,8 +518,11 @@ class ImageViewExtended(pg.ImageView):
                 self.update_pen(pen_size=self.pen_size, array=None)
             self.drawAt(pos, ev)
 
-
     def resetCross(self):
+        """
+        Removing all crosses (e.g. added with
+        fiducial-based registration)
+        """
         children = self.imageItem.getViewBox().allChildren()
         self.points = []
         for child in children:
@@ -513,6 +532,11 @@ class ImageViewExtended(pg.ImageView):
 
 
     def mouseDoubleClickEventImageItem(self, ev):
+        """
+        Double-click event on the image.
+        If fiducial-based registration is enabled, adds
+        crosses to the image
+        """
         pg.ImageItem.mouseClickEvent(self.imageItem, ev)
         pos = ev.pos()
         if self.is_clickable:
@@ -522,12 +546,19 @@ class ImageViewExtended(pg.ImageView):
             self.imageItem.getViewBox().addItem(cross)
 
     def drawAt(self, pos, ev=None):
+        """
+        Redefinition of the drawAt method
+        to handle position in row-major order
+        """
         order = pg.getConfigOption("imageAxisOrder")
         if order == 'row-major':
             pos = QtCore.QPoint(pos[1], pos[0])
         pg.ImageItem.drawAt(self.imageItem, pos, ev)
 
     def setDrawable(self, is_drawable, pen_size=1):
+        """
+        Set whether the view can be drawn on
+        """
         self.is_drawable = is_drawable
         self.updateImage()
         if self.is_drawable:
@@ -543,6 +574,9 @@ class ImageViewExtended(pg.ImageView):
             self.ui.histogram.gradient.setColorMap(self.gradient)
 
     def update_pen(self, pen_size, array=None):
+        """
+        Update pen size for drawing on the view
+        """
         self.pen_size = pen_size
         if self.is_drawable:
             if array is None:
@@ -550,10 +584,14 @@ class ImageViewExtended(pg.ImageView):
             self.imageItem.setDrawKernel(kernel=array, center=(self.pen_size//2, self.pen_size//2), mode='set')
 
     def setClickable(self, is_clickable):
+        """
+        Defines whether the image can be clicked on
+        """
         self.is_clickable = is_clickable
 
     def setImage(self, img, autoRange=True, autoLevels=True, levels=None, axes=None, xvals=None, pos=None, scale=None, transform=None, autoHistogramRange=True):
         """
+        Overriden method
         Sets a new image
 
         When changing an image, tries to keep the old z-index
@@ -617,7 +655,10 @@ class ImageViewExtended(pg.ImageView):
         self.setCurrentIndex(new_index)
 
     def update_crosshair_move(self, pos):
-         self.crosshair_move.setPos(pos)
+        """
+        Updates crosshair position in linked views
+        """
+        self.crosshair_move.setPos(pos)
 
     def on_hover_image(self, evt):
         """
@@ -642,6 +683,11 @@ class ImageViewExtended(pg.ImageView):
             self.update_crosshair_move(mousePoint)
 
     def evalKeyState(self):
+        """
+        Overriden method
+        Keyboard interactions to move through
+        channels in the image
+        """
         if len(self.keysPressed) == 1:
             key = list(self.keysPressed.keys())[0]
             if key == QtCore.Qt.Key_Right:
@@ -689,12 +735,20 @@ class ImageViewExtended(pg.ImageView):
 
 
     def setCurrentIndex(self, ind):
+        """
+        Overriden method
+        Sets an index for the image in the timeline (aka channels)
+        """
         super().setCurrentIndex(ind)
         self.actualIndex = self.currentIndex
         self.signal_mz_change.emit(self.tVals[self.currentIndex])
         self.update_label()
 
     def timeLineChanged(self):
+        """
+        Overriden method
+        Event raised when the timeline (aka channels) are changed
+        """
         super().timeLineChanged()
         self.current_image = None
         self.actualIndex = self.currentIndex
@@ -708,6 +762,10 @@ class ImageViewExtended(pg.ImageView):
 
 
     def getProcessedImage(self):
+        """
+        Overriden method
+        Gets the image to display
+        """
         if (self.isNewImage and self.levelMin is not None) or self.imageDisp is None:
             self.imageDisp = self.image
         if self.hasTimeAxis():
@@ -721,17 +779,38 @@ class ImageViewExtended(pg.ImageView):
         self.isNewImage = False
         return self.imageDisp
 
+    def setLevels(self, *args, **kwds):
+        """
+        Overriden method
+        Define image levels
+        """
+        if self.imageDisp is None:
+            return
+        super().setLevels(*args, **kwds)
+
     def autoLevels(self):
+        """
+        Overriden method
+        Define levels automatically
+        """
         self._imageLevels = [(self.levelMin, self.levelMax)]
         self.ui.histogram.vb.setYRange(self.levelMin, self.levelMax)
         super().autoLevels()
 
 
     def normRadioChanged(self):
+        """
+        Overriden method
+        Event raised when button for normalization is changed
+        """
         self.isNewNorm = True
         super().normRadioChanged()
 
     def roiRadioChanged(self):
+        """
+        Overriden method
+        Event raised when ROI radio button is changed
+        """
         pen = "y"
         brush = pg.mkBrush(220, 100, 100, 200)
         roiSquareChecked = self.ui.roiSquare.isChecked()
@@ -761,6 +840,10 @@ class ImageViewExtended(pg.ImageView):
         self.roiChanged()
 
     def intensity_value_slider(self, image, range_slider):
+        """
+        Converts slider min/max thresholds (0-100) to actual image
+        thresholds
+        """
         min_slider, max_slider = range_slider.value()
         max_value = range_slider.maximum()
         threshold_percentile = np.percentile(image, 99)
@@ -775,10 +858,15 @@ class ImageViewExtended(pg.ImageView):
         return min_thresh, max_thresh
 
     def sliderValueChanged(self):
+        """
+        Event raised when threshold slider is changed
+        """
         self.roiChanged()
 
-
     def roi_to_coordinates(self, image, min_t, max_t, offset=np.array([0, 0]), mask_roi=None):
+        """
+        Extract coordinates from ROI
+        """
         if mask_roi is None:
             mask_roi = np.ones_like(image)
         coords_mask = np.argwhere(mask_roi > 0)
@@ -796,6 +884,9 @@ class ImageViewExtended(pg.ImageView):
         return coords_roi
 
     def roi_to_mean_spectra(self, image):
+        """
+        Extract mean along the timeline (aka channels) for a given ROI
+        """
         axes = tuple([i for i in range(image.ndim)  if i != image.spectral_axis])
         if self.imageItem.axisOrder == "col-major":
             axes = axes[::-1]
@@ -823,6 +914,10 @@ class ImageViewExtended(pg.ImageView):
 
 
     def roiChanged(self):
+        """
+        Overriden method
+        Method called when ROI is moved or enlarged
+        """
         if self.image is None:
             return
 
@@ -868,11 +963,10 @@ class ImageViewExtended(pg.ImageView):
 
 
     def finalize_roi_change(self, coords_image):
-        # self.setCurrentIndices(self.actualIndex)
-        # current_image = self.normalize_ms()
-
-        # if len(current_image.shape) >= 3:
-        #     return
+        """
+        Display ROI information (mean, std) below
+        image view
+        """
 
         # Update render with ROI
         self.imageItem.updateImage(self.imageItem.image, autoLevels=False)
@@ -888,6 +982,10 @@ class ImageViewExtended(pg.ImageView):
 
 
     def roiClicked(self):
+        """
+        Overriden method
+        Event raised when ROI button is clicked
+        """
         super().roiClicked()
 
         if self.full_init and self.ui.roiImage.isChecked():
@@ -909,6 +1007,9 @@ class ImageViewExtended(pg.ImageView):
 
 
     def plotSpectraROI(self):
+        """
+        Plot mean spectra from ROI in a new window
+        """
         if self.coords_roi is None or not self.hasTimeAxis():
             return
 
@@ -941,6 +1042,9 @@ class ImageViewExtended(pg.ImageView):
         self.winPlotROI.show()
 
     def get_current_image(self):
+        """
+        Gets the current displayed image
+        """
         if self.current_image is not None:
             return
         if self.hasTimeAxis():
@@ -952,6 +1056,9 @@ class ImageViewExtended(pg.ImageView):
             self.current_image = self.imageDisp
 
     def resetROI(self, event):
+        """
+        Resetting ROI
+        """
         self.previousRoiSize = 10
         self.previousRoiPositions = [[0,0], [10, 0], [5, 5]]
         self.roiRadioChanged()
@@ -959,11 +1066,18 @@ class ImageViewExtended(pg.ImageView):
         self.autoRange()
 
     def changeNorm(self, button, is_toggled):
+        """
+        Raised when changing norm method
+        """
         if not is_toggled:
             return
         self.current_image = self.normalize_ms(True)
 
     def normalize_ms(self, new_value=False):
+        """
+        Normalization core function
+        Can be long for on the fly images
+        """
         self.get_current_image()
         current_image = self.current_image
         normed_image = np.zeros_like(current_image)
@@ -1003,6 +1117,10 @@ class ImageViewExtended(pg.ImageView):
 
 
     def updateImage(self, autoHistogramRange=True):
+        """
+        Overriden method
+        Updates the image with self.current_image
+        """
         if self.image is None:
             return
         self.getProcessedImage()
@@ -1012,6 +1130,11 @@ class ImageViewExtended(pg.ImageView):
             self.normalize_ms()
 
     def normalize(self, image):
+        """
+        Overriden image
+        Normalization is handled separately and not forced
+        into getProcessedImage
+        """
         return image
 
     def export(self, filename, index):
@@ -1060,10 +1183,6 @@ class ImageViewExtended(pg.ImageView):
         plt.clf()
         plt.close()
 
-    def setLevels(self, *args, **kwds):
-        if self.imageDisp is None:
-            return
-        super().setLevels(*args, **kwds)
 
     def exportClicked(self):
         """
@@ -1127,12 +1246,19 @@ class ImageViewExtended(pg.ImageView):
         """
         self.levelMin, self.levelMax = self.ui.histogram.getLevels()
 
-
     def spectraToggled(self):
+        """
+        Whether to display mean spectra plot
+        """
         self.winPlot.setVisible(self.ui.spectraBtn.isChecked())
         self.winPlot.autoRange()
 
     def draggedSpectra(self, event):
+        """
+        Event raised when mean spectra plot is dragged
+        Updates the selected timeline indices and the image
+        accordingly
+        """
         ViewBoxDirac.mouseDragEvent(self.plot.getViewBox(), event)
         if event.isFinish() and event.button() == QtCore.Qt.MouseButton.LeftButton:
             indices = self.plot.getViewBox().x_selected
@@ -1140,8 +1266,11 @@ class ImageViewExtended(pg.ImageView):
                 return
             self.setCurrentTimes(indices)
 
-
     def setCurrentTimes(self, times):
+        """
+        Setting  several time values (aka channel values) and
+        updating image accordingly
+        """
         self.ignorePlaying = True
         indices = np.argwhere(np.in1d(self.image.mzs, times)).flatten()
         median_val = np.median(times)
@@ -1150,6 +1279,10 @@ class ImageViewExtended(pg.ImageView):
         self.ignorePlaying = False
 
     def setCurrentIndices(self, indices):
+        """
+        Behaviour when choosing several indices (aka channel indices):
+        average image is returned
+        """
         self.actualIndex = indices
         self.currentIndex = self.actualIndex
         self.updateImage()
@@ -1164,6 +1297,9 @@ class ImageViewExtended(pg.ImageView):
         self.currentIndex = np.int64(np.median(indices))
 
     def buildPlot(self):
+        """
+        Build mean spectra plot
+        """
         if self.image.normalization_image is not None:
             self.displayed_spectra = self.image.compute_mean_spectra(self.image.spectra.copy())
         else:
@@ -1176,11 +1312,14 @@ class ImageViewExtended(pg.ImageView):
 
     def buildMenu(self):
         """
-        Adds the "Export all slices" option to the menu
+        Overriden method
         """
         pass
 
     def menuClicked(self):
+        """
+        Overriden method
+        """
         pass
 
     def getImageItemHistogram(self, bins='auto', step='auto', targetImageSize=200, targetHistogramSize=500, **kwds):

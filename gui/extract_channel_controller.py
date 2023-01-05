@@ -5,6 +5,9 @@ from gui.signal import Signal
 from PyQt5 import QtCore
 
 class WorkerExtractChannels(QtCore.QObject):
+    """
+    Worker class to extract channels
+    """
     signal_end = QtCore.pyqtSignal(object, int)
 
     def __init__(self, image, number):
@@ -26,6 +29,13 @@ class WorkerExtractChannels(QtCore.QObject):
 
 
 class ExtractChannelController:
+    """
+    Extracts specified channel in an image
+    Image must be multichannel
+
+    Works with indices, thus is not particularly
+    adapted to MS images
+    """
     def __init__(self, view, imageview):
         self.view = view
         self.imageview = imageview
