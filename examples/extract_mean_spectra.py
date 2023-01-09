@@ -131,14 +131,18 @@ for i, region_name in enumerate(region_names):
         actual_mzs = actual_mzs[actual_mzs > 0]
         indices = utils.indices_search_sorted(actual_mzs, curr_mzs)
         actual_intensities = np.mean(curr_intensities, axis=0)
+        actual_median = np.median(curr_intensities, axis=0)
         actual_stds = np.std(curr_intensities, axis=0)
         intensities = np.zeros_like(curr_mzs)
+        medians = np.zeros_like(curr_mzs)
         stds = np.zeros_like(curr_mzs)
         intensities[indices] = actual_intensities
+        medians[indices] = actual_median
         stds[indices] = actual_stds
         n = np.repeat(len(indices_regions), len(curr_mzs))
     else:
-        curr_mzs, intensities, stds, n = sp.realign_mean_spectrum(mzs, curr_spectra[:, 1], curr_spectra[:, 0], step, is_ppm=True, return_stats=True)
+        curr_mzs, intensities, stds, n, medians = sp.realign_mean_spectrum(mzs, curr_spectra[:, 1], curr_spectra[:, 0], step, is_ppm=True, return_stats=True)
+
     # mean_spectra = sp.spectra_mean_centroided(curr_spectra, mzs)
     if i==0:
         worksheet.write_column(2, 0, curr_mzs, header_format)
@@ -146,12 +150,14 @@ for i, region_name in enumerate(region_names):
     # plt.plot(curr_mzs, intensities)
     # plt.plot(mzs, mean_spectra)
     # plt.show()
+    f = 4
     name = os.path.splitext(os.path.basename(region_name))[0]
-    worksheet.write(0, i*3+1, name)
-    worksheet.write_row(1, i*3+1, ["mean", "stddev", "n"])
-    worksheet.write_column(2, i*3+1, intensities)
-    worksheet.write_column(2, i*3+2, stds)
-    worksheet.write_column(2, i*3+3, n)
+    worksheet.write(0, i*f+1, name)
+    worksheet.write_row(1, i*f+1, ["mean", "median", "stddev", "n"])
+    worksheet.write_column(2, i*f+1, intensities)
+    worksheet.write_column(2, i*f+2, medians)
+    worksheet.write_column(2, i*f+3, stds)
+    worksheet.write_column(2, i*f+4, n)
 
 worksheet.freeze_panes(1, 1)
 workbook.close()

@@ -76,7 +76,9 @@ worksheet = workbook.add_worksheet(name)
 
 worksheets = [worksheet,
               workbook.add_worksheet("Averages"),
-              workbook.add_worksheet("Averages per")]
+              workbook.add_worksheet("Averages per"),
+              workbook.add_worksheet("Median"),
+              workbook.add_worksheet("Median complementary")]
 
 if is_cutoffs:
     worksheets += [workbook.add_worksheet("Distance"),
@@ -113,17 +115,22 @@ indices, indices_ravel = fusion.roc_indices(mask, images.shape[:-1], norm_img)
 
 print("Starting ROC AUC")
 region_bool = fusion.region_to_bool(regions, indices_ravel, images.shape[:-1])
+region_bool_compl = [~r for r in region_bool]
 
 averages = np.mean(images, axis=(0,1))[:, np.newaxis]
 print(averages.shape)
 
 averages_per = fusion.averages_per_region(images, indices, region_bool)
 
+median_per = fusion.median_per_region(images, indices, region_bool)
+median_per_complementary = fusion.median_per_region(images, indices, region_bool_compl)
+median_per_complementary = np.nan_to_num(median_per_complementary)
+
 print("av per", averages_per.shape)
 
 roc_auc_scores = fusion.roc_auc_analysis(images, indices, region_bool, norm_img, is_weighted=is_weighted)
 
-L = [roc_auc_scores, averages, averages_per]
+L = [roc_auc_scores, averages, averages_per, median_per, median_per_complementary]
 
 print("End AUC")
 
