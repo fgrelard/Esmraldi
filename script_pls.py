@@ -19,6 +19,7 @@ parser.add_argument("--train", help="Training", action="store_true")
 parser.add_argument("--test", help="Testing", action="store_true")
 parser.add_argument("--validation", help="Validation", action="store_true")
 parser.add_argument("--bootstrap", help="Do Bootstrap", action="store_true")
+parser.add_argument("--validate_prediction", help="Compute specificity and sensitivity for all datasets", action="store_true")
 parser.add_argument("--lasso", help="Switch to LASSO", action="store_true")
 parser.add_argument("--parameters_train", help="Nb components or alpha", nargs="+", type=float)
 parser.add_argument("--gmm", help="Use GMM model", action="store_true")
@@ -29,6 +30,7 @@ is_test = args.test
 is_lasso = args.lasso
 is_validation = args.validation
 is_bootstrap = args.bootstrap
+is_validate_prediction = args.validate_prediction
 is_gmm = args.gmm
 parameters_train = args.parameters_train
 print(parameters_train)
@@ -171,17 +173,18 @@ if is_test:
         # os.makedirs(name_model_dir + "results/binders", exist_ok=True)
         # os.makedirs(name_model_dir + "results/pigments", exist_ok=True)
         if is_gmm:
-            gmm_binders = os.path.splitext(input_model)[0] + "_gmm_binders_nomatrix.joblib"
-            gmm_pigments = os.path.splitext(input_model)[0] + "_gmm_pigments_nomatrix.joblib"
-            cmd_gmm_binders = "python3 -m examples.model_assign_gmm -i " + input_model +  " --msi " + name_dir + "0" + os.path.sep + "train.tif" + " --names " + name_binders + " -o " + gmm_binders
-            cmd_gmm_pigments = "python3 -m examples.model_assign_gmm -i " + input_model +  " --msi " + name_dir + "0" + os.path.sep + "train.tif" + " --names " + name_pigments + " -o " + gmm_pigments
+            gmm_binders = os.path.splitext(input_model)[0] + "_gmm_binders_local_nomatrix.joblib"
+            gmm_pigments = os.path.splitext(input_model)[0] + "_gmm_pigments_local_nomatrix.joblib"
+            cmd_gmm_binders = "python3 -m examples.model_assign_gmm -i " + input_model +  " --msi " + name_dir + " --names " + name_binders + " -o " + gmm_binders
+            cmd_gmm_pigments = "python3 -m examples.model_assign_gmm -i " + input_model +  " --msi " + name_dir + " --names " + name_pigments + " -o " + gmm_pigments + " --add_class"
             # os.makedirs(name_model_dir + "results/gmm/binders", exist_ok=True)
             # os.makedirs(name_model_dir + "results/gmm/pigments", exist_ok=True)
-            subprocess.call(cmd_gmm_binders, shell=True)
-            subprocess.call(cmd_gmm_pigments, shell=True)
+            # subprocess.call(cmd_gmm_binders, shell=True)
+            # subprocess.call(cmd_gmm_pigments, shell=True)
         for key, name_test in test_datasets.items():
+            print(key)
             name_test_escape = name_test.replace(" ", "\\ ")
-            outdir = name_model_dir + "results/nomatrix/"
+            outdir = name_model_dir + "results/local/nomatrix/"
             if is_gmm:
                 outdir += "gmm/"
             for i, name_condition in enumerate(["binders/", "pigments/"]):
@@ -193,12 +196,43 @@ if is_test:
                 os.makedirs(outdircurr, exist_ok=True)
                 out_dir = outdircurr + key + ".png"
                 if i == 0:
-                    cmd_test = "python3 -m examples.pls_test -i " + input_model + " -t " + name_test_escape + " -o " + out_dir + " --names " + name_binders
+                    continue
+                    cmd_test = "python3 -m examples.pls_test -i " + input_model + " -t " + name_test_escape + " -o " + out_dir + " --names " + name_binders + " --proba 0.95"
                     if is_gmm:
                         cmd_test += " --gmm " + gmm_binders
                 else:
                     cmd_test = "python3 -m examples.pls_test -i " + input_model + " -t " + name_test_escape + " -o " + out_dir + " --names " + name_pigments
                     if is_gmm:
                         cmd_test += " --gmm " + gmm_pigments
-                print(cmd_test)
+                # print(cmd_test)
                 subprocess.call(cmd_test, shell=True)
+
+
+if is_validate_prediction:
+    binders = ["Casein", "Collagen", "ET", "LO", "Matrix"]
+    pigments = ["CalciumCarbonate", "Leadwhite", "Ochre", "Sienna", "Tape", "Ultramarine", "Umber"]
+
+    binders.remove("Matrix")
+    pigments.remove("Tape")
+
+    name_binders = " ".join(binders)
+    name_pigments = " ".join(pigments)
+    for i, name_model in enumerate(name_models):
+        name_model_file = os.path.basename(name_model)
+        name_model_dir = os.path.splitext(name_model)[0] + os.path.sep
+        input_model = name_model_dir + name_model_file
+        # os.makedirs(name_model_dir + "results/", exist_ok=True)
+        # os.makedirs(name_model_dir + "results/binders", exist_ok=True)
+        # os.makedirs(name_model_dir + "results/pigments", exist_ok=True)
+        if is_gmm:
+            gmm_binders = os.path.splitext(input_model)[0] + "_gmm_binders_local_nomatrix.joblib"
+            gmm_pigments = os.path.splitext(input_model)[0] + "_gmm_pigments_local_nomatrix.joblib"
+            names_datasets = " ".join([v.replace(" ", "\\ ") for v in train.values()])
+            out_binders = name_model_dir + "results/train_stats_binders.xlsx"
+            out_pigments = name_model_dir + "results/train_stats_pigments.xlsx"
+            cmd_binders = "python3 -m examples.evaluation_prediction_confusion -i " + input_model + " -t " + names_datasets + " --gmm " + gmm_binders + " -o " + out_binders + " --names " + name_binders + " --proba 0.95"
+            cmd_pigments = "python3 -m examples.evaluation_prediction_confusion -i " + input_model + " -t " + names_datasets + " --gmm " + gmm_pigments + " -o " + out_pigments + " --names " + name_pigments
+            print(cmd_binders)
+            subprocess.call(cmd_binders, shell=True)
+            print(cmd_pigments)
+            subprocess.call(cmd_pigments, shell=True)
