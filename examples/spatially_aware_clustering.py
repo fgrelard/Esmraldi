@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import esmraldi.segmentation as seg
 import esmraldi.imzmlio as imzmlio
 import esmraldi.fusion as fusion
+import esmraldi.imageutils as imageutils
 import scipy.ndimage as ndimage
 import SimpleITK as sitk
 
@@ -45,10 +46,12 @@ def spatially_aware_clustering(image, k, n, radius):
 
     if n < new_shape[-1]:
         fastmap = FastMap(fastmap_matrix, n)
+        print("compute projections")
         proj = fastmap.compute_projections()
-        pd_X = pairwise_distances(fastmap_matrix)**2
-        pd_proj = pairwise_distances(proj)**2
-        print("Sum abs. diff=", np.sum(np.abs(pd_X - pd_proj)))
+        print(proj.shape)
+        # pd_X = pairwise_distances(fastmap_matrix)**2
+        # pd_proj = pairwise_distances(proj)**2
+        # print("Sum abs. diff=", np.sum(np.abs(pd_X - pd_proj)))
     else:
         proj = fastmap_matrix
 
@@ -67,77 +70,94 @@ parser.add_argument("-n", "--number", help="Number of dimensions after dimension
 parser.add_argument("-k", "--classes", help="Number of clusters for kmeans", default=7)
 parser.add_argument("-r", "--radius", help="Radius for spatial features", default=1)
 parser.add_argument("-g", "--threshold", help="Mass to charge ratio threshold (optional)", default=0)
-parser.add_argument("--normalize", help="Normalize spectra by their norm", action="store_true")
+parser.add_argument("--normalization", help="Normalize spectra by their norm", default=None)
+parser.add_argument("--cosine", help="Whether to normalize spectra in order to approximate cosine distance in KMeans computation", action="store_true")
 
 args = parser.parse_args()
 
-inputname = args.input
+input_name = args.input
 outname = args.output
 radius = int(args.radius)
 n = int(args.number)
 k = int(args.classes)
 threshold = int(args.threshold)
-normalize = args.normalize
+normalization = args.normalization
+is_cosine = args.cosine
 
 
-if inputname.lower().endswith(".imzml"):
-    imzml = imzmlio.open_imzml(inputname)
-    spectra = imzmlio.get_full_spectra(imzml)
-    max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
-    max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
-    max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
-    image = imzmlio.get_images_from_spectra(spectra, (max_x, max_y, max_z))
-    mzs, intensities = imzml.getspectrum(0)
+if input_name.lower().endswith(".imzml"):
+    imzml = io.open_imzml(input_name)
+    spectra = io.get_spectra(imzml)
+    print(spectra.shape)
+    coordinates = imzml.coordinates
+    max_x = max(coordinates, key=lambda item:item[0])[0]
+    max_y = max(coordinates, key=lambda item:item[1])[1]
+    max_z = max(coordinates, key=lambda item:item[2])[2]
+    shape = (max_x, max_y, max_z)
+
+    full_spectra = io.get_full_spectra(imzml)
+    mzs = np.unique(np.hstack(spectra[:, 0]))
+    mzs = mzs[mzs>0]
+    print(len(mzs))
+    images = io.get_images_from_spectra(full_spectra, shape)
 else:
-    image = sitk.GetArrayFromImage(sitk.ReadImage(inputname)).T
-    mzs = [i for i in range(image.shape[2])]
-    mzs = np.asarray(mzs)
+    image_itk = sitk.ReadImage(input_name)
+    images = sitk.GetArrayFromImage(image_itk).T
+    mzs = np.loadtxt(os.path.splitext(input_name)[0] + ".csv", encoding="utf-8-sig")
 
-image = image[..., mzs >= threshold]
-if normalize:
-    for index in np.ndindex(image.shape[:-1]):
-        spectrum = image[index]
-        norm =  np.linalg.norm(spectrum)
-        if norm > 0:
-            spectrum /= norm
-            image[index] = spectrum
+images = images[..., mzs >= threshold]
+
+print("normalization", normalization)
+if normalization != None:
+    try:
+        normalization = float(normalization)
+    except:
+        pass
+    norm_img = imageutils.get_norm_image(images, normalization, mzs)
+    for i in range(images.shape[-1]):
+        images[..., i] = imageutils.normalize_image(images[...,i], norm_img)
+
+if is_cosine:
+    norm_img = imageutils.get_norm_image(images, "norm", None)
+    for i in range(images.shape[-1]):
+        images[..., i] = imageutils.normalize_image(images[..., i], norm_img)
 
 
 mzs = mzs[mzs >= threshold]
 mzs = np.around(mzs, decimals=2)
 mzs = mzs.astype(str)
 
-nb_peaks = image.shape[-1]
+nb_peaks = images.shape[-1]
 print("Number of peaks=", nb_peaks)
 
-shape = image.shape
+shape = images.shape
 
 if len(shape) == 4:
     for i in range(shape[-2]):
-        current_image = image[..., i, :]
+        current_image = images[..., i, :]
         image_labels = spatially_aware_clustering(current_image, k, n, radius)
         plt.imshow(image_labels)
         plt.show()
 else:
-    image_labels = spatially_aware_clustering(image, k, n, radius)
+    image_labels = spatially_aware_clustering(images, k, n, radius)
 
-image = imzmlio.normalize(image)
-outname_csv = os.path.splitext(outname)[0] + ".csv"
-out_array = np.zeros(shape=(nb_peaks, k))
-for i in range(k):
-    indices = np.where(image_labels == i)
-    not_indices = np.where(image_labels != i)
-    median_spectrum = np.median(image[indices], axis=0)
-    print(median_spectrum.shape)
-    other_median_spectrum = np.median(image[not_indices], axis=0)
-    median_spectrum -= other_median_spectrum
-    top_indices = np.argsort(median_spectrum)[::-1]
-    top_molecules = mzs[top_indices]
-    out_array[:, i] = top_molecules
-np.savetxt(outname_csv, out_array, delimiter=";", fmt="%s")
+# images = imzmlio.normalize(images)
+# outname_csv = os.path.splitext(outname)[0] + ".csv"
+# out_array = np.zeros(shape=(nb_peaks, k))
+# for i in range(k):
+#     indices = np.where(image_labels == i)
+#     not_indices = np.where(image_labels != i)
+#     median_spectrum = np.median(images[indices], axis=0)
+#     print(median_spectrum.shape)
+#     other_median_spectrum = np.median(images[not_indices], axis=0)
+#     median_spectrum -= other_median_spectrum
+#     top_indices = np.argsort(median_spectrum)[::-1]
+#     top_molecules = mzs[top_indices]
+#     out_array[:, i] = top_molecules
+# np.savetxt(outname_csv, out_array, delimiter=";", fmt="%s")
 
-image_labels_itk = sitk.GetImageFromArray(image_labels.astype(np.uint8))
+image_labels_itk = sitk.GetImageFromArray(image_labels.astype(np.uint8).T)
 sitk.WriteImage(image_labels_itk, outname)
 
-#plt.imshow(image_labels.T)
-#plt.show()
+plt.imshow(image_labels.T)
+plt.show()
