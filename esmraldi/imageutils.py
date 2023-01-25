@@ -653,6 +653,8 @@ def pseudo_flat_field_correction(image, sigma):
 def get_norm_image(images, norm, mzs):
     if norm == "tic":
         img_norm = np.sum(images, axis=-1)
+    elif norm == "norm":
+        img_norm = np.linalg.norm(images, axis=-1)
     else:
         closest_mz_index = np.abs(mzs - norm).argmin()
         img_norm = images[..., closest_mz_index]

@@ -594,39 +594,22 @@ def roc_auc_analysis(images, indices, region_bool, norm_img=None, thresholded_va
 
     return roc_auc_scores
 
-def single_average(current_image, indices, region_bool):
+def single_measure(current_image, indices, region_bool, fn=np.mean):
     sub_region = current_image[indices]
     current_values = sub_region.flatten()
     means = np.zeros(len(region_bool))
     for j, binary_label in enumerate(region_bool):
-        means[j] = np.mean(current_values[binary_label])
+        means[j] = fn(current_values[binary_label])
     return means
 
-def averages_per_region(images, indices, region_bool):
+def measures_per_region(images, indices, region_bool, fn=np.mean):
     nreg = len(region_bool)
-    averages_per_scores = np.zeros((images.shape[-1], nreg))
+    measures_per = np.zeros((images.shape[-1], nreg))
     for i in range(images.shape[-1]):
         current_image = images[..., i]
-        averages_per_scores[i, :] = single_average(current_image, indices, region_bool)
-    return averages_per_scores
+        measures_per[i, :] = single_measure(current_image, indices, region_bool, fn)
+    return measures_per
 
-def single_median(current_image, indices, region_bool):
-    sub_region = current_image[indices]
-    current_values = sub_region.flatten()
-    medians = np.zeros(len(region_bool))
-    for j, binary_label in enumerate(region_bool):
-        values_in = current_values[binary_label]
-        ratio = np.median(values_in)
-        medians[j] = ratio
-    return medians
-
-def median_per_region(images, indices, region_bool):
-    nreg = len(region_bool)
-    median_per_scores = np.zeros((images.shape[-1], nreg))
-    for i in range(images.shape[-1]):
-        current_image = images[..., i]
-        median_per_scores[i, :] = single_median(current_image, indices, region_bool)
-    return median_per_scores
 
 def roc_cutoff_analysis(images, indices, region_bool, is_weighted=False, fn=cutoff_distance):
     nreg = len(region_bool)
