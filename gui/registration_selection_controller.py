@@ -46,13 +46,16 @@ class WorkerRegistrationSelection(QtCore.QObject):
         Transpose images so they match after registration
         """
         shape = ((2,) if image.ndim == 3 else ()) + (0, 1)
-        print(image.shape)
+        print(image.shape, ref_ms_image)
         if ref_ms_image is not None:
             spectra = ref_ms_image.spectra
             new_image = MSImage(spectra, image)
             new_image = msimage_for_visualization(new_image, transpose=False)
         else:
-            new_image = np.transpose(image, np.roll(shape, 1))
+            print(image.shape)
+            if image.ndim == 3:
+                shape = np.roll(shape, 1)
+            new_image = np.transpose(image, shape)
         return new_image
 
     def crop_image(self, image, points):
@@ -75,11 +78,12 @@ class WorkerRegistrationSelection(QtCore.QObject):
         fixed_dim = fixed.ndim
         dim = register.ndim
         size = np.array(register.shape)[::-1]
+        print(fixed.shape, register.shape)
         if fixed_dim == 2:
             fixed_itk = sitk.GetImageFromArray(fixed)
             resampler = reg.initialize_resampler(fixed_itk, landmark_transform)
         if fixed_dim == 3:
-            fixed_itk = sitk.GetImageFromArray(fixed[0, ...])
+            fixed_itk = sitk.GetImageFromArray(fixed[..., 0])
             resampler = reg.initialize_resampler(fixed_itk, landmark_transform)
 
         if dim == 2:
