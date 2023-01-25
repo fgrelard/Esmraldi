@@ -3,6 +3,7 @@ import numpy as np
 from functools import reduce
 from PyQt5.QtWidgets import QToolTip
 from numpy.lib.stride_tricks import as_strided
+from scipy.stats import gmean
 
 def progress(count, total, status=''):
     bar_len = 60
@@ -125,3 +126,11 @@ def tolerance(mz, tolerance, is_ppm=True):
         return mz * tolerance / 1e6
     else:
         return tolerance
+
+def geomeans(intensities):
+    if intensities.size == 0:
+        return 0
+    mask = np.ma.array(intensities, mask=intensities==0).min(0)
+    masked_intensities = np.where(intensities==0, mask, intensities)
+    geomean =  gmean(masked_intensities, axis=0)
+    return geomean

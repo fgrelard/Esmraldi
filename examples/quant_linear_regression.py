@@ -37,7 +37,7 @@ def compute_average_from_region(curr_spectra, mzs, step, peaks=None):
         stds[indices] = actual_stds
         n = np.repeat(len(indices_regions), len(curr_mzs))
     else:
-        curr_mzs, intensities, stds, n, medians = sp.realign_mean_spectrum(mzs, curr_spectra[:, 1], curr_spectra[:, 0], step, is_ppm=True, return_stats=True)
+        curr_mzs, intensities, stds, n, _, _ = sp.realign_mean_spectrum(mzs, curr_spectra[:, 1], curr_spectra[:, 0], step, is_ppm=True, return_stats=True)
     return intensities, stds,  n
 
 
