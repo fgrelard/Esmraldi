@@ -68,6 +68,7 @@ normalization = args.normalization
 outname = args.output
 analysis_names = args.names
 gmm_name = args.gmm
+proba = float(args.proba)
 
 mzs_name = os.path.splitext(input_name)[0] + "_mzs.csv"
 names_name = os.path.splitext(input_name)[0] + "_names.csv"
@@ -116,7 +117,7 @@ if analysis_names is not None:
     out = out[..., inside]
 
 if "ET&LO" in names:
-    order = np.array([0, 1, 3, 4, 5, 2])
+    order = np.array([0, 1, 3, 4, 2])
     names = names[order]
     out = out[..., order]
 
@@ -139,7 +140,7 @@ if gmm_name is not None:
         labels[probas.max(axis=-1) < proba] = uncertain_label
     label_image = np.reshape(labels, shape[:-1]).T
     array_colors = np.array(cm.colors)
-    gray = np.array([0.15, 0.15, 0.15])
+    gray = np.array([0.3, 0.3, 0.3])
     array_colors[uncertain_label, :] = gray
     cm = colors.ListedColormap(array_colors)
     plt.imshow(label_image, cmap=cm, vmin=0, vmax=cm.N, interpolation="nearest")
@@ -155,7 +156,7 @@ else:
 
     blacks = np.zeros_like(label_image)
     plt.imshow(blacks, cmap="gray")
-    plt.imshow(label_image, cmap=cm, vmin=0, vmax=cm.N, alpha=opacity_image, interpolation="nearest")
+    plt.imshow(label_image, cmap=cm, vmin=0, vmax=cm.N, alpha=opacity_image,  interpolation="nearest")
 
 handles = [plt.Rectangle((0, 0), 0, 0, color=cm(int(i)), label=name) for i, name in enumerate(analysis_names)]
 # handles = [plt.Rectangle((0, 0), 0, 0, color=cm(norm(i+1)), label=name) for i, name in enumerate(analysis_names)]
