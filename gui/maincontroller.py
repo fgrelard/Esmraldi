@@ -26,6 +26,7 @@ import esmraldi.spectraprocessing as sp
 
 from esmraldi.msimage import MSImage
 from esmraldi.msimagefly import MSImageOnTheFly
+from esmraldi.msimageimpl import MSImageImplementation
 from esmraldi.sparsematrix import SparseMatrix
 from esmraldi.utils import msimage_for_visualization,  indices_search_sorted
 
@@ -139,13 +140,14 @@ class WorkerOpen(QObject):
         """
         Open other imaging formats
         """
+        mzs = np.array([])
+        if self.path.endswith("tif"):
+            return io.open_tif(self.path)
         try:
             im_itk = sitk.ReadImage(self.path)
         except:
-            print("Reading with OpenCV")
-            return cv2.imread(self.path)
-
-        return sitk.GetArrayFromImage(im_itk)
+            return cv2.imread(self.path), mzs
+        return sitk.GetArrayFromImage(im_itk), mzs
 
     @pyqtSlot()
     def work(self):
@@ -163,7 +165,18 @@ class WorkerOpen(QObject):
                     np.save(self.npy_indexing_path, img_data.indexing)
                 img_data.indexing = np.load(self.npy_indexing_path, mmap_mode="r")
         else:
-            img_data = self.open_other_formats()
+            images, mzs = self.open_other_formats()
+            if mzs.size:
+                images = images.T
+                intensities, _ = io.get_spectra_from_images(images, full=True)
+                intensities = np.array(intensities)
+                all_mzs = np.tile(mzs, (np.prod(images.shape[:-1]), 1))
+                spectra = np.stack([all_mzs, intensities], axis=1)
+                img_data = MSImageImplementation(spectra, images, mzs, tolerance=14)
+                img_data = msimage_for_visualization(img_data)
+            else:
+                img_data = images
+
         self.signal_end.emit(img_data, self.path)
 
     def abort(self):
@@ -215,7 +228,10 @@ class WorkerSave(QObject):
                 else:
                     root, ext = os.path.splitext(self.path)
                     io.to_csv(self.image.mzs, root + ".csv")
-                    sitk.WriteImage(sitk.GetImageFromArray(self.image.image.astype(np.float32)), self.path)
+                    if ext == ".tif":
+                        io.to_tif(self.image.image.astype(np.float32), self.image.mzs, self.path)
+                    else:
+                        sitk.WriteImage(sitk.GetImageFromArray(self.image.image.astype(np.float32)), self.path)
             else:
                 sitk.WriteImage(sitk.GetImageFromArray(self.image), self.path)
         except:
@@ -345,7 +361,7 @@ class MainController:
         # self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/synthetic.imzML")
 
         # self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/random.imzML")
-        self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/20210112_107x25_20um_Mouse_Spleen_DAN_Neg_mode_200-2000mz_70K_Laser37_6p5kV_350C_Slens90_Line_centroid.imzml")
+        self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/test.tif")
         # self.open_file("/mnt/d/CouplageMSI-Immunofluo/20211102 DAN 5um - laser 39/IF/20211102 Rate3#6-BF 10x - Post scan DAN- washed.tif")
         # self.open_file("/mnt/d/CBMN/random.imzML")
 
