@@ -21,7 +21,8 @@ from sklearn.cluster import DBSCAN
 
 
 def compute_gmm(x, y, n_repetitions, names, add_class=False):
-    means_init = np.array([[1 if i == j else 0 for j in range(len(names)) ] for i in range(len(names))])
+    n = len(names)
+    means_init = np.array([[1 if i == j else 0 for j in range(n) ] for i in range(n)])
     if add_class:
         means_init = np.vstack([means_init, [1/len(names) for j in range(len(names))]])
     all_params = {}
@@ -41,7 +42,10 @@ def compute_gmm(x, y, n_repetitions, names, add_class=False):
             out = out[..., order]
             y_curr = y_curr[..., order]
 
-        gmm = GaussianMixture(n_components=out.shape[-1]+1, covariance_type="tied", means_init=means_init)
+        k = out.shape[-1]
+        if add_class:
+            k += 1
+        gmm = GaussianMixture(n_components=k, covariance_type="tied", means_init=means_init)
         clusters_gmm = gmm.fit(out)
         labels = clusters_gmm.predict(out)
         probas = clusters_gmm.predict_proba(out)
@@ -137,14 +141,17 @@ if os.path.isdir(msi_name):
     for root, dirs, files in os.walk(msi_name):
         for f in files:
             if f == "train.tif":
-                image_itk = sitk.ReadImage(root + os.path.sep +f)
-                images = sitk.GetArrayFromImage(image_itk).T
-                x = images.reshape(images.shape[1:])
-                params = compute_gmm(x, y, 5, names, add_class)
-                if len(all_params) == 0:
-                    all_params = {p: v for p, v in params.items()}
-                else:
-                    all_params = {p: v + params[p] for p, v in all_params.items()}
+                current_file = f
+            else:
+                continue
+            image_itk = sitk.ReadImage(root + os.path.sep + current_file)
+            images = sitk.GetArrayFromImage(image_itk).T
+            x = images.reshape(images.shape[1:])
+            params = compute_gmm(x, y, 5, names, add_class)
+            if len(all_params) == 0:
+                all_params = {p: v for p, v in params.items()}
+            else:
+                all_params = {p: v + params[p] for p, v in all_params.items()}
 else:
     image_itk = sitk.ReadImage(msi_name)
     images = sitk.GetArrayFromImage(image_itk).T

@@ -34,10 +34,10 @@ def extract_parent_paths(imzml_name, shape, names):
         if binder == "ET&LO":
             ind_binder =  np.where(names == "ET")[0][0]
             regions[..., ind_binder] += image
-            ind_binder =  np.where(names == "LO")[0][0]
-            regions[..., ind_binder] += image
+            # ind_binder =  np.where(names == "LO")[0][0]
+            # regions[..., ind_binder] += image
             binders.append("ET")
-            binders.append("LO")
+            # binders.append("LO")
         else:
             ind_binder = np.where(names == binder)[0][0]
             binders.append(binder)
@@ -80,7 +80,7 @@ def indices_peaks(peaks, other_peaks):
     indices[~indices_ppm] = -1
     return indices
 
-def get_mask(index, inside, masks):
+def get_mask(index, inside, masks, uncertain_label):
     if not inside[index]:
         return np.array([])
     if index != uncertain_label:
@@ -143,6 +143,12 @@ worksheet = workbook.add_worksheet("Stats")
 
 previous = 1
 
+n = len(analysis_names)
+names_array = np.array(analysis_names)
+uncertain_label = np.where((names_array == "Matrix") | (names_array == "Tape"))[0][0]
+sum_up = [ [[] for x in range(n) ] for _ in range(n) ]
+
+
 for i, target_name in enumerate(target_names):
     trimmed_name = os.path.splitext(os.path.basename(target_name))[0]
     trimmed_name = trimmed_name.split("_")
@@ -179,7 +185,7 @@ for i, target_name in enumerate(target_names):
     gmm = joblib.load(gmm_name)
     labels = gmm.predict(out)
     probas = gmm.predict_proba(out)
-    uncertain_label = len(analysis_names)
+
     if proba > 0:
         labels[probas.max(axis=-1) < proba] = uncertain_label
     # else:
@@ -192,12 +198,12 @@ for i, target_name in enumerate(target_names):
     previous += 1
     worksheet.write_row(1, previous, intersect)
     r = 0
-    for i in range(uncertain_label+1):
-        mask = get_mask(i, inside2, masks)
+    for i in range(n):
+        mask = get_mask(i, inside2, masks, uncertain_label)
         if mask.size == 0:
             continue
         c = 0
-        for j in range(uncertain_label+1):
+        for j in range(n):
             prediction = get_prediction(j, inside2, label_image, uncertain_label)
             if prediction.size == 0:
                 continue
@@ -205,6 +211,7 @@ for i, target_name in enumerate(target_names):
 
             se = tp / (tp+fn)
             worksheet.write(2+r, previous+c, se)
+            sum_up[i][j].append(se)
             # fig, ax = plt.subplots(1, 2)
             # ax[0].imshow(mask)
             # ax[1].imshow(prediction)
@@ -217,6 +224,15 @@ for i, target_name in enumerate(target_names):
         # worksheet.write(3, previous+i, se)
 
     previous += len(intersect)
+
+
+worksheet.write_column(5+len(analysis_names), 0, analysis_names)
+worksheet.write_row(4+len(analysis_names), 1, analysis_names)
+
+for r in range(n):
+    for c in range(n):
+        mean = np.nan_to_num(np.mean(sum_up[r][c]))
+        worksheet.write(5+len(analysis_names)+r, 1+c, mean)
 
 
 worksheet.freeze_panes(0, 1)

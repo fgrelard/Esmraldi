@@ -83,12 +83,16 @@ def coordinates_from_sampled_regions(super_regions, super_shapes, size, all_name
             current_name = all_names[ind]
             index_balanced = np.where(balanced_names == current_name)
             count = balanced_counts[index_balanced]
-            limit = int(size*count)
+            limit = int(sample_size)
+            # limit = int(max(sample_size/2, size*count))
             region = regions[..., j].copy()
             im_region = np.reshape(region, super_shapes[i])
-            footprint = morphology.disk(erosion_radius)
+            if j == regions.shape[-1]-1:
+                footprint = morphology.disk(erosion_radius+2)
+            else:
+                footprint = morphology.disk(erosion_radius)
             im_eroded = morphology.erosion(im_region, footprint)
-            if im_eroded[im_eroded > 0].size > size:
+            if im_eroded[im_eroded > 0].size > size/5:
                 im_region = im_eroded
             im_region = im_region.flatten()
             coords = np.argwhere(im_region > 0)
@@ -152,17 +156,17 @@ def read_regions(region_names):
         trimmed_name = os.path.splitext(os.path.basename(region_name))[0]
         region = read_image(region_name)
         regions.append(region)
-        if "&" in trimmed_name:
-            binders = trimmed_name.split("_")[0]
-            pigment = trimmed_name.split("_")[1]
-            binder1 = binders.split('&')[0]
-            binder2 = binders.split('&')[1]
-            names.append(binder1 + "_" + pigment)
-            names.append(binder2 + "_" + pigment)
-            #Add this region twice
-            regions.append(region)
-        else:
-            names.append(trimmed_name)
+        # if "&" in trimmed_name:
+        #     binders = trimmed_name.split("_")[0]
+        #     pigment = trimmed_name.split("_")[1]
+        #     binder1 = binders.split('&')[0]
+        #     binder2 = binders.split('&')[1]
+        #     names.append(binder1 + "_" + pigment)
+        #     names.append(binder2 + "_" + pigment)
+        #     #Add this region twice
+        #     regions.append(region)
+        # else:
+        names.append(trimmed_name)
     regions = np.transpose(np.array(regions), (1,2,0))
     regions = io.normalize(regions)
     region_flatten = fusion.flatten(regions, is_spectral=True).T
@@ -208,10 +212,8 @@ args = parser.parse_args()
 input_name = args.input
 region_names = args.regions
 normalization = args.normalization
-sample_size = int(args.sample_size)
+sample_size = float(args.sample_size)
 outname = args.output
-
-
 
 super_regions = []
 region_shapes = []
@@ -241,6 +243,7 @@ indices = indices_pigments + indices_binders
 # unique_names = unique_binders
 # indices = indices_binders
 slices = extract_indexslices_regions(super_regions)
+
 unique_slices = np.unique(slices)
 slices_combined, indices_combined = extract_indices_combined_regions(super_regions, indices)
 
@@ -264,6 +267,9 @@ for i, slices in enumerate(slices_combined):
         combined_regions[slices[j], index_combined] = reg
     index_combined += 1
 print("index combined,", index_combined)
+
+
+
 
 root = os.path.splitext(outname)[0]
 
@@ -314,4 +320,8 @@ image_flatten = image_flatten.T[..., np.newaxis]
 print(image_flatten.shape)
 
 sitk.WriteImage(sitk.GetImageFromArray(image_flatten), outname)
+np.save(root + "_slices", unique_slices)
+np.save(root + "_shapes", region_shapes)
+if sample_size > 0:
+    np.save(root + "_coords", np.array(sampled_coords, dtype=object))
 io.to_csv(mzs, root + ".csv")

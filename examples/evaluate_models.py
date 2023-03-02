@@ -62,9 +62,17 @@ def analyze_model(input_name, x, y, region_names):
 
     y_predict = regression.predict(x)
 
+    subset = region_names
+    # subset = np.array(["Casein", "Collagen", "ET", "LO", "Matrix"])
+    indices_y = np.array([n in names and n in subset for n in region_names])
+    indices_y_predict = np.array([n in region_names and n in subset for n in names])
 
-    indices_y = np.array([n in names for n in region_names])
-    indices_y_predict = np.array([n in region_names for n in names])
+    ind_mat = np.where((np.array(subset) == "Matrix") | (np.array(subset) == "Tape") | (np.array(subset) == "ET&LO"))[0]
+    indices_not_matrix = (y[..., ind_mat] == 0).all(axis=-1)
+    y = y[indices_not_matrix]
+    y_predict = y_predict[indices_not_matrix]
+    print(y.shape)
+
     y = y[..., indices_y]
     y_predict = y_predict[..., indices_y_predict]
 
@@ -77,11 +85,16 @@ def analyze_model(input_name, x, y, region_names):
     y_bin = np.where(y>0, 1, 0).astype(np.uint8)
     y_predict_bin = np.where(y_predict>0, 1, 0).astype(np.uint8)
 
+    t = 0
+    y_mse = np.where(y>t, 1, y).astype(np.uint8)
+    y_predict_mse = np.where(y_predict>t, 1, y_predict).astype(np.uint8)
+
     r = recall(y_bin, y_predict_bin)
     p = precision(y_bin, y_predict_bin)
     se = recall_score(y_bin.flatten(), y_predict_bin.flatten())
     sp = recall_score(y_bin.flatten(), y_predict_bin.flatten(), pos_label=0)
-    mse = mean_squared_error(y, y_predict)
+    mse = mean_squared_error(y_mse, y_predict_mse)
+    print(mse)
     return r, p, sp, se, mse
     # all_mzs = []
     # total_length = 0
@@ -150,6 +163,7 @@ if roc_name is not None:
 
 nb = []
 vals = []
+
 print(x.shape, y.shape)
 for root, dirs, files in os.walk(input_dir):
     for f in files:
@@ -168,6 +182,7 @@ for root, dirs, files in os.walk(input_dir):
                 vals.append(currvals)
 
 vals = np.array(vals)
+print(nb[np.argmin(vals[:, 4])])
 
 fig, ax = plt.subplots(1, 5)
 ax[0].set_title("Recall")
