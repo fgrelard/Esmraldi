@@ -120,13 +120,13 @@ def draw_graph(matrix, mzs, is_mds, new_separation=False, color_regions="b", is_
     np.fill_diagonal(distance_matrix, 0)
     if new_separation:
         k = 1/smallest_value
-        k = 5
+        # k = 5
         distance_matrix = matrix*k
     if is_mds:
-        mds = TSNE(n_components=2, metric="precomputed", perplexity=2, learning_rate="auto", early_exaggeration=5)
+        # mds = TSNE(n_components=2, metric="precomputed", perplexity=1, learning_rate=1, early_exaggeration=1)
         # mds = MDS(n_components=2, dissimilarity="precomputed")
         # mds = KernelPCA(n_components=2, kernel='rbf', gamma=10)
-        # mds = umap.UMAP(random_state=0, n_neighbors=3, min_dist=0.4, metric="euclidean")
+        mds = umap.UMAP(random_state=0, n_neighbors=3, min_dist=0.1, metric="cosine")
         pos_array = mds.fit_transform(distance_matrix).T
         print(pos_array.shape)
 
@@ -344,7 +344,6 @@ def analyse_intensity_distributions(image_norm):
         X = values.reshape(image.shape[:-1])
         best_coeff = -1
         for i in range(3):
-
             number = i + 2
             thresholds = threshold_multiotsu(X, number)
             regions = np.digitize(X, bins=thresholds)
@@ -390,6 +389,7 @@ def analyse_intensity_distributions(image_norm):
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input .imzML")
 parser.add_argument("-p", "--preprocess", help="Normalize", action="store_true")
+parser.add_argument("--normalization_dataset", help="Normalization dataset", default=None)
 parser.add_argument("-n", "--normalization", help="Normalize w.r.t. to given m/z", default=0)
 parser.add_argument("-o", "--output", help="Output .csv files with stats")
 parser.add_argument("-r", "--regions", help="Subregions inside mask", nargs="+", type=str)
@@ -401,6 +401,7 @@ output_name = args.output
 region_names = args.regions
 is_normalized = args.preprocess
 normalization = float(args.normalization)
+normalization_dataset = args.normalization_dataset
 is_mds = args.mds
 
 if input_name.lower().endswith(".imzml"):
@@ -427,7 +428,15 @@ else:
 
 norm_img = None
 if normalization>0:
-    norm_img = imageutils.get_norm_image(image, normalization, mzs)
+    if normalization_dataset is not None:
+        normalization_image = sitk.ReadImage(normalization_dataset)
+        normalization_image = sitk.GetArrayFromImage(normalization_image).T
+        mzs = np.loadtxt(os.path.splitext(normalization_dataset)[0] + ".csv")
+        norm_img = imageutils.get_norm_image(normalization_image, normalization, mzs)
+        plt.imshow(norm_img)
+        plt.show()
+    else:
+        norm_img = imageutils.get_norm_image(image, normalization, mzs)
     for i in range(image.shape[-1]):
         image[..., i] = imageutils.normalize_image(image[...,i], norm_img)
 
@@ -492,6 +501,7 @@ metrics = ["cosine", "correlation", "euclidean", "sqeuclidean", "cityblock", "ha
 metrics = ["cosine"]
 
 fig, ax = plt.subplots(2, max(2,len(metrics)//2))
+
 for i, s in enumerate(metrics):
     # distance_matrix = distance.squareform(distance.pdist(image_norm, metric=lambda u, v: vifp(u.reshape(current_image.shape[:-1])[..., np.newaxis],v.reshape(current_image.shape[:-1])[..., np.newaxis])))
     # distance_matrix = distance.squareform(distance.pdist(image_norm, metric=lambda u, v: call_metrics(u,v,s)))
@@ -510,34 +520,38 @@ for i, s in enumerate(metrics):
 # plt.imshow(distance_matrix, cmap="RdBu", interpolation="nearest")
 # plt.show()
 
-model = AgglomerativeClustering(linkage="average", affinity="precomputed", n_clusters=None, distance_threshold=0)
-model = model.fit(distance_matrix)
-
-fig, ax = plt.subplots(1, 3)
-linkage_matrix = get_linkage(model)
-
-# Plot the corresponding dendrogram
-dendro = hc.dendrogram(linkage_matrix, truncate_mode=None, p=10, no_plot=True)
-plot_tree(dendro, ax[0])
-
-artists = []
+draw_hierarchical = True
 is_3D = False
-dim = 2
-if is_3D:
-    dim = 3
-    ax_scatter = plt.axes(projection="3d")
-else:
-    ax_scatter = ax[1]
 
-pos_array = draw_graph(distance_matrix, mzs, is_mds, False, color_regions)
+if draw_hierarchical:
 
-im_display = ax[2].imshow(image[..., 0].T)
-cid = fig.canvas.mpl_connect('button_press_event', lambda event:onclick(event, linkage_matrix, pos_array, shape))
-fig.canvas.mpl_connect('pick_event', lambda event: onpick(event, mzs, current_image, im_display))
-ax[0].callbacks.connect('xlim_changed', on_lims_change)
+    model = AgglomerativeClustering(linkage="average", affinity="precomputed", n_clusters=None, distance_threshold=0)
+    model = model.fit(distance_matrix)
+
+    fig, ax = plt.subplots(1, 3)
+    linkage_matrix = get_linkage(model)
+
+    # Plot the corresponding dendrogram
+    dendro = hc.dendrogram(linkage_matrix, truncate_mode=None, p=10, no_plot=True)
+    plot_tree(dendro, ax[0])
+
+    artists = []
+    dim = 2
+    if is_3D:
+        dim = 3
+        ax_scatter = plt.axes(projection="3d")
+    else:
+        ax_scatter = ax[1]
+
+    pos_array = draw_graph(distance_matrix, mzs, is_mds, False, color_regions)
+
+    im_display = ax[2].imshow(image[..., 0].T)
+    cid = fig.canvas.mpl_connect('button_press_event', lambda event:onclick(event, linkage_matrix, pos_array, shape))
+    fig.canvas.mpl_connect('pick_event', lambda event: onpick(event, mzs, current_image, im_display))
+    ax[0].callbacks.connect('xlim_changed', on_lims_change)
 
 fig, ax_scatter = plt.subplots()
-draw_graph(distance_matrix, mzs, is_mds, False, color_regions, is_text=True)
+draw_graph(distance_matrix, mzs, is_mds, True, color_regions, is_text=True)
 
 plt.tight_layout()
 plt.show()
