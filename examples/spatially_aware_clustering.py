@@ -22,14 +22,14 @@ from sklearn.cluster import KMeans
 def mapping_neighbors(image, radius, weights):
     r = radius
     size = 2*r+1
-    img_padded = np.pad(image, (r,r), 'constant')
     mapping_matrix = np.zeros(shape=(image.shape[0], image.shape[1], size, size, image.shape[-1]))
+    w = weights[..., None]
     for index in np.ndindex(image.shape[:-1]):
         i, j = index
         neighbors = image[i-r:i+r+1, j-r:j+r+1]
         if neighbors.shape[0] != size or neighbors.shape[1] != size:
             continue
-        mapping_matrix[index] = neighbors * weights[..., None]
+        mapping_matrix[index] = neighbors * w
     return mapping_matrix
 
 def gaussian_weights(radius):
@@ -39,6 +39,7 @@ def gaussian_weights(radius):
 
 def spatially_aware_clustering(image, k, n, radius):
     weights = gaussian_weights(radius)
+    print("Mapping neighbors")
     mapping_matrix = mapping_neighbors(image, radius, weights)
     old_shape = mapping_matrix.shape
     new_shape = (np.prod(old_shape[:-3]), np.prod(old_shape[-3:]))
@@ -55,10 +56,13 @@ def spatially_aware_clustering(image, k, n, radius):
     else:
         proj = fastmap_matrix
 
+    return proj
+
+
+def clustering(proj, k, shape):
     kmeans = KMeans(k, random_state=0).fit(proj)
     labels = kmeans.labels_
-    image_labels = labels.reshape(old_shape[:-3])
-
+    image_labels = labels.reshape(shape)
     return image_labels
 
 
@@ -71,6 +75,7 @@ parser.add_argument("-k", "--classes", help="Number of clusters for kmeans", def
 parser.add_argument("-r", "--radius", help="Radius for spatial features", default=1)
 parser.add_argument("-g", "--threshold", help="Mass to charge ratio threshold (optional)", default=0)
 parser.add_argument("--normalization", help="Normalize spectra by their norm", default=None)
+parser.add_argument("--mask", help="Mask", default=None)
 parser.add_argument("--cosine", help="Whether to normalize spectra in order to approximate cosine distance in KMeans computation", action="store_true")
 
 args = parser.parse_args()
@@ -83,6 +88,7 @@ k = int(args.classes)
 threshold = int(args.threshold)
 normalization = args.normalization
 is_cosine = args.cosine
+mask_name = args.mask
 
 
 if input_name.lower().endswith(".imzml"):
@@ -122,6 +128,14 @@ if is_cosine:
     for i in range(images.shape[-1]):
         images[..., i] = imageutils.normalize_image(images[..., i], norm_img)
 
+if mask_name != None:
+    mask = sitk.GetArrayFromImage(sitk.ReadImage(mask_name)).T
+    images[mask==0] = 0
+    plt.imshow(images[..., 1])
+    plt.show()
+
+
+
 
 mzs = mzs[mzs >= threshold]
 mzs = np.around(mzs, decimals=2)
@@ -135,11 +149,17 @@ shape = images.shape
 if len(shape) == 4:
     for i in range(shape[-2]):
         current_image = images[..., i, :]
-        image_labels = spatially_aware_clustering(current_image, k, n, radius)
-        plt.imshow(image_labels)
-        plt.show()
+        proj = spatially_aware_clustering(current_image, k, n, radius)
 else:
-    image_labels = spatially_aware_clustering(images, k, n, radius)
+    proj = spatially_aware_clustering(images, k, n, radius)
+
+for nb_cluster in range(2, k+1):
+    image_labels = clustering(proj, nb_cluster, images.shape[:-1])
+    image_labels_itk = sitk.GetImageFromArray(image_labels.astype(np.uint8).T)
+    root, ext = os.path.splitext(outname)
+    curroutname = root + "_" + str(nb_cluster) + ext
+    print(nb_cluster, curroutname)
+    sitk.WriteImage(image_labels_itk, curroutname)
 
 # images = imzmlio.normalize(images)
 # outname_csv = os.path.splitext(outname)[0] + ".csv"
@@ -156,8 +176,7 @@ else:
 #     out_array[:, i] = top_molecules
 # np.savetxt(outname_csv, out_array, delimiter=";", fmt="%s")
 
-image_labels_itk = sitk.GetImageFromArray(image_labels.astype(np.uint8).T)
-sitk.WriteImage(image_labels_itk, outname)
+
 
 plt.imshow(image_labels.T)
 plt.show()
