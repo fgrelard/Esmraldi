@@ -543,7 +543,7 @@ def single_roc_cutoff(image, indices, region_bool, fn, is_weighted=False):
         cutoffs[j] = cutoff
     return cutoffs
 
-def cutoff_distance2(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0):
+def cutoff_distance2(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0, return_index=False):
     d2h = (1 - tpr)**2 + (fpr)**2
     d2b = tpr**2 + (1-fpr)**2
     indexh  = np.argmin(d2h)
@@ -558,21 +558,27 @@ def cutoff_distance(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0, return_index=Fa
         return distance, index
     return distance
 
-def cutoff_half_tpr(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0):
+def cutoff_half_tpr(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0, return_index=False):
     index = np.searchsorted(tpr, 0.5)
+    if return_index:
+        return fpr[index], index
     return fpr[index]
 
-def cutoff_generalized_youden(fpr, tpr, thresholds, nb_zeros, nb_ones):
+def cutoff_generalized_youden(fpr, tpr, thresholds, nb_zeros, nb_ones, return_index=False):
     p = nb_ones/(nb_ones+nb_zeros)
     r = 4
     yg = tpr + ((1 - p)/(r*p)) * (1 - fpr) - 1
     # w = nb_zeros/nb_ones
     # yg = tpr + w * (1 - fpr) -1
+    if return_index:
+        return yg.max(), np.argmax(yg)
     return yg.max()
 
-def cutoff_efficiency(fpr, tpr, thresholds, nb_zeros, nb_ones):
+def cutoff_efficiency(fpr, tpr, thresholds, nb_zeros, nb_ones, return_index=False):
     p = nb_ones/(nb_ones+nb_zeros)
     eff = tpr * p  + (1 - fpr) * (1-p)
+    if return_index:
+        return eff.max(), np.argmax(eff)
     return eff.max()
 
 def roc_auc_analysis(images, indices, region_bool, norm_img=None, thresholded_variants=False, is_weighted=False):
