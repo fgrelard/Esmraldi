@@ -95,12 +95,7 @@ indices, indices_ravel = fusion.roc_indices(mask, images.shape[:-1], norm_img)
 
 region_bool = fusion.region_to_bool(regions, indices_ravel, images.shape[:-1])
 roc_auc_scores = fusion.roc_auc_analysis(images, indices, region_bool, norm_img, is_weighted=is_weighted)
-roc_cutoffs = fusion.roc_cutoff_analysis(images, indices, region_bool, is_weighted=is_weighted, fn=fn)
-roc_cutoffs_half = fusion.roc_cutoff_analysis(images, indices, region_bool, is_weighted=is_weighted, fn=fusion.cutoff_half_tpr)
-roc_cutoffs_d2 = fusion.roc_cutoff_analysis(images, indices, region_bool, is_weighted=is_weighted, fn=fusion.cutoff_distance2)
 roc_cutoffs_youden = fusion.roc_cutoff_analysis(images, indices, region_bool, is_weighted=is_weighted, fn=fusion.cutoff_generalized_youden)
-roc_cutoffs_efficiency = fusion.roc_cutoff_analysis(images, indices, region_bool, is_weighted=is_weighted, fn=fusion.cutoff_efficiency)
-np.savetxt("/mnt/d/CouplageMSI-Immunofluo/Rate4#36/stats_cutoffs_2.csv", np.column_stack((mzs, roc_auc_scores, roc_cutoffs, roc_cutoffs_half, roc_cutoffs_d2)), delimiter=",", header="m/z, auc, distance, half tpr", fmt="%f")
 
 
 plt.scatter(roc_auc_scores, roc_cutoffs_youden)

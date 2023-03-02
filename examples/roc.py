@@ -13,6 +13,7 @@ from skimage.color import rgb2gray
 
 def read_image(image_name):
     sitk.ProcessObject_SetGlobalWarningDisplay(False)
+    print(image_name)
     mask = sitk.GetArrayFromImage(sitk.ReadImage(image_name))
     if mask.ndim > 2:
         mask = rgb2gray(mask)
@@ -184,14 +185,14 @@ for worksheet in worksheets:
     for i, region in enumerate(regions):
         region_name = region_names[i]
         name = os.path.splitext(os.path.basename(region_name))[0]
-        worksheet.write(i+1, 0, name, header_format)
+        worksheet.write(0, i+1, name, header_format)
     worksheet.freeze_panes(1, 1)
 
 
 for worksheet_index, values in enumerate(L):
     for (i, j), individual_value in np.ndenumerate(values):
-        worksheets[worksheet_index].write(0, i+1, mzs[i], header_format)
-        worksheets[worksheet_index].write(j+1, i+1, individual_value)
+        worksheets[worksheet_index].write(i+1, 0, mzs[i], header_format)
+        worksheets[worksheet_index].write(i+1, j+1, individual_value)
 
 # for (i, j), auc in np.ndenumerate(roc_auc_scores):
 #     worksheet.write(0, i+1, mzs[i], header_format)

@@ -13,11 +13,11 @@ input_name = args.input
 output_name = args.output
 
 roc_values_df = pd.read_excel(input_name)
-mzs = roc_values_df.columns[1:]
-roc_values = np.array(roc_values_df)
+roc_values = np.array(roc_values_df).T
 
-region_names = roc_values[:, 0]
-roc_values = roc_values[:, 1:]
+mzs = roc_values[0, :]
+region_names = np.array(roc_values_df.columns[1:])
+roc_values = roc_values[1:, :]
 condition = (roc_values > 0.6) | (roc_values < 0.4)
 print(condition.shape)
 for i, region in enumerate(region_names):
