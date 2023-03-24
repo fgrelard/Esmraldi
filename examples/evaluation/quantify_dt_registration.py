@@ -58,9 +58,10 @@ def create_data(deformation=False):
         coords_line = draw.line(82, 49, 60, 43)
         img[coords_line] = 200
 
+
         set_intersection = set_disk.intersection(set_ellipse)
-        inters_xy = tuple(np.array(listg(set_intersection)).T)
-        img[inters_xy] = 200
+        inters_xy = tuple(np.array(list(set_intersection)).T)
+        img[inters_xy] = 20
 
         N = 100
         x = np.linspace(-np.pi,np.pi, N)
@@ -73,15 +74,15 @@ def create_data(deformation=False):
 
     return img
 
-mean_noise = 10
-stddev_noise = 5
+mean_noise = 255
+stddev_noise = 50
 
 reference = create_data()
 target = create_data(deformation=True)
 
 target_original = target.copy()
 target = transform.rotate(target, 37, order=0)
-target = transform.resize(target, (50, 50), order=1)
+target = transform.resize(target, (50, 50), order=0, anti_aliasing=True)
 target = np.pad(target, 25)
 
 # fig, ax = plt.subplots(1, 3)
@@ -95,9 +96,10 @@ target_binary = target.copy()
 reference_binary[reference_binary > 0] = 255
 target_binary[target_binary > 0] = 255
 
-
+np.random.seed(0)
 noise2 = np.random.normal(mean_noise, stddev_noise, reference.shape)
 target[target > 0] += noise2[target > 0]
+target[target < 0] = 0
 
 plt.imshow(target)
 plt.show()
