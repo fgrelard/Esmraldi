@@ -23,6 +23,7 @@ matplotlib.use("module://mplcairo.qt")
 import matplotlib.pyplot as plt
 from mplcairo import operator_t
 from mpldatacursor import datacursor
+import pandas as pd
 
 def display_onclick(**kwargs):
     label = kwargs["label"]
@@ -37,16 +38,32 @@ args = parser.parse_args()
 inputname = args.input
 r = float(args.r_exact_mass)
 
-data = np.genfromtxt(inputname, skip_header=0, delimiter=";", filling_values=0)
-
+# data = np.genfromtxt(inputname, skip_header=0, delimiter=";", filling_values=0)
+data_df = pd.read_excel(inputname)
+data = np.array(data_df)
 #CSV file is organized as columns (mzs, intensities, relative_intensities)
-mzs = data[:, ::3]
-intensities = data[:, 1::3]
+mzs = data[1:, 0]
+intensities = data[1:, 1::3]
 kendrick_mass = mzs * round(r) / r
 kendrick_mass_defect = kendrick_mass - np.floor(kendrick_mass)
 
 #Colors for different ROIs
-colors = ["r", "g", "b"]
+regions = np.array(data_df.columns[~data_df.columns.str.match("Unnamed")])
+
+second_indices = (regions == "20220622 Rate2#19 LymphB") | (regions == "20220622 Rate2#19 LymphT") | (regions == "20220622 Rate2#19 Macrophage")
+print(second_indices)
+intensities = intensities.astype(np.float64)
+intensities[intensities==0] = intensities[intensities>0].min()
+intensities = intensities[:, second_indices]
+max_color = intensities.max(axis=-1)
+colors = intensities/max_color[:, np.newaxis]
+colors_new = np.ones((colors.shape[0], colors.shape[1]+1))
+colors_new[:, :-1] = colors
+colors = colors_new
+colors[:, [0, 1, 2]] = colors[:, [1, 2, 0]]
+closest_mz_index = np.abs(mzs - 987.497).argmin()
+print(colors[closest_mz_index])
+print(intensities[:10, :])
 
 fig, ax = plt.subplots()
 ax.set_xlabel("m/z")
@@ -57,16 +74,18 @@ ax.patch.set(alpha=0)
 
 #Arbitrary threshold to make low intensity points not apparent in the resulting KMD plot
 threshold = 1000
-log_intensities = np.log10(intensities/threshold)
+
+log_intensities = np.log10(max_color*10000)
 
 #Min clipping to avoid 0 valued sizes
 size_intensities = 20*np.clip(log_intensities, np.finfo(float).eps, None)
-
+print(kendrick_mass_defect.shape, size_intensities.shape)
 #Iterating over ROIs
-for i in range(mzs.shape[-1]):
-    pc = ax.scatter(mzs[:, i], kendrick_mass_defect[:, i], s=size_intensities[:, i], c=colors[i], picker=True, ec=None)
+# for i in range(mzs.shape[-1]):
+for i in range(1):
+    pc = ax.scatter(mzs, kendrick_mass_defect, s=size_intensities, c=colors, picker=True, ec=colors/2)
     #blending colors
-    operator_t.EXCLUSION.patch_artist(pc)
+    # operator_t.EXCLUSION.patch_artist(pc)
     #picking events
     datacursor(pc, formatter=display_onclick)
 

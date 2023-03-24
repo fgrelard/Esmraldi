@@ -4,7 +4,7 @@ import esmraldi.imzmlio as io
 from esmraldi.msimageimpl import MSImageImplementation
 
 class MSImage:
-    def __new__(cls, spectra, image=None, mzs=None, shape=None, coordinates=None, tolerance=0, mean_spectra=None, dtype=float, buffer=None, offset=0, strides=None, order=None):
+    def __new__(cls, spectra, image=None, mzs=None, shape=None, coordinates=None, tolerance=14, mean_spectra=None, dtype=float, buffer=None, offset=0, strides=None, order=None):
         if image is None:
             if shape is None:
                 shape = cls.determine_shape(cls, coordinates)

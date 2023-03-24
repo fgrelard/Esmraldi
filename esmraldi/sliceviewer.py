@@ -64,7 +64,9 @@ class SliceViewer(object):
 
         """
         for i in range(len(self.ax)):
-            self.im[i].set_data(self.X[i][self.ind, ...])
+            img = self.X[i][self.ind, ...]
+            self.im[i].set_data(img)
+            self.im[i].set_clim(vmin=img.min(), vmax=img.max())
             if self.labels is None:
                 self.ax[i].set_xlabel('slice %s' % self.ind)
             else:

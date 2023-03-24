@@ -6,6 +6,11 @@ from pyqtgraph.Point import Point
 from gui.scatterplotitemdirac import ScatterPlotItemDirac
 
 class ViewBoxDirac(pg.ViewBox):
+    """
+    Viewbox for Dirac display
+
+    Events and updates are redefined here
+    """
     def __init__(self, selectable=True, *args, **kwds):
         pg.ViewBox.__init__(self, *args, **kwds)
 

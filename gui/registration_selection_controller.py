@@ -13,8 +13,10 @@ from skimage.color import rgb2gray, rgba2rgb, gray2rgb
 
 
 class WorkerRegistrationSelection(QtCore.QObject):
-
-    signal_end = QtCore.pyqtSignal(object, object)
+    """
+    Worker for fiducial based registration
+    """
+    signal_end = QtCore.pyqtSignal(object)
     signal_progress = QtCore.pyqtSignal(int)
 
     def __init__(self, fixed, moving, points_fixed, points_moving):
@@ -26,27 +28,40 @@ class WorkerRegistrationSelection(QtCore.QObject):
         self.is_abort = False
 
     def preprocess_image(self, image):
+        """
+        Transpose images so they match dimensions
+        before registration
+        """
         is_ms_image = hasattr(image, "image")
         processed_image = image
         shape = ((2,) if image.ndim == 3 else ()) + (0, 1)
         if is_ms_image:
-            processed_image = processed_image.image
+            processed_image = processed_image.image.T
         else:
             processed_image = np.transpose(image, shape)
         return processed_image, is_ms_image
 
     def postprocess_image(self, image, ref_ms_image=None):
+        """
+        Transpose images so they match after registration
+        """
         shape = ((2,) if image.ndim == 3 else ()) + (0, 1)
-        print(image.shape)
+        print(image.shape, ref_ms_image)
         if ref_ms_image is not None:
             spectra = ref_ms_image.spectra
-            new_image = MSImage(spectra, image, tolerance=0.003)
+            new_image = MSImage(spectra, image)
             new_image = msimage_for_visualization(new_image, transpose=False)
         else:
-            new_image = np.transpose(image, np.roll(shape, 1))
+            print(image.shape)
+            if image.ndim == 3:
+                shape = np.roll(shape, 1)
+            new_image = np.transpose(image, shape)
         return new_image
 
     def crop_image(self, image, points):
+        """
+        Crop images in between space defined by fiducials
+        """
         lower = round(np.amin(points[::2])), round(np.amin(points[1::2]))
         upper = round(np.amax(points[::2])+1), round(np.amax(points[1::2])+1)
         if image.ndim == 2:
@@ -57,15 +72,18 @@ class WorkerRegistrationSelection(QtCore.QObject):
         return image, new_points
 
     def apply_registration(self, fixed, register, landmark_transform):
+        """
+        Computes transformation using fiducial markers
+        """
         fixed_dim = fixed.ndim
         dim = register.ndim
         size = np.array(register.shape)[::-1]
-
+        print(fixed.shape, register.shape)
         if fixed_dim == 2:
             fixed_itk = sitk.GetImageFromArray(fixed)
             resampler = reg.initialize_resampler(fixed_itk, landmark_transform)
         if fixed_dim == 3:
-            fixed_itk = sitk.GetImageFromArray(fixed[0, ...])
+            fixed_itk = sitk.GetImageFromArray(fixed[..., 0])
             resampler = reg.initialize_resampler(fixed_itk, landmark_transform)
 
         if dim == 2:
@@ -97,28 +115,32 @@ class WorkerRegistrationSelection(QtCore.QObject):
 
     @QtCore.pyqtSlot()
     def work(self):
+        """
+        Main function called by worker
+        """
         fixed, is_ms_fixed = self.preprocess_image(self.fixed)
         moving, is_ms_moving = self.preprocess_image(self.moving)
         # fixed, self.points_fixed = self.crop_image(fixed, self.points_fixed)
 
+        print(is_ms_moving)
         print(self.points_fixed, self.points_moving)
         landmark_transform = sitk.LandmarkBasedTransformInitializer(sitk.AffineTransform(2), self.points_fixed, self.points_moving)
 
         deformed = self.apply_registration(fixed, moving, landmark_transform)
 
-        ref_fixed = self.fixed if is_ms_fixed else None
         ref_deformed = self.moving if is_ms_moving else None
-        fixed = self.postprocess_image(fixed, ref_fixed)
         deformed = self.postprocess_image(deformed, ref_deformed)
         print("Fixed", fixed.shape, deformed.shape)
-        self.signal_end.emit(fixed, deformed)
+        self.signal_end.emit(deformed)
 
     def abort(self):
         self.is_abort = True
 
 
 class RegistrationSelectionController:
-
+    """
+    Registration with fiducials
+    """
     def __init__(self, view, imageview, imageview2):
         self.view = view
         self.imageview = imageview

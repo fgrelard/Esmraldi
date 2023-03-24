@@ -8,6 +8,8 @@ import pyimzml.ImzMLParser as imzmlparser
 import scipy.spatial.distance as dist
 import esmraldi.imageutils as imageutils
 import esmraldi.imzmlio as io
+import esmraldi.spectraprocessing as sp
+import esmraldi.fusion as fusion
 import cv2 as cv
 import SimpleITK as sitk
 
@@ -725,7 +727,12 @@ def find_similar_images_dispersion(image_maldi, factor, quantiles=[], in_sample=
             binaryimg = image2D.copy()
             binaryimg[mask] = 1
             binaryimg[~mask] = 0
+
+
             moments = measure.moments(binaryimg, order=1)
+            number_non_zero = np.count_nonzero(binaryimg)
+            if (number_non_zero == 0):
+                continue
             centroid = [moments[1, 0]/moments[0, 0], moments[0, 1]/moments[0, 0]]
             ind = np.argwhere(mask)
             diff = np.linalg.norm(ind - centroid, axis=-1)
@@ -735,22 +742,23 @@ def find_similar_images_dispersion(image_maldi, factor, quantiles=[], in_sample=
                 min_value = variance
                 min_value_sample = value_sample
                 c = ind
+        if min_value == sys.maxsize:
+            min_value = 0
+            min_value_sample = 0
         values.append(min_value)
         values_sample.append(min_value_sample)
         coords.append(c)
     value_array = np.array(values)
     value_sample_array = np.array(values_sample)
     coords = np.array(coords)
-    print(coords.shape)
     if in_sample:
         off_sample_image, off_sample_cond = determine_on_off_sample(image_maldi, value_sample_array)
-        print(off_sample_cond)
         # off_sample_cond = np.array([np.median(off_sample_image[coord.T[0], coord.T[1]]) for coord in coords])
     indices = (value_array < factor) & (off_sample_cond < 0.5)
     similar_images = image_maldi[..., indices]
     to_return = (similar_images,)
     if return_indices:
-        to_return += (indices,)
+        to_return += (value_array, indices)
     if in_sample:
         to_return += (off_sample_image, off_sample_cond)
     return to_return
@@ -786,10 +794,40 @@ def heterogeneity_mask(image, region, size=10):
         for y in range(0, image.shape[1], size):
             currimg = reduced_image[x:x+size, y:y+size]
             origimg = image[x:x+size, y:y+size]
-            currimg = currimg[currimg >=0]
-            if currimg.size > 0:
-                averages.append(np.median(currimg))
-                max_values.append(currimg.max())
+            origimg = origimg[origimg > 0]
+            currimg = currimg[currimg >= 0]
+            if currimg.size > 0 and origimg.size > 0:
+                averages.append(np.median(origimg))
+                max_values.append(origimg.max())
     average = np.median(averages)
     average /= np.median(max_values)/2
     return average, averages, max_values
+
+
+def mapping_neighbors_average(image, radius):
+    r = radius
+    size = 2*r+1
+    img_padded = np.pad(image, (r,r), 'constant')
+    mapping_matrix = np.zeros_like(image)
+    for index in np.ndindex(image.shape[:-1]):
+        i, j = index
+        neighbors = image[i-r:i+r+1, j-r:j+r+1]
+        if neighbors.shape[0] != size or neighbors.shape[1] != size:
+            continue
+        neighbors = neighbors.reshape((size**2, neighbors.shape[-1]))
+        mapping_matrix[index] = np.mean(neighbors, axis=0)
+    return mapping_matrix
+
+def clustering_with_centers(images, centers, is_subtract, metric, mean_spectra_matrix=None, radius=0):
+    images = mapping_neighbors_average(images, radius=radius)
+    image_flatten = fusion.flatten(images, is_spectral=True).T
+    if is_subtract:
+        for i, spectra in enumerate(image_flatten):
+            image_flatten[i, :] = sp.subtract_spectra(spectra, mean_spectra_matrix)
+    distances = dist.cdist(image_flatten.astype(float), centers.astype(float), metric=metric)
+    distances = np.nan_to_num(distances, nan=1.0)
+    labels = np.argmin(distances, axis=-1)
+    norm_distance = np.take_along_axis(distances, labels[:, None], axis=-1)
+    confidence = np.reshape(norm_distance, images.shape[:-1])
+    label_image = np.reshape(labels, images.shape[:-1])
+    return label_image, confidence

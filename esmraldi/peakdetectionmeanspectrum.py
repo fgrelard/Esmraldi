@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.signal as signal
+import esmraldi.spectraprocessing as sp
 
 class PeakDetectionMeanSpectrum:
     def __init__(self, mzs, mean_spectrum, factor_prominence, step_ppm):
@@ -46,8 +47,16 @@ class PeakDetectionMeanSpectrum:
         size = self.mean_spectrum.shape[0]
         median_signal = np.median(self.mean_spectrum)
         threshold_prominence = median_signal * self.factor_prominence
+        self.factor_prominence = threshold_prominence
         peak_indices = self.find_peak_indices(widths=(widths,None))
-        return peak_indices
+        groups = sp.index_groups_start_end(self.mzs[peak_indices], self.step_ppm//2, True)
+        filtered_indices = []
+        cumlen = 0
+        for g in groups:
+            current_index = cumlen + len(g)//2
+            filtered_indices.append(peak_indices[current_index])
+            cumlen += len(g)
+        return np.array(filtered_indices)
 
     def not_indices(self, indices, length):
         """

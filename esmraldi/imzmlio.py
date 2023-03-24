@@ -16,14 +16,17 @@ import bisect
 import matplotlib.pyplot as plt
 import h5py
 
+from skimage import exposure, img_as_ubyte
 from mmappickle.dict import mmapdict
 from mmappickle.stubs import EmptyNDArray
 
 from esmraldi.sparsematrix import SparseMatrix
-from esmraldi.utils import progress, factors
+from esmraldi.utils import progress, factors, attempt_reshape
 import esmraldi.spectraprocessing as sp
 import time
 import math
+import tifffile
+import SimpleITK as sitk
 
 MAX_MAGNITUDE_ORDER = 6
 MAX_NUMBER = int(1e6)
@@ -86,22 +89,36 @@ def normalize(image):
     np.ndarray
         normalized image
     """
+    def norm_img(image):
+        min_value = image.min()
+        max_value = np.percentile(image, 99)
+        if min_value == max_value:
+            max_value = image.max()
+        if min_value == max_value:
+            max_value = 1
+            min_value = 0
+        image_normalized = ((image - min_value) / (max_value - min_value))*255
+        image_normalized = np.clip(image_normalized, 0, 255)
+        return image_normalized
+
     image_normalized = np.zeros_like(image, dtype=np.uint8)
     if len(image.shape) <= 2:
-        image_normalized = np.uint8(cv.normalize(image, None, 0, 255, cv.NORM_MINMAX))
+        image_normalized = norm_img(image)
+        # image_normalized = np.uint8(cv.normalize(image, None, 0, 255, cv.NORM_MINMAX))
     else:
         z = image.shape[-1]
         for k in range(z):
             slice2D = image[..., k]
-            slice2DNorm = np.uint8(cv.normalize(slice2D, None, 0, 255, cv.NORM_MINMAX))
+            slice2DNorm = norm_img(slice2D)
+            # slice2DNorm = np.uint8(cv.normalize(slice2D, None, 0, 255, cv.NORM_MINMAX))
             image_normalized[..., k] = slice2DNorm
     return image_normalized
 
-def get_full_spectra_sparse(spectra, imsize):
+def sparse_coordinates(spectra, imsize):
     mzs = spectra[:, 0]
     unique_mzs, indices_mzs = np.unique(np.hstack(mzs), return_inverse=True)
     number_points = len(unique_mzs)
-    pixel_numbers = np.hstack([np.repeat(i, int(len(mzs[i]))) for i in range(len(mzs))])
+    pixel_numbers = np.hstack([np.repeat(i, int(len(mzs[i]))) for i in range(len(mzs))]).astype(np.int32)
     shape = (imsize, 2, number_points)
     coordinates = np.zeros((2*len(pixel_numbers), 3), dtype=np.int32)
     for j in range(2):
@@ -110,34 +127,41 @@ def get_full_spectra_sparse(spectra, imsize):
             coordinates[i+j*len(pixel_numbers)] = coord
 
     coordinates = coordinates.T
+    return coordinates, shape
 
+def get_full_spectra_sparse(spectra, imsize, sorted=False):
+    coordinates, shape = sparse_coordinates(spectra, imsize)
     if spectra.ndim < 3:
         spectra = spectra.T.flatten()
-    data = np.hstack(spectra).flatten()
-    full_spectra_sparse = SparseMatrix(coordinates, data, shape)
+    data = np.hstack(spectra).flatten().astype(np.float32)
+    full_spectra_sparse = SparseMatrix(coordinates, data, shape, sorted=sorted, has_duplicates=False)
     return full_spectra_sparse
 
-def get_full_spectra(imzml):
+def get_full_spectra_dense(spectra, coordinates, shape):
+    mzs, ints = spectra[0, ...]
+    number_points = len(mzs)
+    imsize = np.prod(shape)
+    full_spectra = np.zeros((imsize, 2, number_points))
+    full_spectra[:,0,:] = mzs
+    for i, (x, y, z) in enumerate(coordinates):
+        real_index = (x-1) + (y-1) * shape[0] + (z-1) * shape[0] * shape[1]
+        mz, ints = spectra[i, ...]
+        full_spectra[real_index, 0] = mz
+        full_spectra[real_index, 1] = ints
+    return full_spectra
+
+def get_full_spectra(imzml, spectra=None):
     max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
     max_y = max(imzml.coordinates, key=lambda item:item[1])[1]
     max_z = max(imzml.coordinates, key=lambda item:item[2])[2]
 
-    spectra = get_spectra(imzml)
+    if spectra is None:
+        spectra = get_spectra(imzml)
+    shape = (max_x, max_y, max_z)
     if len(spectra.shape) == 2:
-        imsize = max_x*max_y*max_z
-        full_spectra_sparse = get_full_spectra_sparse(spectra, imsize)
-        return full_spectra_sparse
+        return get_full_spectra_sparse(spectra, np.prod(shape))
 
-    mzs, ints = imzml.getspectrum(0)
-    number_points = len(ints)
-    full_spectra = np.zeros((max_x*max_y*max_z, 2, number_points))
-    full_spectra[:,0,:] = mzs
-    for i, (x, y, z) in enumerate(imzml.coordinates):
-        real_index = (x-1) + (y-1) * max_x + (z-1) * max_x * max_y
-        mz, ints = imzml.getspectrum(i)
-        full_spectra[real_index, 0] = mz
-        full_spectra[real_index, 1] = ints
-
+    return get_full_spectra_dense(spectra, imzml.coordinates, shape)
 
     return full_spectra
 
@@ -748,3 +772,26 @@ def to_csv(array, filename):
 
     """
     np.savetxt(filename, array, delimiter=";", fmt='%1.4f')
+
+
+def to_tif(array, mzs, filename):
+    tifffile.imwrite(filename, array, imagej=True, metadata={"axes": "ZYX", "Labels": [str(mz) for mz in mzs]})
+
+def open_tif(filename):
+    mzs = []
+    tif = tifffile.TiffFile(filename)
+    if 50839 in tif.pages[0].tags.keys():
+        mzs_str = tif.pages[0].tags[50839].value["Labels"]
+        try:
+            mzs = [float(mz) for mz in mzs_str]
+        except:
+            pass
+    else:
+        root, ext = os.path.splitext(filename)
+        if os.path.exists(root + ".csv"):
+            mzs = np.loadtxt(root + ".csv", delimiter=";")
+    try:
+        im_itk = sitk.ReadImage(filename)
+    except:
+        return cv.imread(filename), np.array(mzs)
+    return sitk.GetArrayFromImage(im_itk), np.array(mzs)

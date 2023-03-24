@@ -6,18 +6,21 @@ import numbers
 
 import numpy as np
 import esmraldi.spectraprocessing as sp
+import esmraldi.utils as utils
 from esmraldi.msimagebase import MSImageBase
 
 class MSImageImplementation(MSImageBase):
 
-    def __init__(self, spectra, image=None, mzs=None, tolerance=0, is_maybe_densify=False, spectral_axis=-1, mean_spectra=None, peaks=None):
+    def __init__(self, spectra, image=None, mzs=None, tolerance=14, is_maybe_densify=True, spectral_axis=-1, mean_spectra=None, peaks=None, is_ppm=True):
 
+        print("MS image impl begin")
         if image is None and isinstance(spectra, MSImageImplementation):
             image = spectra.copy()
-            super().__init__(image.spectra, image.mzs, image.tolerance, image.spectral_axis, image.mean_spectra, image.peaks)
+            super().__init__(image.spectra, image.mzs, image.tolerance, image.spectral_axis, image.mean_spectra, image.peaks, None, image.is_ppm)
         else:
-            super().__init__(spectra, mzs, tolerance, spectral_axis, mean_spectra, peaks)
+            super().__init__(spectra, mzs, tolerance, spectral_axis, mean_spectra, peaks, None, is_ppm)
 
+        print("MS image impl end", image.shape)
         if image.shape:
             self.image = image
         else:
@@ -158,9 +161,10 @@ class MSImageImplementation(MSImageBase):
         current_mz = self.mzs[index]
         return self.get_ion_image_mzs(current_mz)
 
-    def get_ion_image_mzs(self, current_mz):
-        min_mz = current_mz - self.tolerance
-        max_mz = current_mz + self.tolerance
+    def get_ion_image_mzs(self, current_mz, tl=0, tr=0):
+        tol = utils.tolerance(current_mz, self.tolerance, self.is_ppm)
+        min_mz = current_mz - tol
+        max_mz = current_mz + tol
         mask = (self.mzs > min_mz) & (self.mzs < max_mz)
         no_intersection = not mask.any()
         if no_intersection:

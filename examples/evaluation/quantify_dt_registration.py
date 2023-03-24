@@ -59,7 +59,7 @@ def create_data(deformation=False):
         img[coords_line] = 200
 
         set_intersection = set_disk.intersection(set_ellipse)
-        inters_xy = tuple(np.array(list(set_intersection)).T)
+        inters_xy = tuple(np.array(listg(set_intersection)).T)
         img[inters_xy] = 200
 
         N = 100

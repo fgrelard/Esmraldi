@@ -8,8 +8,8 @@ import esmraldi.utils as utils
 from esmraldi.msimagebase import MSImageBase
 
 class MSImageOnTheFly(MSImageBase):
-    def __init__(self, spectra, coords=None, mzs=None, tolerance=0, spectral_axis=-1, mean_spectra=None, peaks=None, indexing=None):
-        super().__init__(spectra, mzs, tolerance, spectral_axis, mean_spectra, peaks)
+    def __init__(self, spectra, coords=None, mzs=None, tolerance=14, spectral_axis=-1, mean_spectra=None, peaks=None, indexing=None, is_ppm=True):
+        super().__init__(spectra, mzs, tolerance, spectral_axis, mean_spectra, peaks, None, is_ppm)
         all_mzs = np.hstack(spectra[:, 0]).flatten()
         if indexing is None:
             self.indexing = utils.indices_search_sorted(all_mzs, self.mzs)
@@ -28,7 +28,6 @@ class MSImageOnTheFly(MSImageBase):
             coords = coords[:-1]
 
         self.shape = coords + (len(self.mzs), )
-
         self.image = np.zeros(self.shape[:-1])
 
     @property
@@ -42,7 +41,6 @@ class MSImageOnTheFly(MSImageBase):
     @property
     def size(self):
         return np.prod(self.shape)
-
 
     def max(self, axis=None, out=None):
         intensities = np.hstack(self.spectra[:, 1]).flatten()
@@ -71,10 +69,12 @@ class MSImageOnTheFly(MSImageBase):
         is_array = (isinstance(key, tuple) and any([iterfunc(elem) for elem in key])) or iterfunc(key)
 
         mz_value = self.mzs[key]
-        tolerance_left, tolerance_right = self.tolerance, self.tolerance
         if is_array:
             tolerance_left = np.abs(np.median(mz_value) - np.amin(mz_value))
             tolerance_right = np.abs(np.median(mz_value) - np.amax(mz_value))
+        else:
+            tolerance_left = utils.tolerance(mz_value, self.tolerance, is_ppm=self.is_ppm)
+            tolerance_right = tolerance_left
         im = self.get_ion_image_mzs(mz_value, tolerance_left, tolerance_right)
 
         return im
@@ -91,9 +91,12 @@ class MSImageOnTheFly(MSImageBase):
         ind_spectra = np.searchsorted(self.cumlen, ind)
         ind_value = np.split(ind_value, np.where(np.diff(ind_spectra) != 0)[0]+1)
         ind_spectra = np.unique(ind_spectra)
+        mask = np.ones(len(self.shape),dtype=bool)
+        mask[self.spectral_axis] = False
+        shape = np.array(self.shape)[mask]
 
-        im = np.zeros(self.shape[self.spectral_axis+1:])
-        x, y = np.unravel_index(ind_spectra, self.shape[self.spectral_axis+1:], order="C")
+        im = np.zeros(shape)
+        x, y = np.unravel_index(ind_spectra, shape, order="C")
         intensities = self.spectra[:, 1][ind_spectra]
         for i, (x_i, y_i) in enumerate(zip(x, y)):
             curr_i = intensities[i]

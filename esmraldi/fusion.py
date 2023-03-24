@@ -6,7 +6,7 @@ analysis of images
 import esmraldi.imzmlio as imzmlio
 import numpy as np
 import cv2 as cv
-from sklearn import metrics
+import sklearn.metrics as metrics
 from sklearn.decomposition import PCA
 from sklearn.decomposition import NMF
 from sklearn.cluster import KMeans, AffinityPropagation
@@ -14,7 +14,6 @@ from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity, cosine_distances
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import roc_auc_score
 from skimage.filters import threshold_multiotsu
 
 def clustering_affinity(X_r):
@@ -482,45 +481,149 @@ def roc_indices(mask, shape, norm_img=None):
 
 def region_to_bool(regions, indices_ravel, shape):
     region_bool = []
-    for region in regions:
+    for i, region in enumerate(regions):
         indices_regions = np.ravel_multi_index(np.where(region > 0), shape, order='F')
-        inside_region = np.in1d(indices_ravel, indices_regions).astype(int)
-        is_same = np.all(inside_region == inside_region[0])
-        if not is_same:
-            region_bool.append(inside_region)
+        inside_region = np.in1d(indices_ravel, indices_regions).astype(bool)
+        # is_same = np.all(inside_region == inside_region[0])
+        # if not is_same:
+        #     region_bool.append(inside_region)
+        region_bool.append(inside_region)
     return region_bool
 
+def weighted_roc_curve(y_true, y_score, *, pos_label=None, sample_weight=None, drop_intermediate=True):
+    fpr, tpr, thresholds = metrics.roc_curve(y_true, y_score, pos_label=pos_label, sample_weight=sample_weight, drop_intermediate=drop_intermediate)
+    nb_ones = np.count_nonzero(y_true)
+    nb_zeros = np.count_nonzero(~y_true)
+    weights_tns = nb_ones / nb_zeros
+    fps = fpr * nb_zeros
+    tps = tpr * nb_ones
+    tns = fps[-1] - fps
+    fns = tps[-1] - tps
+    fpr = fps / (tns * weights_tns + fps)
+    tpr = tps / (fns * weights_tns + tps)
+    dfp = tns * weights_tns + fps
+    dtp = fns * weights_tns + tps
+    return fpr, tpr, thresholds
 
-def single_roc_auc(image, indices, region_bool):
+def weighted_auc_roc(y_true, y_score, sample_weight=None, max_fpr=None):
+    fpr, tpr, _ = weighted_roc_curve(y_true, y_score, sample_weight=sample_weight)
+    return metrics.auc(fpr, tpr)
+
+def roc_curve(y_true, y_score, *, pos_label=None, sample_weight=None, drop_intermediate=True, is_weighted=False):
+    if is_weighted:
+        return weighted_roc_curve(y_true, y_score, sample_weight=sample_weight)
+    return metrics.roc_curve(y_true, y_score, sample_weight=sample_weight)
+
+def single_roc_auc(image, indices, region_bool, is_weighted=False):
     sub_region = image[indices]
     current_values = sub_region.flatten()
     rocs = np.zeros(len(region_bool))
     for j, binary_label in enumerate(region_bool):
-        rocs[j] = roc_auc_score(binary_label, current_values)
+        if np.all(binary_label == binary_label[0]):
+            auc = 0
+        elif is_weighted:
+            auc = weighted_auc_roc(binary_label, current_values)
+        else:
+            auc = metrics.roc_auc_score(binary_label, current_values)
+        rocs[j] = auc
     return rocs
 
-def roc_auc_analysis(images, indices, region_bool, norm_img=None, thresholded_variants=False):
+def single_roc_cutoff(image, indices, region_bool, fn, is_weighted=False):
+    sub_region = image[indices]
+    current_values = sub_region.flatten()
+    cutoffs = np.zeros(len(region_bool))
+    for j, binary_label in enumerate(region_bool):
+        nb_ones = np.count_nonzero(binary_label)
+        nb_zeros = np.count_nonzero(~binary_label)
+        if np.all(binary_label == binary_label[0]):
+            cutoff = 0
+        else:
+            fpr, tpr, thresholds = roc_curve(binary_label, current_values, is_weighted=is_weighted)
+            cutoff = fn(fpr, tpr, thresholds, nb_zeros, nb_ones)
+        cutoffs[j] = cutoff
+    return cutoffs
+
+def cutoff_distance2(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0, return_index=False):
+    d2h = (1 - tpr)**2 + (fpr)**2
+    d2b = tpr**2 + (1-fpr)**2
+    indexh  = np.argmin(d2h)
+    indexb = np.argmin(d2b)
+    return min(np.sqrt(d2h[indexh]), np.sqrt(d2b[indexb]))
+
+def cutoff_distance(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0, return_index=False):
+    index = np.argmin(np.abs(tpr - (1-fpr)))
+    t, f = tpr[index], fpr[index]
+    distance = np.linalg.norm(np.array([f-0, t-1]))
+    if return_index:
+        return distance, index
+    return distance
+
+def cutoff_half_tpr(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0, return_index=False):
+    index = np.searchsorted(tpr, 0.5)
+    if return_index:
+        return fpr[index], index
+    return fpr[index]
+
+def cutoff_generalized_youden(fpr, tpr, thresholds, nb_zeros, nb_ones, return_index=False):
+    p = nb_ones/(nb_ones+nb_zeros)
+    r = 4
+    yg = tpr + ((1 - p)/(r*p)) * (1 - fpr) - 1
+    # w = nb_zeros/nb_ones
+    # yg = tpr + w * (1 - fpr) -1
+    if return_index:
+        return yg.max(), np.argmax(yg)
+    return yg.max()
+
+def cutoff_efficiency(fpr, tpr, thresholds, nb_zeros, nb_ones, return_index=False):
+    p = nb_ones/(nb_ones+nb_zeros)
+    eff = tpr * p  + (1 - fpr) * (1-p)
+    if return_index:
+        return eff.max(), np.argmax(eff)
+    return eff.max()
+
+def roc_auc_analysis(images, indices, region_bool, norm_img=None, thresholded_variants=False, is_weighted=False):
     nreg = len(region_bool)
     roc_auc_scores = np.zeros((images.shape[-1], nreg))
     for i in range(images.shape[-1]):
         current_image = images[..., i]
-        if norm_img is not None:
-            return_img = np.zeros_like(current_image)
-            np.divide(current_image, norm_img, out=return_img, where=norm_img!=0)
-            current_image = return_img
 
         if thresholded_variants:
             current_image = image_to_thresholded_variants(current_image)
             for j, im in enumerate(current_image):
-                auc_scores = single_roc_auc(im, indices, region_bool)
+                auc_scores = single_roc_auc(im, indices, region_bool, is_weighted=is_weighted)
                 if j == 0:
                     roc_auc_scores[i, :] = auc_scores
                 else:
                     roc_auc_scores[i, :] = np.minimum(roc_auc_scores[i, :], auc_scores)
         else:
-            roc_auc_scores[i, :] = single_roc_auc(current_image, indices, region_bool)
+            roc_auc_scores[i, :] = single_roc_auc(current_image, indices, region_bool, is_weighted=is_weighted)
 
     return roc_auc_scores
+
+def single_measure(current_image, indices, region_bool, fn=np.mean):
+    sub_region = current_image[indices]
+    current_values = sub_region.flatten()
+    means = np.zeros(len(region_bool))
+    for j, binary_label in enumerate(region_bool):
+        means[j] = fn(current_values[binary_label])
+    return means
+
+def measures_per_region(images, indices, region_bool, fn=np.mean):
+    nreg = len(region_bool)
+    measures_per = np.zeros((images.shape[-1], nreg))
+    for i in range(images.shape[-1]):
+        current_image = images[..., i]
+        measures_per[i, :] = single_measure(current_image, indices, region_bool, fn)
+    return measures_per
+
+
+def roc_cutoff_analysis(images, indices, region_bool, is_weighted=False, fn=cutoff_distance):
+    nreg = len(region_bool)
+    roc_cutoff_scores = np.zeros((images.shape[-1], nreg))
+    for i in range(images.shape[-1]):
+        current_image = images[..., i]
+        roc_cutoff_scores[i, :] = single_roc_cutoff(current_image, indices, region_bool, fn, is_weighted=is_weighted)
+    return roc_cutoff_scores
 
 
 def image_to_thresholded_variants(image, n=3):

@@ -65,7 +65,7 @@ class ImzMLParserCrop(moduleparser.ImzMLParser):
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input imzML")
 parser.add_argument("-o", "--output", help="Output imzML")
-parser.add_argument("-l", "--lines", help="Lines to remove", nargs="+", default=[], type=int)
+parser.add_argument("-l", "--lines", help="Lines to remove (start1,end1), (start2, end2)", nargs="+", type=int, action="append")
 
 args = parser.parse_args()
 
@@ -73,7 +73,13 @@ input_name = args.input
 output_name = args.output
 lines = args.lines
 
-lines = np.array(lines)
+new_lines = []
+for l in lines:
+    new_lines += list(range(*l))
+
+new_lines = np.array(new_lines)
+print(new_lines)
+
 
 input_ibd = os.path.splitext(input_name)[0] + ".ibd"
 output_ibd = os.path.splitext(output_name)[0] + ".ibd"
@@ -81,5 +87,5 @@ output_ibd = os.path.splitext(output_name)[0] + ".ibd"
 copyfile(input_name, output_name)
 copyfile(input_ibd, output_ibd)
 
-with  ImzMLParserCrop(output_name, to_crop=lines) as imzml:
+with  ImzMLParserCrop(output_name, to_crop=new_lines) as imzml:
     pass

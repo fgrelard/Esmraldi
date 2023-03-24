@@ -34,24 +34,32 @@ region_names = args.regions
 output_name = args.output
 normalization = float(args.normalization)
 
-imzml = io.open_imzml(input_name)
-spectra = io.get_spectra(imzml)
-print(spectra.shape)
-coordinates = imzml.coordinates
-max_x = max(coordinates, key=lambda item:item[0])[0]
-max_y = max(coordinates, key=lambda item:item[1])[1]
-max_z = max(coordinates, key=lambda item:item[2])[2]
-shape = (max_x, max_y, max_z)
+if input_name.lower().endswith(".imzml"):
 
-full_spectra = io.get_full_spectra(imzml)
-mzs = np.unique(np.hstack(spectra[:, 0]))
-mzs = mzs[mzs>0]
-print(len(mzs))
-images = io.get_images_from_spectra(full_spectra, shape)
+    imzml = io.open_imzml(input_name)
+    spectra = io.get_spectra(imzml)
+    print(spectra.shape)
+    coordinates = imzml.coordinates
+    max_x = max(coordinates, key=lambda item:item[0])[0]
+    max_y = max(coordinates, key=lambda item:item[1])[1]
+    max_z = max(coordinates, key=lambda item:item[2])[2]
+    shape = (max_x, max_y, max_z)
+
+    full_spectra = io.get_full_spectra(imzml)
+    mzs = np.unique(np.hstack(spectra[:, 0]))
+    mzs = mzs[mzs>0]
+    print(len(mzs))
+    images = io.get_images_from_spectra(full_spectra, shape)
+else:
+    image_itk = sitk.ReadImage(input_name)
+    images = sitk.GetArrayFromImage(image_itk).T
+    mzs = np.loadtxt(os.path.splitext(input_name)[0] + ".csv")
 
 mask = read_image(mask_name)
 regions = []
 for region_name in region_names:
+    if region_name == mask_name:
+        continue
     region = read_image(region_name)
     regions.append(region)
 
@@ -83,11 +91,26 @@ worksheets.append((worksheet, worksheet_stats))
 norm_img = None
 if normalization > 0:
     norm_img = imageutils.get_norm_image(images, normalization, mzs)
+    for i in range(images.shape[-1]):
+        images[..., i] = imageutils.normalize_image(images[...,i], norm_img)
 
-indices, indices_ravel = fusion.roc_indices(mask, (max_x, max_y), norm_img)
+indices, indices_ravel = fusion.roc_indices(mask, images.shape[:-1], norm_img)
 
 
-region_bool = fusion.region_to_bool(regions, indices_ravel, (max_x, max_y))
+region_bool = fusion.region_to_bool(regions, indices_ravel, images.shape[:-1])
+print(len(region_bool))
+sub = False
+if sub:
+    mzs_target = [837.549, 863.56,
+                  773.534, 771.51,
+                  885.549, 437.2670,
+                  871.57, 405.2758,#dispersion
+                  859.531372070312, 714.5078, #LB
+                  644.5015869, 715.5759, #LT
+                  287.0937, 296.0824, 746.512]
+    indices_mz = [np.abs(mzs - mz).argmin() for mz in mzs_target]
+    images = images[..., indices_mz]
+    mzs = mzs[indices_mz]
 
 for w, (worksheet, worksheet_stats) in enumerate(worksheets):
     worksheet.write(0, 0, "Pixel number", header_format)
@@ -107,8 +130,6 @@ for i in range(images.shape[-1]):
     mz = mzs[i]
     current_image = images[..., i]
 
-    if normalization > 0:
-        current_image = imageutils.normalize_image(current_image, norm_img)
 
     sub_region = current_image[indices]
 

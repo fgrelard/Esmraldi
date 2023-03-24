@@ -10,6 +10,9 @@ from gui.signal import Signal
 from PyQt5 import QtCore
 
 class WorkerSpectraAlignment(QtCore.QObject):
+    """
+    Worker to align spectra
+    """
     signal_end = QtCore.pyqtSignal(object)
     signal_progress = QtCore.pyqtSignal(int)
 
@@ -32,22 +35,27 @@ class WorkerSpectraAlignment(QtCore.QObject):
         print("End realign")
         if self.is_abort:
             return
-        full_spectra_sparse = imzmlio.get_full_spectra_sparse(realigned_spectra, np.prod(image_size))
+        full_spectra_sparse = imzmlio.get_full_spectra_sparse(realigned_spectra, np.prod(image_size), sorted=True)
         if self.is_abort:
             return
         print("End full spectra sparse")
-        image = MSImage(full_spectra_sparse, image=None, shape=image_size, tolerance=0.003)
-        import tracemalloc
-        snapshot = tracemalloc.take_snapshot()
-        snapshot.dump("snapshot_align.pickle")
+        image = MSImage(full_spectra_sparse, image=None, shape=image_size, tolerance=14)
+        # import tracemalloc
+        # snapshot = tracemalloc.take_snapshot()
+        # snapshot.dump("snapshot_align.pickle")
         print("ms image for visualization")
         image = msimage_for_visualization(image)
+        print(image.shape)
         self.signal_end.emit(image)
 
     def abort(self):
         self.is_abort = True
 
 class SpectraAlignmentController:
+    """
+    Align spectra to obtain a common m/z axis for all
+    pixels
+    """
     def __init__(self, view, imageview):
         self.view = view
         self.imageview = imageview

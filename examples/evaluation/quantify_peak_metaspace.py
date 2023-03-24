@@ -36,7 +36,7 @@ if input_name.lower().endswith(".imzml"):
 else:
     mzs = np.loadtxt(os.path.splitext(input_name)[0] + ".csv")
 
-print("Observed", mzs.shape)
+print("Observed", mzs.shape, mzs[:100])
 
 diffs = np.argmin(np.abs(mzs - mzs_annotated[:, None]), axis=-1)
 intersection = np.abs(mzs[diffs] - mzs_annotated) < 1e-2

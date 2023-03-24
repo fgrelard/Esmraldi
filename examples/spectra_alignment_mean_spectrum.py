@@ -13,12 +13,14 @@ parser.add_argument("-i", "--input", help="Input .imzML")
 parser.add_argument("-p", "--prominence", help="Prominence factor")
 parser.add_argument("-s", "--step", help="Step ppm")
 parser.add_argument("-m", "--mz", help="M/Z ion image to display after realignment", default=0)
+parser.add_argument("-o", "--output", help="Output name")
 args = parser.parse_args()
 
 input_name = args.input
 prominence = float(args.prominence)
 step = float(args.step)
 mz_reference = float(args.mz)
+output_name = args.output
 
 imzml = io.open_imzml(input_name)
 max_x = max(imzml.coordinates, key=lambda item:item[0])[0]
@@ -52,7 +54,7 @@ plt.plot(mzs, mean_spectrum)
 plt.plot(peaks, intensities, "o")
 plt.show()
 
-realigned_spectra = sp.realign_generic(spectra, peaks)
+realigned_spectra = sp.realign_generic(spectra, peaks, step, is_ppm=True)
 mz_index = np.abs(peaks - mz_reference).argmin()
 
 full_spectra_sparse = io.get_full_spectra_sparse(realigned_spectra, max_x*max_y)
@@ -60,5 +62,15 @@ image = io.get_images_from_spectra(full_spectra_sparse, (max_x, max_y))
 
 mz_index = np.abs(peaks - mz_reference).argmin()
 
-plt.imshow(image[..., mz_index].T)
-plt.show()
+# plt.imshow(image[..., mz_index].T)
+# plt.show()
+
+# image = np.transpose(image, (2, 1, 0))
+print(image.shape)
+I, coordinates = io.get_spectra_from_images(image)
+
+if len(peaks) != len(I):
+    mz = np.tile(peaks, (len(I), 1))
+print(mz.shape, len(I))
+print(len(I[0]))
+io.write_imzml(mz, I, coordinates, output_name)

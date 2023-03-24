@@ -15,7 +15,8 @@ import numpy as np
 import bisect
 from treelib import Node, Tree
 from functools import reduce
-from esmraldi.utils import progress
+import esmraldi.utils as utils
+from esmraldi.utils import progress, indices_search_sorted
 from esmraldi.peakdetectiontree import PeakDetectionTree
 
 def spectra_sum(spectra):
@@ -412,7 +413,7 @@ def tic_values(spectra):
         tic[i] = spectra_sum
     return tic
 
-def normalization_tic(spectra):
+def normalization_tic(spectra, inplace=False):
     """
     TIC (total ion count) normalization.
 
@@ -429,14 +430,15 @@ def normalization_tic(spectra):
     np.ndarray
         normalized spectrum
     """
-    spectra_normalized = spectra.copy()
+    if inplace:
+        spectra_normalized = spectra
+    else:
+        spectra_normalized = spectra.copy()
     tic = tic_values(spectra)
     for i, (x,y) in enumerate(spectra):
         t = tic[i]
-        new_y = y.copy()
         if t > 0:
-            new_y /= t
-        spectra_normalized[i, 1, :] = new_y
+            spectra_normalized[i, 1] = spectra_normalized[i, 1] / t
     return spectra_normalized
 
 def normalization_sic(spectra, indices_peaks, width_peak=10):
@@ -511,6 +513,31 @@ def index_groups(indices, step=1, is_ppm=False):
         elif index == len(indices) - 2:
             L.append(next)
             groups.append(L)
+        index += 1
+    return groups
+
+def index_groups_start_end(indices, step=1, is_ppm=False):
+    indices.sort()
+    groups = []
+    index = 1
+    current_step = step
+    start = indices[0]
+    L=[start]
+    while index < len(indices):
+        value = indices[index]
+        if is_ppm:
+            current_step = step*value/1e6
+        if abs(value - start) > 2*current_step:
+            groups.append(L)
+            if index == len(indices) - 1:
+                groups.append([value])
+            start = value
+            L = [start]
+        elif index == len(indices) - 1:
+            L.append(value)
+            groups.append(L)
+        elif index != len(indices) - 1:
+            L.append(value)
         index += 1
     return groups
 
@@ -696,6 +723,45 @@ def realign_reducing(out_spectra, spectra, step=0.0005, is_ppm=False):
             out_spectra[j, 1, i] = np.mean(subset_i[j])
         current_ind = next_ind
 
+def realign_mean_spectrum(mzs, intensities, all_mzs, step=0.0005, is_ppm=False, return_stats=False):
+    new_mzs = []
+    new_intensities = []
+    new_cardinals = []
+    new_stds = []
+    new_medians = []
+    new_geomeans = []
+    indices = np.searchsorted(mzs, np.hstack(all_mzs))
+    intensities_flat = np.hstack(intensities)
+    all_len = [len(g) for g in intensities]
+    ind_len = np.array([i for i in range(len(all_len)) for j in range(all_len[i])])
+    groups = index_groups_start_end(mzs, step, is_ppm)
+    current_ind = 0
+    next_ind = 0
+    for i in range(len(groups)):
+        g = groups[i]
+        next_ind += len(g)
+        subset_mz = mzs[current_ind:next_ind]
+        condition = (indices>=current_ind) & (indices<next_ind)
+        current_intensities = intensities_flat[condition]
+        end = np.where(np.diff(ind_len[condition]))[0] + 1
+        start = np.concatenate(([0], end))
+        end = np.append(end, len(ind_len[condition]))
+        if current_intensities.size > 0:
+            current_intensities = np.array([np.mean(current_intensities[start[i]:end[i]]) for i in range(len(start))])
+            current_intensities = np.concatenate((current_intensities, np.zeros((intensities.shape[0]-current_intensities.shape[0],))))
+        else:
+            current_intensities = [0]
+        new_mzs.append(np.median(subset_mz))
+        new_intensities.append(np.mean(current_intensities))
+        if return_stats:
+            new_cardinals.append(intensities.shape[0])
+            new_stds.append(np.std(current_intensities))
+            new_medians.append(np.median(current_intensities))
+            new_geomeans.append(utils.geomeans(current_intensities))
+        current_ind = next_ind
+    if return_stats:
+        return np.array(new_mzs), np.array(new_intensities), np.array(new_stds), np.array(new_cardinals), np.array(new_medians), np.array(geomeans)
+    return np.array(new_mzs), np.array(new_intensities)
 
 def realign_tree(spectra, mzs, mean_spectra, step=0.0005, is_ppm=False):
     peak_detection = PeakDetectionTree(mzs, mean_spectra, step)
@@ -895,15 +961,7 @@ def realign_generic(spectra, peaks, step=np.inf, is_ppm=False):
     print("Realigning")
     for i, spectrum in enumerate(spectra):
         mz, I = spectrum
-
-        indices = np.clip(np.searchsorted(peaks, mz), 0, n-1)
-        indices2 = np.clip(indices-1, 0, n-1)
-
-        diff1 = peaks[indices] - mz
-        diff2 = mz - peaks[indices2]
-
-        indices = np.where(diff1 <= diff2, indices, indices2)
-
+        indices = indices_search_sorted(mz, peaks)
         current_I = I
         if step != np.inf:
             current_step = step
@@ -918,7 +976,6 @@ def realign_generic(spectra, peaks, step=np.inf, is_ppm=False):
         indices_nonzero = np.where(new_I>0)[0]
         out_spectra[i, 0] = peaks[indices_nonzero]
         out_spectra[i, 1] = new_I[indices_nonzero]
-
     return out_spectra
 
 
@@ -998,6 +1055,17 @@ def find_isotopic_pattern(neighbours, tolerance, nb_charges):
         d_previous = n[0] - previous[0]
         eps_previous = abs(d_previous - round(d_previous))
         if eps < tolerance and d_previous-eps_previous < 1+tolerance:
+            pattern.append(n)
+    return pattern
+
+def find_isotopic_pattern_theoretical_difference(neighbours, th_diff, tolerance, nb_charges, is_ppm=True):
+    pattern = [neighbours[0]]
+    for j in range(1, neighbours.shape[0]):
+        n = neighbours[j]
+        tol = utils.tolerance(n[0], tolerance, is_ppm=is_ppm)
+        previous = pattern[-1]
+        d_previous = n[0] - previous[0]
+        if th_diff - tol <= d_previous <= th_diff + tol:
             pattern.append(n)
     return pattern
 
@@ -1196,3 +1264,82 @@ def deisotoping_simple(spectra, tolerance=0.1, nb_neighbours=8, nb_charges=5, av
         new_intensities = intensities[deisotoped_indices]
         deisotoped_spectra.append((new_mzs, new_intensities))
     return np.array(deisotoped_spectra)
+
+
+def deisotoping_simple_reference(spectra, th_diff=1.00335, tolerance=14, nb_neighbours=8, nb_charges=5, is_ppm=True):
+    """
+    Simple deisotoping depending on the mass of the
+    secondmost abundant isotope:
+
+      - Before this mass: uses the peak with max intensity
+        as reference
+
+      - After this mass: use the peak where the sign of the
+        derivative changes
+
+    Parameters
+    ----------
+    spectra: np.ndarray
+        peaklist
+    tolerance: float
+        acceptable mz delta
+    nb_neighbours: int
+        size of patterns
+    nb_charges: int
+        maximum number of charges in isotopic pattern
+    average_distribution: dict
+        maps atom mass to its average abundance
+
+    Returns
+    ----------
+    np.ndarray
+        deisotoped spectra
+
+    """
+    deisotoped_spectra = []
+    mzs = spectra[0][0]
+    peaks = spectra_max(spectra)
+    peaks = np.array([mzs, peaks])
+    deisotoped_indices = deisotoping_reference_indices(peaks, th_diff, tolerance, nb_neighbours, nb_charges, is_ppm)
+    for spectrum in spectra:
+        mzs, intensities = spectrum
+        new_mzs = mzs[deisotoped_indices]
+        new_intensities = intensities[deisotoped_indices]
+        deisotoped_spectra.append((new_mzs, new_intensities))
+    return np.array(deisotoped_spectra)
+
+
+def deisotoping_reference_indices(peaks, th_diff=1.00335, tolerance=14, nb_neighbours=8, nb_charges=5, is_ppm=True):
+    ignore_indices = []
+    deisotoped_indices = []
+    x = peaks.shape[-1]
+    for i in range(x):
+        if np.any([np.isclose(ignore_indices[j][0], peaks[0, i]) for j in range(len(ignore_indices))]):
+            continue
+        peak = peaks[..., i]
+
+        N = neighbours(i, nb_neighbours, peaks.T)
+        pattern = find_isotopic_pattern_theoretical_difference(N, th_diff, tolerance, nb_charges, is_ppm=is_ppm)
+        peaks_pattern = peaks_max_intensity_isotopic_pattern(pattern)
+
+        isotopes = isotopes_from_pattern(pattern, peaks_pattern)
+        ignore_indices.extend(isotopes)
+        indices = [peak_to_index(peak, pattern) for peak in peaks_pattern]
+        deisotoped_indices.extend([i+j for j in indices if i+j not in deisotoped_indices])
+    deisotoped_indices = np.array(deisotoped_indices)
+    return deisotoped_indices
+
+def subtract_spectra(target, source):
+    out = target - source
+    out[out < 0] = np.finfo(float).eps
+    return out
+
+def extract_mean_spectra_coordinates(spectra, coordinates, mzs, is_subtract, mean_spectra_matrix):
+    all_spectra = []
+    for i, c in enumerate(coordinates):
+        restricted_spectra = spectra[c]
+        mean_spectra = spectra_mean_centroided(restricted_spectra, mzs)
+        if is_subtract:
+            mean_spectra = subtract_spectra(mean_spectra, mean_spectra_matrix)
+        all_spectra.append(mean_spectra)
+    return np.array(all_spectra)

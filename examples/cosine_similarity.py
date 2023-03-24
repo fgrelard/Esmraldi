@@ -11,7 +11,6 @@ from sklearn.metrics.pairwise import cosine_similarity, cosine_distances
 import csv
 import esmraldi.fusion as fusion
 import scipy.stats as stats
-from sklearn.metrics import roc_auc_score
 from scipy.spatial.distance import cosine
 
 def read_image(image_name):

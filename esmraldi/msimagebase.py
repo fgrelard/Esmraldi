@@ -1,23 +1,29 @@
 import numpy as np
 import esmraldi.spectraprocessing as sp
+import esmraldi.utils as utils
 
 class MSImageBase:
-    def __init__(self, spectra, mzs=None, tolerance=0, spectral_axis=-1, mean_spectra=None, peaks=None, indexing=None):
+    def __init__(self, spectra, mzs=None, tolerance=14, spectral_axis=-1, mean_spectra=None, peaks=None, indexing=None, is_ppm=True):
         all_mzs = spectra[:, 0, ...]
+        print("MSImageBase:", all_mzs.shape)
         if len(spectra.shape) == 3:
-            all_mzs = all_mzs[np.nonzero(all_mzs)]
+            mzs = all_mzs.max(axis=0)
+            if hasattr(mzs, "data"):
+                mzs = np.array(mzs.data)
         else:
             all_mzs = np.hstack(all_mzs).flatten()
         if mzs is None:
             self.mzs = np.unique(all_mzs)
         else:
             self.mzs = mzs
+        print("MSImageBase:end")
         self.spectra = spectra
         self.tolerance = tolerance
         self.spectral_axis = spectral_axis
         self._mean_spectra = mean_spectra
         self._peaks = peaks
         self.indexing = None
+        self.is_ppm = is_ppm
         self.is_maybe_densify = True
         self._normalization_image = None
         self._tic = None
@@ -80,9 +86,13 @@ class MSImageBase:
 
         if norm_img is not None:
             norm_factor = norm_img.flatten()
-            num = spectra[:, 1, :]
-            denom = norm_factor[:, np.newaxis]
-            np.divide(num, denom, out=num, where=denom>0)
+            num = spectra[:, 1]
+            if len(spectra.shape) >= 3:
+                denom = norm_factor[:, np.newaxis]
+                np.divide(num, denom, out=num, where=denom>0)
+            else:
+                denom = norm_factor
+                print("MSImageBase: Not re-computing mean spectra for on the fly image")
         if len(spectra.shape) >= 3:
             mean_spectra = sp.spectra_mean(spectra)
         else:

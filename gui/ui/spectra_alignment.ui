@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>220</width>
+    <width>218</width>
     <height>315</height>
    </rect>
   </property>
@@ -46,7 +46,7 @@
     <rect>
      <x>10</x>
      <y>40</y>
-     <width>201</width>
+     <width>191</width>
      <height>128</height>
     </rect>
    </property>
@@ -54,12 +54,15 @@
     <item row="1" column="1">
      <widget class="QLineEdit" name="lineEdit_step">
       <property name="text">
-       <string>0.003</string>
+       <string>14</string>
       </property>
      </widget>
     </item>
     <item row="1" column="2">
      <widget class="QComboBox" name="comboBox">
+      <property name="currentIndex">
+       <number>1</number>
+      </property>
       <item>
        <property name="text">
         <string>Da</string>
@@ -70,6 +73,50 @@
         <string>ppm</string>
        </property>
       </item>
+     </widget>
+    </item>
+    <item row="1" column="3">
+     <widget class="QPushButton" name="pushButton">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>20</width>
+        <height>20</height>
+       </size>
+      </property>
+      <property name="mouseTracking">
+       <bool>true</bool>
+      </property>
+      <property name="toolTip">
+       <string>Tolerance step to realign spectra points (m/z)</string>
+      </property>
+      <property name="text">
+       <string>?</string>
+      </property>
+      <property name="autoDefault">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="0">
+     <widget class="QLabel" name="label">
+      <property name="text">
+       <string>Step</string>
+      </property>
      </widget>
     </item>
     <item row="0" column="0" colspan="4">
@@ -116,50 +163,6 @@ p, li { white-space: pre-wrap; }
       </property>
       <property name="textInteractionFlags">
        <set>Qt::NoTextInteraction</set>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="3">
-     <widget class="QPushButton" name="pushButton">
-      <property name="enabled">
-       <bool>false</bool>
-      </property>
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>20</width>
-        <height>20</height>
-       </size>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>20</width>
-        <height>20</height>
-       </size>
-      </property>
-      <property name="mouseTracking">
-       <bool>true</bool>
-      </property>
-      <property name="toolTip">
-       <string>Tolerance step to realign spectra points (m/z)</string>
-      </property>
-      <property name="text">
-       <string>?</string>
-      </property>
-      <property name="autoDefault">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="0">
-     <widget class="QLabel" name="label">
-      <property name="text">
-       <string>Step</string>
       </property>
      </widget>
     </item>

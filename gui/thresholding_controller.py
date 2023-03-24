@@ -6,6 +6,9 @@ from gui.signal import Signal
 from PyQt5 import QtCore
 
 class WorkerThreshold(QtCore.QObject):
+    """
+    Worker to threshold an image
+    """
     signal_end = QtCore.pyqtSignal(np.ndarray)
 
     def __init__(self, image, coords):
@@ -25,6 +28,9 @@ class WorkerThreshold(QtCore.QObject):
         self.is_abort = True
 
 class ThresholdingController:
+    """
+    Thresholding an image => binary image
+    """
     def __init__(self, view, imageview, range_slider):
         self.view = view
         self.imageview = imageview
@@ -43,13 +49,11 @@ class ThresholdingController:
         self.view.buttonBox.rejected.connect(self.end)
 
     def threshold(self):
-        image = self.imageview.imageItem.image
+        image = self.imageview.current_image
         if len(image.shape) >= 3:
             image = (color.rgb2gray(image) * 255).astype(np.uint8)
         image = image.T
-        min_slider, max_slider = self.range_slider.value()
-        min_thresh = min_slider - np.finfo(float).eps
-        max_thresh = max_slider + np.finfo(float).eps
+        min_thresh, max_thresh = self.imageview.intensity_value_slider(image, self.range_slider)
         self.imageview.coords_threshold = self.imageview.roi_to_coordinates(image, min_thresh, max_thresh)
         self.imageview.updateImage()
 

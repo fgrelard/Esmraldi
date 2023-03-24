@@ -46,6 +46,9 @@ class WorkerPeakPicking(QtCore.QObject):
         self.is_abort = True
 
 class PeakPickingController:
+    """
+    Peak picking performed on all spectra individually
+    """
     def __init__(self, view, imageview):
         self.view = view
         self.imageview = imageview

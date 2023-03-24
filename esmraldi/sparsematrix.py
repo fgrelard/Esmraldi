@@ -169,7 +169,7 @@ class SparseMatrix(COO):
             restricted_self = COO.__getitem__(self, key)
         if self.is_maybe_densify:
             try:
-                value = restricted_self.maybe_densify(max_size=1e7)
+                value = restricted_self.maybe_densify(max_size=int(1e9), min_density=1)
             except ValueError as ve:
                 #If array
                 value = SparseMatrix(restricted_self)
@@ -185,7 +185,7 @@ class SparseMatrix(COO):
 
     def __setitem__(self, key, value):
         try:
-            array = self.maybe_densify(max_size=1e7)
+            array = self.maybe_densify(max_size=1e9)
             array[key] = value
             newself = COO.from_numpy(array)
         except ValueError as ve:
@@ -271,7 +271,6 @@ class SparseMatrix(COO):
             for i, d in enumerate(shape):
                 coords[i, :] = (linear_loc // strides) % d
                 strides *= d
-
             cooR = COO(
                 coords,
                 self.data,
