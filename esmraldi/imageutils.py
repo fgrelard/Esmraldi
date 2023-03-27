@@ -188,7 +188,7 @@ def slice_correspondences_manual(reference, target, resolution_reference, resolu
     correspondences = [(np.abs(np.array(physical_slice_reference) - i)).argmin() for i in physical_slice_target]
     return np.array(correspondences)
 
-def compute_DT(image_itk):
+def compute_DT(image_itk, invert=False):
     """
     Compute DT
 
@@ -206,6 +206,10 @@ def compute_DT(image_itk):
     image_array = sitk.GetArrayFromImage(image_itk)
     image_bin = np.where(image_array > 0, 255, 0)
     image_dt = distance_transform_edt(image_bin)
+    if invert:
+        image_dt = image_dt.astype("float32")
+        max_dt = image_dt.max()
+        image_dt[image_dt > 0] = max_dt - image_dt[image_dt > 0] + 1
     image_dt_itk = sitk.GetImageFromArray(image_dt.astype("float32"))
     return image_dt_itk
 

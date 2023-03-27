@@ -330,11 +330,11 @@ def find_best_transformation(scale_and_rotation, initial_transform, fixed, movin
 
     #Compute metric
     if update_DT:
-        # metric = dt_mutual_information(fixed, deformed)
+        # metric = -dt_mutual_information(fixed, deformed)
         metric = utils.dt_mse(fixed, deformed)
     else:
-        # metric = mutual_information(fixed, deformed)
-        metric = utils.mse(fixed, deformed)
+        metric = -mutual_information(fixed, deformed, 50)
+        # metric = utils.mse(fixed, deformed)
 
     return metric
 
@@ -555,11 +555,11 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
         tx2 = sitk.CenteredTransformInitializer(fixed_DT, moving_DT, transform, sitk.CenteredTransformInitializerFilter.GEOMETRY)
 
         x = [0, 0]
-        ranges = (slice(0.1, 2.0, 0.1), slice(-3.2, 3.2, 0.05))
-        ranges = (slice(0.6, 0.7, 0.01), slice(-3.2, 3.2, 0.05))
+        ranges = (slice(0.5, 0.7, 0.05), slice(-3.2, 3.2, 0.05))
+        # ranges = (slice(0.9, 1.0, 0.1), slice(-3.2, 3.2, 0.1))
         x1, metric1, _, _ = optimizer.brute(lambda x=x: find_best_transformation(x, tx, fixed_DT, moving_DT, update_DT), ranges=ranges, finish=None, full_output=True)
         x2, metric2, _, _ = optimizer.brute(lambda x=x: find_best_transformation(x, tx2, fixed_DT, moving_DT, update_DT), ranges=ranges, finish=None, full_output=True)
-        print(metric1, metric2)
+        print(metric1)
         x0 = x1
         if metric2 < metric1:
             x0 = x2
