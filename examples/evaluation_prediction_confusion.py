@@ -23,7 +23,8 @@ def extract_parent_paths(imzml_name, shape, names):
     paths = []
     regions = np.zeros(shape[:-1] + (len(names),))
     parent_path = os.path.dirname(imzml_name)
-    mask_path = parent_path + os.path.sep + "masks/resized/*.tif"
+    # mask_path = parent_path + os.path.sep + "masks/msi/*.tif"
+    mask_path = parent_path + os.path.sep + "masks/msi/*.tif"
     files = glob.glob(mask_path)
     binders=[]
     pigments=[]
@@ -80,28 +81,20 @@ def indices_peaks(peaks, other_peaks):
     indices[~indices_ppm] = -1
     return indices
 
-def get_mask(index, inside, masks, uncertain_label):
-    if not inside[index]:
-        return np.array([])
+def get_mask(index, masks, uncertain_label):
     if index != uncertain_label:
         mask = masks[..., index]
     else:
-        #compute complementary
-        combined = np.sum(masks, axis=-1)
-        combined = np.where(combined > 0, 1, 0)
-        print("comb", combined.max())
-        mask = 1 - combined
+        return np.zeros_like(masks[..., 0])
     mask = np.where(mask>0, 1, 0)
     return mask
 
-def get_prediction(index, inside, label_image, uncertain_label):
-    if not inside[index]:
-        return np.array([])
+def get_prediction(index, label_image, uncertain_label):
     cond = (label_image == index)
-    if index == uncertain_label:
-        for i in range(uncertain_label):
-            if not inside[i]:
-                cond |= (label_image == i)
+    # if index == uncertain_label:
+    #     for i in range(uncertain_label):
+    #         if not inside[i]:
+    #             cond |= (label_image == i)
     return np.where(cond, 1, 0)
 
 parser = argparse.ArgumentParser()
@@ -128,6 +121,7 @@ names_name = os.path.splitext(input_name)[0] + "_names.csv"
 peaks = np.loadtxt(mzs_name)
 names = np.loadtxt(names_name, dtype=str)
 
+
 # Load data from file
 regression = joblib.load(input_name)
 
@@ -143,9 +137,14 @@ worksheet = workbook.add_worksheet("Stats")
 
 previous = 1
 
+
 n = len(analysis_names)
+uncertain_label = n
+
+if proba > 0:
+    analysis_names.append("Uncertain")
+
 names_array = np.array(analysis_names)
-uncertain_label = np.where((names_array == "Matrix") | (names_array == "Tape"))[0][0]
 sum_up = [ [[] for x in range(n) ] for _ in range(n) ]
 
 
@@ -174,56 +173,60 @@ for i, target_name in enumerate(target_names):
         masks = masks[..., inside]
         currnames = names[inside]
 
-    currnames = np.concatenate((currnames, ["Matrix"]))
-    binders += ["Matrix"]
     intersect = np.concatenate([np.intersect1d(currnames, pigments), np.intersect1d(currnames, binders)])
     inside2 = np.in1d(currnames, intersect)
     print(inside2, currnames, intersect)
 
     labels = np.argmax(out, axis=-1)
 
-    gmm = joblib.load(gmm_name)
-    labels = gmm.predict(out)
-    probas = gmm.predict_proba(out)
+    if gmm_name is not None:
+        gmm = joblib.load(gmm_name)
+        probas = gmm.predict_proba(out)
+        labels = gmm.predict(out)
 
-    if proba > 0:
-        labels[probas.max(axis=-1) < proba] = uncertain_label
+        if proba > 0:
+            labels[probas.max(axis=-1) < proba] = uncertain_label
     # else:
     #     uncertain_label -= 1
 
     label_image = np.reshape(labels, shape[:-1])
-
   
     worksheet.write_column(2, previous, intersect)
     previous += 1
-    worksheet.write_row(1, previous, intersect)
+    worksheet.write_row(1, previous, analysis_names)
     r = 0
     for i in range(n):
-        mask = get_mask(i, inside2, masks, uncertain_label)
-        if mask.size == 0:
-            continue
+        mask = get_mask(i, masks, uncertain_label)
         c = 0
+        mask_empty = np.count_nonzero(mask) == 0
         for j in range(n):
-            prediction = get_prediction(j, inside2, label_image, uncertain_label)
-            if prediction.size == 0:
+            prediction = get_prediction(j, label_image, uncertain_label)
+            if mask.size == 0 and prediction.size == 0:
                 continue
-            tn, fp, fn, tp = confusion_matrix(mask.flatten(), prediction.flatten()).ravel()
-
-            se = tp / (tp+fn)
-            worksheet.write(2+r, previous+c, se)
-            sum_up[i][j].append(se)
-            # fig, ax = plt.subplots(1, 2)
-            # ax[0].imshow(mask)
-            # ax[1].imshow(prediction)
+            prediction_empty = np.count_nonzero(prediction) == 0
+            if mask_empty and prediction_empty:
+                tp, fp, fn, tp = 0, 0, 0, 0
+            else:
+                tn, fp, fn, tp = confusion_matrix(mask.flatten(), prediction.flatten()).ravel()
+            if tp+fn == 0:
+                se = 0
+            else:
+                se = tp / (tp+fn)
+            if not mask_empty:
+                worksheet.write(2+r, previous+c, se)
+                sum_up[i][j].append(se)
+            # plt.imshow(mask, cmap="Reds")
+            # plt.imshow(prediction, cmap="Greens", alpha=0.5)
             # plt.show()
             c += 1
-        r += 1
+        if not mask_empty:
+            r += 1
 
         # print(se, sp)
         # worksheet.write(2, previous+i, sp)
         # worksheet.write(3, previous+i, se)
 
-    previous += len(intersect)
+    previous += len(analysis_names)+1
 
 
 worksheet.write_column(5+len(analysis_names), 0, analysis_names)

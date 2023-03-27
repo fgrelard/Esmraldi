@@ -99,10 +99,10 @@ dt_target = utils.compute_DT(target_itk)
 dt_target_original = utils.compute_DT(target_original_itk)
 
 
-R_intensity = reg.register(reference_itk, target_itk, 10, 0.001, find_best_rotation=True, use_DT=False, learning_rate=0.00000001)
+R_intensity = reg.register(reference_itk, target_itk, 10, 0.001, find_best_rotation=True, use_DT=False, update_DT=False, learning_rate=0.00000001)
 out_intensity = R_intensity.Execute(target_itk)
 
-R_shape = reg.register(reference_itk, target_itk, 10, 0.001, find_best_rotation=True, learning_rate=0.00000001)
+R_shape = reg.register(reference_itk, target_itk, 10, 0.001, find_best_rotation=True, use_DT=True, update_DT=False, learning_rate=0.00000001)
 out_shape = R_shape.Execute(target_itk)
 
 sitk.WriteImage(sitk.Cast(out_intensity, sitk.sitkUInt8), "registered_intensity.tif")

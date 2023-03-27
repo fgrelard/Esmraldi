@@ -124,7 +124,7 @@ def quality_registration_size_bin(fixed, registered_dir):
     for registered in l:
         number = alphanum_key(registered)[1]
         registered = sitk.ReadImage(registered_dir+registered, sitk.sitkFloat32)
-        p, r = quality_registration(fixed, registered)
+        p, r = quality_registration(fixed, registered, display=True)
         precision[number] = p
     return zip(*sorted(precision.items()))
 

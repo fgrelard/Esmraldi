@@ -44,6 +44,8 @@ print(parameters_train)
 test_datasets = {}
 home_folder = "/home/fgrelard/Data/Vaclav/"
 
+test_datasets["Models"] = home_folder + "20230116 Models #4  - 12um DHB/20230116_241x365_5um_Models #4_DHBspray_POS_mode_60-900mz_70K_Laser35_4P5KV_350C_Slens90_aligned1000.imzML"
+test_datasets["JoseSanchez"] = home_folder + "20221205 Jose Sanchez #5 - DHB 5um/20221202_204x921_5um_JoseSanchez#5__DHBspray_POS_mode_60-900mz_70K_Laser35_4P5KV_350C_Slens90_aligned500.imzML"
 test_datasets["P7D5TM"] = home_folder + "20230213 Pratt7D5 #2 DHB - 5um TM Sprayer/20230213_90x235_5um_Pratt7D5 #2_DHBsprayTM_POS_mode_60-900mz_70K_Laser35_4P5KV_350C_Slens90_aligned75.imzML"
 test_datasets["P7D5Rot"] = home_folder + "20230213 Pratt7D5 #1 DHB - 5um RotSpray/20230213_88x190_5um_Pratt7D5 #1_DHBsprayRot_POS_mode_60-900mz_70K_Laser35_4P5KV_350C_Slens90_aligned75.imzML"
 test_datasets["P3C3"] = home_folder + "20230213 Pratt3C3 #2 DHB - 5um TMSprayer/20230213_116x176_5um_Pratt3C3 #2_DHBsprayTM_POS_mode_60-900mz_70K_Laser35_4P5KV_350C_Slens90_aligned75.imzML"
@@ -91,6 +93,7 @@ train_keys = ["P6F1", "P6E1", "P2D3", "P2F4", "P7E4", "P6B5", "P2C4", "P2A4"]
 train_keys = ["P6F1", "P6E1", "P2D3", "P2F4", "P7E4", "P6B5", "P2A4", "P7D2", "P7C5"]
 # validation_keys = ["P3E3", "P2D3Tol", "P7C5"]
 validation_keys = ["P3E3", "P7B6", "P2C4"]
+# validation_keys = ["P3E3", "P7B6", "P2C4", "P7D2", "P6F1"]
 train_keys += validation_keys
 
 test_keys = test_datasets.keys() - train_keys
@@ -105,7 +108,7 @@ validation = {key: test_datasets[key] for key in train_valid_keys}
 name_files = "_".join(train_keys) + suffix
 validation_name_files = "_".join(validation.keys())
 
-if normalization:
+if normalization or True:
     name_files += "_tic"
     validation_name_files += "_tic"
 
@@ -200,7 +203,7 @@ if is_validation:
     print(validation_output, validation_masks_paths)
     if not os.path.exists(outvalidation_dir):
         os.makedirs(outvalidation_dir, exist_ok=True)
-        cmd = "python3 -m create_image_for_pls -i " + validation_input + " " + validation_masks_paths + " -o " + validation_output + " --sample_size 0.2"
+        cmd = "python3 -m create_image_for_pls -i " + validation_input + " " + validation_masks_paths + " -o " + validation_output + " --sample_size 1000"
         if normalization:
             cmd += " -n"
             print(cmd)
@@ -209,6 +212,8 @@ if is_validation:
     if is_lasso:
         cmd_validation += " --lasso"
     print(cmd_validation)
+    subprocess.call(cmd_validation, shell=True)
+    cmd_validation += " --binders"
     subprocess.call(cmd_validation, shell=True)
 
 if is_test:
@@ -235,6 +240,8 @@ if is_test:
             subprocess.call(cmd_gmm_binders, shell=True)
             subprocess.call(cmd_gmm_pigments, shell=True)
         for key, name_test in test_datasets.items():
+            if key != "Models":
+                continue
             # if key != "P7D5TM" and key != "P7D5Rot" and key != "P3C3":
             #     continue
             print(key)
@@ -284,18 +291,26 @@ if is_validate_prediction:
         # os.makedirs(name_model_dir + "results/", exist_ok=True)
         # os.makedirs(name_model_dir + "results/binders", exist_ok=True)
         # os.makedirs(name_model_dir + "results/pigments", exist_ok=True)
+        names_datasets = " ".join([v.replace(" ", "\\ ") for v in train.values()])
+        out_binders = name_model_dir + "results/train_stats_binders.xlsx"
+        out_pigments = name_model_dir + "results/train_stats_pigments.xlsx"
+        if not is_gmm:
+            out_binders = name_model_dir + "results/train_stats_binders_nogmm.xlsx"
+            out_pigments = name_model_dir + "results/train_stats_pigments_nogmm.xlsx"
+        cmd_binders = "python3 -m examples.evaluation_prediction_confusion -i " + input_model + " -t " + names_datasets + " -o " + out_binders + " --names " + name_binders
+        cmd_pigments = "python3 -m examples.evaluation_prediction_confusion -i " + input_model + " -t " + names_datasets + " -o " + out_pigments + " --names " + name_pigments
         if is_gmm:
             gmm_binders = os.path.splitext(input_model)[0] + "_gmm_binders_local_nomatrix.joblib"
             gmm_pigments = os.path.splitext(input_model)[0] + "_gmm_pigments_local_nomatrix.joblib"
-            names_datasets = " ".join([v.replace(" ", "\\ ") for v in train.values()])
-            out_binders = name_model_dir + "results/train_stats_binders.xlsx"
-            out_pigments = name_model_dir + "results/train_stats_pigments.xlsx"
-            cmd_binders = "python3 -m examples.evaluation_prediction_confusion -i " + input_model + " -t " + names_datasets + " --gmm " + gmm_binders + " -o " + out_binders + " --names " + name_binders
-            cmd_pigments = "python3 -m examples.evaluation_prediction_confusion -i " + input_model + " -t " + names_datasets + " --gmm " + gmm_pigments + " -o " + out_pigments + " --names " + name_pigments
-            print(cmd_binders)
-            subprocess.call(cmd_binders, shell=True)
-            print(cmd_pigments)
-            subprocess.call(cmd_pigments, shell=True)
+            cmd_binders  += " --gmm " + gmm_binders + " --proba 0.95"
+            cmd_pigments += " --gmm " + gmm_pigments + " --proba 0.95"
+        if normalization:
+            cmd_binders  += " -n"
+            cmd_pigments += " -n"
+        print(cmd_binders)
+        subprocess.call(cmd_binders, shell=True)
+        print(cmd_pigments)
+        subprocess.call(cmd_pigments, shell=True)
 
 
 if is_visual:

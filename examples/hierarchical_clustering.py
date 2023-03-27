@@ -25,6 +25,7 @@ from scipy.stats import pearsonr, norm
 from scipy.signal import correlate
 import esmraldi.imzmlio as io
 import esmraldi.fusion as fusion
+import esmraldi.segmentation as seg
 import esmraldi.imageutils as imageutils
 import networkx as nx
 from sklearn.mixture import GaussianMixture
@@ -34,8 +35,8 @@ import umap
 
 from scipy import ndimage as nd
 from skimage.filters import gabor_kernel
-import esmraldi.haarpsi as haarpsi
 from image_similarity_measures.quality_metrics import fsim
+import esmraldi.haarpsi as haarpsi
 
 def read_image(image_name):
     sitk.ProcessObject_SetGlobalWarningDisplay(False)
@@ -470,10 +471,10 @@ color_regions = np.array(color_regions)
 #               644.5015869, 715.5759, #LT
 #               287.0937, 296.0824, 746.512]
 
-# mzs_target = [837.549, 871.57]
-# indices = [np.abs(mzs - mz).argmin() for mz in mzs_target]
+mzs_target = [837.549, 863.56, 889.58]
+indices = [np.abs(mzs - mz).argmin() for mz in mzs_target]
 
-# color_regions[indices] = "y"
+color_regions[indices] = "y"
 
 current_image = image.copy()
 
@@ -490,6 +491,11 @@ shape = (image_norm.shape[0],)
 if not is_spectral:
     image_norm = image_norm.T
     shape = image.shape[:-1]
+
+is_distribution = False
+if is_distribution:
+    distributions = seg.quantile_distance_distributions(current_image, [60, 70, 80], w=10)
+    image_norm = distributions
 
 print(image_norm.shape)
 print(image.shape)

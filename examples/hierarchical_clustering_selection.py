@@ -60,14 +60,29 @@ def onpick(event, mzs, image, im_display):
     im_display.set_clim(vmin=currimg.min(), vmax=currimg.max())
     im_display.axes.figure.canvas.draw()
 
-def onclick(event, linkage, shape):
+def mean_spectra(clusters, current_image, mzs):
+    data = []
+    names = []
+    data.append(mzs)
+    for i in np.unique(clusters):
+        pixels = current_image[clusters == i]
+        if pixels.shape[0] > 10:
+            mean = np.mean(pixels, axis=0)
+            data.append(mean)
+            names.append(str(i))
+    np.savetxt("test.csv", np.column_stack(data), header="mzs,"+",".join(names), delimiter=",", comments="")
+
+
+def onclick(event, linkage, current_image, mzs, shape):
     if event.inaxes != ax[0]:
         return
     if event.dblclick:
         clusters = hc.fcluster(linkage, t=event.ydata, criterion="distance")
         cluster_image = clusters.reshape(shape).T
+        mean_spectra(clusters, current_image, mzs)
         print("k=", cluster_image.max())
         ax[1].imshow(cluster_image)
+        sitk.WriteImage(sitk.GetImageFromArray(cluster_image.astype(np.float32)), "test.tif")
         fig.canvas.draw_idle()
 
 def get_linkage(model):
@@ -88,8 +103,6 @@ def get_linkage(model):
     return linkage_matrix
 
 
-
-
 def plot_tree(P, ax, pos=None):
     icoord = np.array(P['icoord'])
     dcoord = np.array(P['dcoord'])
@@ -105,9 +118,6 @@ def plot_tree(P, ax, pos=None):
     if pos is None:
         ax.set_xlim(xmin-10, xmax + 0.1*abs(xmax))
         ax.set_ylim(ymin, ymax + 0.1*abs(ymax))
-
-
-
 
 
 def cov(x, y, w):
@@ -227,7 +237,7 @@ input_name = args.input
 output_name = args.output
 
 is_normalized = args.preprocess
-normalization = float(args.normalization)
+normalization = args.normalization
 normalization_dataset = args.normalization_dataset
 
 if input_name.lower().endswith(".imzml"):
@@ -253,46 +263,53 @@ else:
 
 
 norm_img = None
-if normalization>0:
-    if normalization_dataset is not None:
-        normalization_image = sitk.ReadImage(normalization_dataset)
-        normalization_image = sitk.GetArrayFromImage(normalization_image).T
-        mzs = np.loadtxt(os.path.splitext(normalization_dataset)[0] + ".csv")
-        norm_img = imageutils.get_norm_image(normalization_image, normalization, mzs)
-        plt.imshow(norm_img)
-        plt.show()
-    else:
-        norm_img = imageutils.get_norm_image(image, normalization, mzs)
+try:
+    normalization = float(normalization)
+    if normalization>0:
+        if normalization_dataset is not None:
+            normalization_image = sitk.ReadImage(normalization_dataset)
+            normalization_image = sitk.GetArrayFromImage(normalization_image).T
+            mzs = np.loadtxt(os.path.splitext(normalization_dataset)[0] + ".csv")
+            norm_img = imageutils.get_norm_image(normalization_image, normalization, mzs)
+            plt.imshow(norm_img)
+            plt.show()
+except Exception as e:
+    print("tic")
+    norm_img = imageutils.get_norm_image(image, normalization, mzs)
+
+if norm_img is not None:
     for i in range(image.shape[-1]):
         image[..., i] = imageutils.normalize_image(image[...,i], norm_img)
+
+current_image = image.copy()
 
 if is_normalized:
     # for i in range(image.shape[-1]):
     #     currimg = image[..., i]
     #     image[..., i] = currimg/np.std(currimg)
-    image = io.normalize(image)
+    current_image = io.normalize(image)
 
-current_image = image.copy()
 
 image_norm = fusion.flatten(current_image, is_spectral=True)
 image_norm = image_norm.T
+
+image_alt = fusion.flatten(image, is_spectral=True)
+image_alt = image_alt.T
+
 shape = image.shape[:-1]
 
 print(image_norm.shape)
 print(image.shape)
 
-
-metrics = ["cosine"]
-
-distance_matrix = distance.squareform(distance.pdist(image_norm, metric="cosine"))
-distance_matrix = np.nan_to_num(distance_matrix)
-
-print(distance_matrix.shape)
-
-draw_hierarchical = True
+draw_hierarchical = False
 is_3D = False
 
 if draw_hierarchical:
+    metrics = ["cosine"]
+
+    distance_matrix = distance.squareform(distance.pdist(image_norm, metric="cosine"))
+    distance_matrix = np.nan_to_num(distance_matrix)
+    print(distance_matrix.shape)
 
     model = AgglomerativeClustering(linkage="average", affinity="precomputed", n_clusters=None, distance_threshold=0)
     model = model.fit(distance_matrix)
@@ -314,9 +331,21 @@ if draw_hierarchical:
 
 
     im_display = ax[1].imshow(image[..., 0].T)
-    cid = fig.canvas.mpl_connect('button_press_event', lambda event:onclick(event, linkage_matrix, shape))
+    cid = fig.canvas.mpl_connect('button_press_event', lambda event:onclick(event, linkage_matrix, image_alt, mzs, shape))
     fig.canvas.mpl_connect('pick_event', lambda event: onpick(event, mzs, current_image, im_display))
 
+else:
+    kmeans = KMeans(n_clusters=10, random_state=0).fit(image_norm)
+    clusters = kmeans.labels_
+    cluster_image = clusters.reshape(shape).T
+    fig, ax = plt.subplots(1)
+    mean_spectra(clusters, image_alt, mzs)
+    print("k=", cluster_image.max())
+    ax.imshow(cluster_image)
+    sitk.WriteImage(sitk.GetImageFromArray(cluster_image.astype(np.float32)), "test.tif")
+    fig.canvas.draw_idle()
 
+
+print(mzs.shape)
 plt.tight_layout()
 plt.show()
