@@ -469,6 +469,7 @@ def remove_indices(image):
 
 def roc_indices(mask, shape, norm_img=None):
     indices = np.where(mask > 0)
+    print(shape)
     indices_ravel = np.ravel_multi_index(indices, shape, order='F')
 
     if norm_img is not None:
@@ -543,7 +544,7 @@ def single_roc_cutoff(image, indices, region_bool, fn, is_weighted=False):
         cutoffs[j] = cutoff
     return cutoffs
 
-def cutoff_distance2(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0):
+def cutoff_distance2(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0, return_index=False):
     d2h = (1 - tpr)**2 + (fpr)**2
     d2b = tpr**2 + (1-fpr)**2
     indexh  = np.argmin(d2h)
@@ -558,21 +559,27 @@ def cutoff_distance(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0, return_index=Fa
         return distance, index
     return distance
 
-def cutoff_half_tpr(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0):
+def cutoff_half_tpr(fpr, tpr, thresholds, nb_zeros=0, nb_ones=0, return_index=False):
     index = np.searchsorted(tpr, 0.5)
+    if return_index:
+        return fpr[index], index
     return fpr[index]
 
-def cutoff_generalized_youden(fpr, tpr, thresholds, nb_zeros, nb_ones):
+def cutoff_generalized_youden(fpr, tpr, thresholds, nb_zeros, nb_ones, return_index=False):
     p = nb_ones/(nb_ones+nb_zeros)
     r = 4
     yg = tpr + ((1 - p)/(r*p)) * (1 - fpr) - 1
     # w = nb_zeros/nb_ones
     # yg = tpr + w * (1 - fpr) -1
+    if return_index:
+        return yg.max(), np.argmax(yg)
     return yg.max()
 
-def cutoff_efficiency(fpr, tpr, thresholds, nb_zeros, nb_ones):
+def cutoff_efficiency(fpr, tpr, thresholds, nb_zeros, nb_ones, return_index=False):
     p = nb_ones/(nb_ones+nb_zeros)
     eff = tpr * p  + (1 - fpr) * (1-p)
+    if return_index:
+        return eff.max(), np.argmax(eff)
     return eff.max()
 
 def roc_auc_analysis(images, indices, region_bool, norm_img=None, thresholded_variants=False, is_weighted=False):
@@ -594,21 +601,22 @@ def roc_auc_analysis(images, indices, region_bool, norm_img=None, thresholded_va
 
     return roc_auc_scores
 
-def single_average(current_image, indices, region_bool):
+def single_measure(current_image, indices, region_bool, fn=np.mean):
     sub_region = current_image[indices]
     current_values = sub_region.flatten()
     means = np.zeros(len(region_bool))
     for j, binary_label in enumerate(region_bool):
-        means[j] = np.mean(current_values)
+        means[j] = fn(current_values[binary_label])
     return means
 
-def averages_per_region(images, indices, region_bool):
+def measures_per_region(images, indices, region_bool, fn=np.mean):
     nreg = len(region_bool)
-    averages_per_scores = np.zeros((images.shape[-1], nreg))
+    measures_per = np.zeros((images.shape[-1], nreg))
     for i in range(images.shape[-1]):
         current_image = images[..., i]
-        averages_per_scores[i, :] = single_average(current_image, indices, region_bool)
-    return averages_per_scores
+        measures_per[i, :] = single_measure(current_image, indices, region_bool, fn)
+    return measures_per
+
 
 def roc_cutoff_analysis(images, indices, region_bool, is_weighted=False, fn=cutoff_distance):
     nreg = len(region_bool)

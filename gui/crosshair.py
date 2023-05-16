@@ -3,6 +3,11 @@ import numpy as np
 import pyqtgraph as pg
 
 class Crosshair(QtGui.QGraphicsItem):
+    """
+    Crosshair class
+
+    Allows to display a cross in the image with text
+    """
     def __init__(self, text):
         QtGui.QGraphicsItem.__init__(self)
         self.text = text
@@ -29,6 +34,10 @@ class Crosshair(QtGui.QGraphicsItem):
 
 
 class CrosshairDrawing:
+    """
+    Factory generating crosshairs
+    The text corresponds to the number
+    """
     def __init__(self):
         self.counter = 0
 

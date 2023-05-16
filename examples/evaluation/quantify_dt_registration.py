@@ -14,6 +14,10 @@ import skimage.transform as transform
 import cv2 as cv
 
 def create_data(deformation=False):
+    value = 200
+    if deformation:
+        value = 120
+        value = 200
     img = np.zeros((100, 100))
 
     coords = draw.ellipse(50, 50, 35, 13)
@@ -24,7 +28,7 @@ def create_data(deformation=False):
     set_disk = set((tuple(i) for i in np.array(coords2).T))
     set_intersection = set_disk.intersection(set_ellipse)
     inters_xy = tuple(np.array(list(set_intersection)).T)
-    img[inters_xy] = 200
+    img[inters_xy] = value
 
     coords_disktop = draw.disk((30, 55), 7)
     set_disk = set((tuple(i) for i in np.array(coords_disktop).T))
@@ -32,10 +36,11 @@ def create_data(deformation=False):
     inters_xy = tuple(np.array(list(set_intersection)).T)
     img[inters_xy] = 200
 
+
     coords_line = draw.line(82, 46, 60, 40)
-    img[coords_line] = 200
+    img[coords_line] = value
     coords_line = draw.line(82, 47, 60, 41)
-    img[coords_line] = 200
+    img[coords_line] = value
 
     if deformation:
         coords = draw.ellipse(50, 37, 7, 3)
@@ -52,9 +57,10 @@ def create_data(deformation=False):
         img[coords3] = 0
 
         coords_line = draw.line(82, 48, 60, 42)
-        img[coords_line] = 200
+        img[coords_line] = value
         coords_line = draw.line(82, 49, 60, 43)
-        img[coords_line] = 200
+        img[coords_line] = value
+
 
         set_intersection = set_disk.intersection(set_ellipse)
         inters_xy = tuple(np.array(list(set_intersection)).T)
@@ -72,37 +78,59 @@ def create_data(deformation=False):
 
     return img
 
-
-
-mean_noise = 10
-stddev_noise = 2
+mean_noise = 100
+stddev_noise = 20
 
 reference = create_data()
 target = create_data(deformation=True)
 
 
 target_original = target.copy()
-target = transform.rotate(target, 37)
-target = transform.resize(target, (50, 50), order=0)
+target = transform.rotate(target, 37, order=0)
+target = transform.resize(target, (50, 50), order=1, anti_aliasing=True)
 target = np.pad(target, 25)
 
-noise = np.random.normal(mean_noise, stddev_noise, reference.shape)
-# reference += noise
-# target += noise
+# fig, ax = plt.subplots(1, 3)
+# ax[0].imshow(reference)
+# ax[1].imshow(target_original)
+# ax[2].imshow(target)
+# plt.show()
+
+reference_binary = reference.copy()
+target_binary = target.copy()
+reference_binary[reference_binary > 0] = 255
+target_binary[target_binary > 0] = 255
+
+# np.random.seed(0)
+# noise2 = np.random.normal(mean_noise, stddev_noise, reference.shape)
+# target[target > 0] += noise2[target > 0]
+# target[target < 0] = 0
+
+plt.imshow(target)
+plt.show()
 
 reference_itk = sitk.GetImageFromArray(reference)
 target_original_itk = sitk.GetImageFromArray(target_original)
 target_itk = sitk.GetImageFromArray(target)
+reference_binary = sitk.GetImageFromArray(reference_binary)
+target_binary = sitk.GetImageFromArray(target_binary)
 
 dt_reference = utils.compute_DT(reference_itk)
 dt_target = utils.compute_DT(target_itk)
 dt_target_original = utils.compute_DT(target_original_itk)
 
 
-R_intensity = reg.register(reference_itk, target_itk, 10, 0.001, find_best_rotation=True, use_DT=False, learning_rate=0.00000001)
+R_intensity = reg.register(reference_itk, target_itk, 10, 0.001, find_best_rotation=True, use_DT=False, update_DT=False, learning_rate=0.00000001)
 out_intensity = R_intensity.Execute(target_itk)
 
-R_shape = reg.register(reference_itk, target_itk, 10, 0.001, find_best_rotation=True, learning_rate=0.00000001)
+
+R_binary = reg.register(reference_binary, target_binary, 10, 0.001, find_best_rotation=True, use_DT=False, update_DT=False, learning_rate=0.00000001)
+out_binary = R_binary.Execute(target_itk)
+
+R_dt = reg.register(reference_itk, target_itk, 10, 0.001, find_best_rotation=True, use_DT=True, update_DT=False, learning_rate=0.00000001)
+out_dt = R_dt.Execute(target_itk)
+
+R_shape = reg.register(reference_itk, target_itk, 10, 0.001, find_best_rotation=True, use_DT=True, update_DT=True, learning_rate=0.00000001)
 out_shape = R_shape.Execute(target_itk)
 
 sitk.WriteImage(sitk.Cast(out_intensity, sitk.sitkUInt8), "registered_intensity.tif")
@@ -116,9 +144,11 @@ sitk.WriteImage(sitk.Cast(target_original_itk, sitk.sitkUInt8), "target_original
 
 
 
-fig, ax = plt.subplots(1, 4)
+fig, ax = plt.subplots(1, 6)
 ax[0].imshow(reference)
 ax[1].imshow(target)
 ax[2].imshow(sitk.GetArrayFromImage(out_intensity))
-ax[3].imshow(sitk.GetArrayFromImage(out_shape))
+ax[3].imshow(sitk.GetArrayFromImage(out_binary))
+ax[4].imshow(sitk.GetArrayFromImage(out_dt))
+ax[5].imshow(sitk.GetArrayFromImage(out_shape))
 plt.show()

@@ -1,5 +1,15 @@
 import numpy as np
+from numba import jit, njit
+from numba.experimental import jitclass
+from numba import int32, float64    # import the types
 
+spec = [
+    ("X", float64[:, :]),
+    ("k", int32),
+    ("projections", float64[:, :])
+]
+
+@jitclass(spec)
 class FastMap:
     def __init__(self, X, k):
         self.X = X
@@ -17,7 +27,7 @@ class FastMap:
 
     def furthest(self, index):
         max_d = 0.0
-        furthest = (0, 0)
+        furthest = 0
 
         for j in range(self.X.shape[0]):
             d2 = self.dist2_minus_proj(j, index)
@@ -34,6 +44,7 @@ class FastMap:
     def compute_projections(self):
         rows = self.X.shape[0]
         for j in range(self.k):
+            print("Pick pivots", j)
             a, b = self.pick_pivots()
             d_ab = self.dist2_minus_proj(a, b)
             proj_tmp = np.zeros(shape=(rows))

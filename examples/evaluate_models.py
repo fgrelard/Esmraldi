@@ -11,6 +11,7 @@ from esmraldi.registration import precision, recall, quality_registration
 from sklearn.metrics import confusion_matrix, recall_score
 from natsort import natsorted
 import esmraldi.utils as utils
+from sklearn import preprocessing
 
 def read_image(image_name):
     sitk.ProcessObject_SetGlobalWarningDisplay(False)
@@ -46,42 +47,71 @@ def indices_peaks(peaks, other_peaks):
     return indices
 
 
-def analyze_model(input_name, x, y, region_names):
+def analyze_model(input_name, x, y, region_names, is_binders, proba=0.95):
     names_name = os.path.splitext(input_name)[0] + "_names.csv"
     mzs_name = os.path.splitext(input_name)[0] + "_mzs.csv"
     y_train = os.path.splitext(input_name)[0] + "_y.csv"
+    peaks = np.loadtxt(mzs_name)
+    names = np.loadtxt(names_name, dtype=str)
+
+    if is_binders:
+        gmm_name = os.path.splitext(input_name)[0] + "_gmm_binders_local_nomatrix.joblib"
+    else:
+        gmm_name = os.path.splitext(input_name)[0] + "_gmm_pigments_local_nomatrix.joblib"
+
+    subset = region_names
+    if is_binders:
+        subset = np.array(["Casein", "Collagen", "ET", "LO", "Matrix"])
+    else:
+        subset = np.array(["CalciumCarbonate", "Leadwhite", "Ochre", "Sienna", "Tape", "Ultramarine", "Umber"])
+
+    indices_y = np.array([n in names and n in subset for n in region_names])
+    indices_y_predict = np.array([n in region_names and n in subset for n in names])
 
     regression = joblib.load(input_name)
     coef = regression.coef_
     if coef.shape[0] < coef.shape[1]:
         coef = coef.T
-
-    peaks = np.loadtxt(mzs_name)
-    names = np.loadtxt(names_name, dtype=str)
     # y = np.loadtxt(y_train, dtype=float, delimiter=",")
-
     y_predict = regression.predict(x)
 
-
-    indices_y = np.array([n in names for n in region_names])
-    indices_y_predict = np.array([n in region_names for n in names])
+    # ind_mat = np.where((np.array(names) == "ET&LO"))[0]
+    # print(ind_mat)
+    # indices_not_matrix = (y[..., ind_mat] == 0).all(axis=-1)
+    # y = y[indices_not_matrix]
+    # y_predict = y_predict[indices_not_matrix]
     y = y[..., indices_y]
     y_predict = y_predict[..., indices_y_predict]
 
-    labels = np.argmax(y_predict, axis=-1)
-    # y_predict = np.zeros_like(y_predict)
+    # gmm = joblib.load(gmm_name)
+    # labels = gmm.predict(y_predict)
+    # probas = gmm.predict_proba(y_predict)
+    # common_labels = np.intersect1d(np.arange(y_predict.shape[-1], dtype=int), np.unique(labels))
+    # lb = preprocessing.LabelBinarizer()
+    # labels = lb.fit_transform(labels)
+    # if labels.shape[-1] == 1:
+    #     labels = np.ones_like(labels, dtype=int)
 
-    # for i in range(y_predict.shape[0]):
-    #     y_predict[i, labels[i]] = 255
+    # y_predict = np.zeros_like(y_predict)
+    # y_predict[..., common_labels] = labels
+
+    # if proba > 0:
+    #     ind_mat = np.where((np.array(subset) == "Matrix") | (np.array(subset) == "Tape"))[0]
+    #     y_predict[probas.max(axis=-1) < proba] = uncertain_label
 
     y_bin = np.where(y>0, 1, 0).astype(np.uint8)
     y_predict_bin = np.where(y_predict>0, 1, 0).astype(np.uint8)
+
+    t = 0.7
+    y_mse = np.where(y>t, 1, y).astype(np.uint8)
+    y_predict_mse = np.where(y_predict>t, 1, y_predict).astype(np.uint8)
 
     r = recall(y_bin, y_predict_bin)
     p = precision(y_bin, y_predict_bin)
     se = recall_score(y_bin.flatten(), y_predict_bin.flatten())
     sp = recall_score(y_bin.flatten(), y_predict_bin.flatten(), pos_label=0)
     mse = mean_squared_error(y, y_predict)
+    print(mse)
     return r, p, sp, se, mse
     # all_mzs = []
     # total_length = 0
@@ -104,12 +134,16 @@ parser.add_argument("-i", "--input", help="Input dir containing models")
 parser.add_argument("--validation_dataset", help="Validation dataset", default=None)
 parser.add_argument("--roc", help="ROC values", default=None)
 parser.add_argument("--lasso", help="Is Lasso", action="store_true")
+parser.add_argument("--binders", help="Analyze only binders", action="store_true")
+parser.add_argument("--proba", help="Proba GMM", default=0.95)
 args = parser.parse_args()
 
 input_dir = args.input
 roc_name = args.roc
 validation_name = args.validation_dataset
 is_lasso = args.lasso
+is_binders = args.binders
+proba = float(args.proba)
 
 if validation_name is None:
     msi_name = input_dir.replace("models", "trainingsets") + os.path.sep + "train.tif"
@@ -150,6 +184,7 @@ if roc_name is not None:
 
 nb = []
 vals = []
+
 print(x.shape, y.shape)
 for root, dirs, files in os.walk(input_dir):
     for f in files:
@@ -158,20 +193,20 @@ for root, dirs, files in os.walk(input_dir):
             input_name = root + os.path.sep + f
             number = os.path.splitext(f)[0].split("_")[-1]
             if is_lasso and "lasso" in f:
-                currvals = analyze_model(input_name, x, y, names)
+                currvals = analyze_model(input_name, x, y, names, is_binders, proba)
                 nb.append(float(number))
                 vals.append(currvals)
 
             elif not is_lasso and "pls" in f:
-                currvals= analyze_model(input_name, x, y, names)
+                currvals= analyze_model(input_name, x, y, names, is_binders, proba)
                 nb.append(float(number))
                 vals.append(currvals)
 
 vals = np.array(vals)
+print(nb[np.argmin(vals[:, 4])])
 
 fig, ax = plt.subplots(1, 5)
 ax[0].set_title("Recall")
-print(nb, vals)
 ax[0].scatter(nb, vals[:, 0])
 ax[1].set_title("Precision")
 ax[1].scatter(nb, vals[:, 1])
@@ -181,5 +216,9 @@ ax[3].set_title("Sensitivity")
 ax[3].scatter(nb, vals[:, 3])
 ax[4].set_title("MSE")
 ax[4].scatter(nb, vals[:, 4])
+plt.show()
 
+ax = plt.subplot(111)
+ax.scatter(nb, vals[:, 4])
+ax.spines[['right', 'top']].set_visible(False)
 plt.show()

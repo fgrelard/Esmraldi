@@ -141,13 +141,13 @@ labels = np.repeat(np.arange(y.shape[-1]), sample_size)
 
 distance_matrix = distance.squareform(distance.pdist(out, metric="sqeuclidean"))
 # mds = MDS(n_components=2, dissimilarity="precomputed", random_state=0)
-mds = TSNE(n_components=3, perplexity=50.0, metric="precomputed", random_state=0)
+mds = TSNE(n_components=2, perplexity=30.0, metric="precomputed", random_state=0)
 # mds = umap.UMAP(random_state=0)
 
 
 fig = plt.figure()
-ax = plt.axes(projection='3d')
-# ax = plt.axes()
+# ax = plt.axes(projection='3d')
+ax = plt.axes()
 
 pos_array = mds.fit_transform(distance_matrix)
 test = pos_array.T
@@ -155,7 +155,7 @@ uncertain_label = labels.max() + 1
 
 print(gmm_name)
 if gmm_name is None:
-    means_init = np.array([[255 if i == j else 0 for j in range(y.shape[-1]) ] for i in range(y.shape[-1])])
+    means_init = np.array([[1 if i == j else 0 for j in range(y.shape[-1]) ] for i in range(y.shape[-1])])
 
     gmm = GaussianMixture(n_components=out.shape[-1], covariance_type="tied", means_init=means_init)
     clusters_gmm = gmm.fit(out)
@@ -168,14 +168,17 @@ probas = clusters_gmm.predict_proba(out)
 means = clusters_gmm.means_
 reorganize_indices = np.argmax(means, axis=-1)
 labels = reorganize_indices[labels]
-labels[probas.max(axis=-1) < 0.999] = uncertain_label
+labels[probas.max(axis=-1) < 0.95] = uncertain_label
 print(clusters_gmm.means_, reorganize_indices)
+
+labels = np.argmax(y, axis=-1)
+print(labels.shape)
 
 
 # roc_ind = roc_indices(y, out, labels)
 # labels[roc_ind] = uncertain_label
 
-cm = plt.get_cmap("Set3")
+cm = plt.get_cmap("Dark2")
 array_colors = np.array(cm.colors)
 k = np.array([0, 0, 0])
 array_colors[uncertain_label, :] = k
@@ -189,6 +192,7 @@ colors = set_colors[labels]
 ax.scatter(*test, marker="o", s=50, edgecolor='None', picker=True, c=colors)
 handles = [plt.Rectangle((0, 0), 0, 0, color=cm(int(i)), label=name) for i, name in enumerate(names)]
 ax.legend(handles=handles, title="Binders", loc='center left', bbox_to_anchor=(1, 0.5))
+ax.spines[['right', 'top']].set_visible(False)
 plt.show()
 print(distance_matrix.shape)
 print(regression.coef_.shape)

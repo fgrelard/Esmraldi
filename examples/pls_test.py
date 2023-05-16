@@ -12,6 +12,11 @@ import esmraldi.spectraprocessing as sp
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import matplotlib
+from sklearn.cluster import DBSCAN
+from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
+from skimage.filters import threshold_multiotsu
+from skimage.morphology import opening, closing, erosion, dilation
+from scipy.ndimage import binary_fill_holes
 
 def normalize_flatten(spectra, coordinates, shape, normalization_tic=True, normalization_minmax=True):
     if normalization:
@@ -21,6 +26,7 @@ def normalize_flatten(spectra, coordinates, shape, normalization_tic=True, norma
     images = io.get_images_from_spectra(full_spectra, shape)
     if normalization_minmax:
         images = io.normalize(images)
+    images = images.astype(np.float128) / 255.0
     image_flatten = fusion.flatten(images, is_spectral=True).T
     return image_flatten
 
@@ -53,6 +59,8 @@ parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given
 parser.add_argument("-o", "--output", help="Output files")
 parser.add_argument("--names", help="Names to analyze (default all)", nargs="+", type=str, default=None)
 parser.add_argument("--gmm", help="GMM model (.joblib)", default=None)
+parser.add_argument("--proba", help="Proba", default=0)
+parser.add_argument("--rank", help="Nth rank for prediction", default=1)
 args = parser.parse_args()
 
 input_name = args.input
@@ -61,6 +69,8 @@ normalization = args.normalization
 outname = args.output
 analysis_names = args.names
 gmm_name = args.gmm
+proba = float(args.proba)
+rank = int(args.rank)
 
 mzs_name = os.path.splitext(input_name)[0] + "_mzs.csv"
 names_name = os.path.splitext(input_name)[0] + "_names.csv"
@@ -96,7 +106,6 @@ np.savetxt(peaks_coef_name, data, header="mzs,"+",".join(names), delimiter=",", 
 # scaler = StandardScaler()
 # target_im = scaler.fit_transform(target_im)
 out = regression.predict(target_im)
-print(out.shape)
 # separation = np.array([len(s.split("_")) for s in names])
 # end_pigments = np.where(separation==2)[0][-1]
 # end_binders = np.where(separation==1)[0][-1]
@@ -109,62 +118,50 @@ if analysis_names is not None:
     out = out[..., inside]
 
 if "ET&LO" in names:
-    order = np.array([0, 1, 3, 4, 5, 2])
+    order = np.array([0, 1, 3, 4, 2])
     names = names[order]
     out = out[..., order]
 
 
 labels = np.argmax(out, axis=-1)
+labels = np.argsort(out, axis=-1)[..., -rank]
+
+array_colors = np.array(cm.colors)
+names_array = np.array(analysis_names)
+ind_mat = np.where((names_array == "Matrix") | (names_array == "Tape"))[0]
+black = np.array([0.15, 0.15, 0.15])
+array_colors[ind_mat, :] = black
+cm = colors.ListedColormap(array_colors)
 
 if gmm_name is not None:
-    uncertain_label = len(analysis_names)
     gmm = joblib.load(gmm_name)
     labels = gmm.predict(out)
+    print(labels.shape)
     probas = gmm.predict_proba(out)
-    # t = 0.1
-    # cond = probas.max(axis=-1)[:, np.newaxis]-t
-    # numbers = np.count_nonzero(probas > cond, axis=-1)
-    # ind = np.where(probas > cond)
-    # vals, idx_start, count = np.unique(ind[0], return_counts=True, return_index=True)
-    # for i in range(len(idx_start)-1):
-    #     if count[i] > 1:
-    #         c = idx_start[i]
-    #         n = idx_start[i+1]
-    #         values = ind[1][c:n]
-    #         if 4 in values:
-    #             new_label = values[0]
-    #         else:
-    #             new_label = np.mean(values)
-    #             print(new_label, values)
-    #         labels[i] = new_label
-    labels[probas.max(axis=-1) < 0.95] = uncertain_label
+    labels = np.argsort(probas, axis=-1)[..., -rank]
+    uncertain_label = len(analysis_names)
+    if proba > 0:
+        labels[probas.max(axis=-1) < proba] = uncertain_label
     label_image = np.reshape(labels, shape[:-1]).T
-
     array_colors = np.array(cm.colors)
-    gray = np.array([0.7, 0.7, 0.7])
+    gray = np.array([0.3, 0.3, 0.3])
     array_colors[uncertain_label, :] = gray
-    names_array = np.array(analysis_names)
-    ind_mat = np.where((names_array == "Matrix") | (names_array == "Tape"))[0]
-    print(ind_mat, analysis_names)
-    black = np.array([0.1, 0.1, 0.1])
-    array_colors[ind_mat, :] = black
     cm = colors.ListedColormap(array_colors)
     plt.imshow(label_image, cmap=cm, vmin=0, vmax=cm.N, interpolation="nearest")
-    # plt.imshow(label_image, cmap=cm, vmin=0, vmax=label_image.max(), interpolation="nearest")
 
     names = np.append(names, ["Uncertain"])
 else:
     min_value, max_value = np.amin(out, axis=0), np.amax(out, axis=0)
+    min_value, max_value = np.amin(out), np.amax(out)
     opacity = (out - min_value) / (max_value - min_value)
     opacity = np.take_along_axis(opacity, labels[:, None], axis=-1)
 
-    opacity_image = np.reshape(opacity, shape[:-1]).T
+    opacity_image = np.reshape(opacity, shape[:-1]).T.astype(np.float64)
     label_image = np.reshape(labels, shape[:-1]).T
 
     blacks = np.zeros_like(label_image)
-
     plt.imshow(blacks, cmap="gray")
-    plt.imshow(label_image, cmap=cm, vmin=0, vmax=cm.N, alpha=opacity_image, interpolation="nearest")
+    plt.imshow(label_image, cmap=cm, vmin=0, vmax=cm.N, alpha=opacity_image,  interpolation="nearest")
 
 handles = [plt.Rectangle((0, 0), 0, 0, color=cm(int(i)), label=name) for i, name in enumerate(analysis_names)]
 # handles = [plt.Rectangle((0, 0), 0, 0, color=cm(norm(i+1)), label=name) for i, name in enumerate(analysis_names)]

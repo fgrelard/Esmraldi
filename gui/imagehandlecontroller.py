@@ -9,7 +9,31 @@ from collections import OrderedDict
 from PyQt5 import Qt, QtWidgets
 
 class ImageHandleController:
+    """
+    Class to handle image view as well as its selection
+    in the combobox
 
+    Attributes
+    ----------
+    imageview: ImageViewExtended
+        the image view
+    is_edit: bool
+        whether the image name can be edited
+    is_text_editing: bool
+        whether the m/z and tolerance can be edited
+    current_mz: float
+        current m/z value
+    tolerance: float
+        tolerance in m/z
+    img_data: np.ndarray or MSImageBase
+        actual image
+    current_name: str
+        current image name
+    images: OrderedDict
+        dictionary mapping name to image content
+    metadata: OrderedDict
+        dictionary mapping name to metadata
+    """
     images = OrderedDict()
     metadata = OrderedDict()
 
@@ -43,23 +67,12 @@ class ImageHandleController:
 
         self.img_data = None
         self.current_name = None
-        # nb = 2000
-        # mzs = (np.arange(nb)+1)
-        # x = np.random.random((10, 100, nb))
-        # x[x < 0.9] = 0  # fill most of the array with zeros
-        # x_r = x.reshape((np.prod(x.shape[:-1]), x.shape[-1]))
-        # spectra = np.stack((np.tile(mzs, (np.prod(x.shape[:-1]),1)), x_r), axis=1)
-        # sm = SparseMatrix(x, is_maybe_densify=False)
-        # mzs = SparseMatrix(spectra, is_maybe_densify=False)
-        # mss = MSImage(spectra, sm, tolerance=0.0003)
-        # mss.spectral_axis = 0
-        # mss = mss.transpose((2,1,0))
-        # self.img_data = mss
-        # self.add_image(self.img_data, "test")
-        # self.choose_image("test")
-        # self.filename = "test"
+
 
     def image_to_view(self, image, filename):
+        """
+        Converts an image (np.ndarray, MSImageBase) to a view (ImageViewExtended)
+        """
         self.img_data = image
         name = os.path.basename(filename)
         name = os.path.splitext(name)[0]
@@ -69,15 +82,25 @@ class ImageHandleController:
         self.filename = name
 
     def get_image(self):
+        """
+        Returns the actual image
+        """
         return self.img_data
 
     def change_mz_value(self, text):
+        """
+        Change the m/z value to value "text" in the GUI
+        """
         self.is_text_editing = True
         number, is_converted = self.locale.toDouble(text)
         if is_converted:
             self.current_mz = number
 
     def update_mz_value(self):
+        """
+        Update the m/z value and updates the
+        image accordingly
+        """
         self.is_text_editing = False
         try:
             ind = (np.abs(self.imageview.tVals - self.current_mz)).argmin()
@@ -86,12 +109,19 @@ class ImageHandleController:
             pass
 
     def change_tolerance(self, text):
+        """
+        Change the m/z tolerance to value "text" in the GUI
+        """
         self.is_text_editing = True
         number, is_converted = self.locale.toDouble(text)
         if is_converted:
             self.tolerance = number
 
     def update_tolerance(self):
+        """
+        Update the m/z tolerance and updates the image
+        accordingly
+        """
         self.is_text_editing = False
         try:
             self.imageview.imageDisp.tolerance = self.tolerance
@@ -121,6 +151,9 @@ class ImageHandleController:
 
 
     def edit_name(self):
+        """
+        Edit image name
+        """
         self.is_edit = not self.is_edit
         if self.is_edit:
             fa_check = qta.icon('fa.check', color="green")
@@ -142,6 +175,10 @@ class ImageHandleController:
 
 
     def change_name(self, old_name, new_name):
+        """
+        Edit image name in dictionaries self.images and
+        self.metadata
+        """
         if old_name in self.images:
             for _ in range(len(self.images)):
                 k, v = self.images.popitem(False)
@@ -151,6 +188,9 @@ class ImageHandleController:
                 self.metadata[new_name if old_name == k else k] = v
 
     def change_image_combobox(self, value):
+        """
+        Updates image when changing combobox value
+        """
         current_index = self.imagehandleview.combobox.currentIndex()
         count = self.imagehandleview.combobox.count() - 1
         new_index = max(0, min(current_index + value, count))
@@ -158,6 +198,9 @@ class ImageHandleController:
         self.choose_image(self.current_name)
 
     def remove_image(self, name, manual=False):
+        """
+        Removing an image
+        """
         if name in self.metadata:
             del self.metadata[name]
         if name in self.images:
@@ -197,6 +240,10 @@ class ImageHandleController:
         self.imageview.setImage(self.images[name], xvals=xvals)
 
     def choose_roi_image(self, name):
+        """
+        Choose an image in the ROI panel
+        to define a mask
+        """
         if name == "No image":
             return
         if name not in self.images:
@@ -226,6 +273,9 @@ class ImageHandleController:
 
 
     def on_click_image(self, evt):
+        """
+        Event raised when image is clocked
+        """
         pos = evt
         ive = self.imageview
         image = ive.imageDisp

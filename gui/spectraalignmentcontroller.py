@@ -10,6 +10,9 @@ from gui.signal import Signal
 from PyQt5 import QtCore
 
 class WorkerSpectraAlignment(QtCore.QObject):
+    """
+    Worker to align spectra
+    """
     signal_end = QtCore.pyqtSignal(object)
     signal_progress = QtCore.pyqtSignal(int)
 
@@ -49,6 +52,10 @@ class WorkerSpectraAlignment(QtCore.QObject):
         self.is_abort = True
 
 class SpectraAlignmentController:
+    """
+    Align spectra to obtain a common m/z axis for all
+    pixels
+    """
     def __init__(self, view, imageview):
         self.view = view
         self.imageview = imageview

@@ -25,6 +25,8 @@ from esmraldi.utils import progress, factors, attempt_reshape
 import esmraldi.spectraprocessing as sp
 import time
 import math
+import tifffile
+import SimpleITK as sitk
 
 MAX_MAGNITUDE_ORDER = 6
 MAX_NUMBER = int(1e6)
@@ -770,3 +772,26 @@ def to_csv(array, filename):
 
     """
     np.savetxt(filename, array, delimiter=";", fmt='%1.4f')
+
+
+def to_tif(array, mzs, filename):
+    tifffile.imwrite(filename, array, imagej=True, metadata={"axes": "ZYX", "Labels": [str(mz) for mz in mzs]})
+
+def open_tif(filename):
+    mzs = []
+    tif = tifffile.TiffFile(filename)
+    if 50839 in tif.pages[0].tags.keys():
+        mzs_str = tif.pages[0].tags[50839].value["Labels"]
+        try:
+            mzs = [float(mz) for mz in mzs_str]
+        except:
+            pass
+    else:
+        root, ext = os.path.splitext(filename)
+        if os.path.exists(root + ".csv"):
+            mzs = np.loadtxt(root + ".csv", delimiter=";")
+    try:
+        im_itk = sitk.ReadImage(filename)
+    except:
+        return cv.imread(filename), np.array(mzs)
+    return sitk.GetArrayFromImage(im_itk), np.array(mzs)

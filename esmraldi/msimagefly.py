@@ -28,7 +28,6 @@ class MSImageOnTheFly(MSImageBase):
             coords = coords[:-1]
 
         self.shape = coords + (len(self.mzs), )
-
         self.image = np.zeros(self.shape[:-1])
 
     @property
@@ -42,7 +41,6 @@ class MSImageOnTheFly(MSImageBase):
     @property
     def size(self):
         return np.prod(self.shape)
-
 
     def max(self, axis=None, out=None):
         intensities = np.hstack(self.spectra[:, 1]).flatten()

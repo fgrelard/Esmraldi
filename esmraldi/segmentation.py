@@ -26,6 +26,10 @@ from skimage import data, color, util
 from skimage.draw import disk as drawdisk
 from skimage.morphology import binary_erosion, closing, disk
 
+import matplotlib.pyplot as plt
+import scipy.signal as signal
+from scipy.stats import pearsonr
+
 def max_variance_sort(image_maldi):
     """
     Sort a stack image along the z-axis
@@ -556,7 +560,7 @@ def spatial_coherence(image):
 
     Parameters
     ----------
-    image: np.ndarrau
+    image: np.ndarray
         binarized image
 
     Returns
@@ -675,6 +679,20 @@ def find_similar_images_spatial_coherence_percentage(image_maldi, percentage, qu
         return similar_images, indices
     return similar_images
 
+def median_minima(maxima, minima):
+    groups = [ [] for i in range(len(maxima)+1) ]
+    for i, minimum in enumerate(minima):
+        added = False
+        for j, maximum in enumerate(maxima):
+            if minimum < maximum:
+                groups[j].append(minimum)
+                added = True
+                break
+        if not added:
+            groups[-1].append(minimum)
+    medians = [np.median(g) for g in groups]
+    return np.array(medians, dtype=int)
+
 def find_similar_images_variance(image_maldi, factor_variance=0.1, return_indices=False):
     """
     Finds images that have a high variance in their intensities.
@@ -705,6 +723,156 @@ def find_similar_images_variance(image_maldi, factor_variance=0.1, return_indice
     return similar_images
 
 
+def extract_peaks_from_distribution(min_hist, bins, threshold):
+    peaks = signal.find_peaks(min_hist)[0]
+    low_peaks = signal.argrelextrema(min_hist, np.less_equal)[0]
+    if low_peaks[0] > peaks[0]:
+        low_peaks = np.insert(low_peaks, 0, 0)
+    if low_peaks[-1] < peaks[-1]:
+        low_peaks = np.append(low_peaks, len(min_hist)-1)
+    low_peaks = median_minima(peaks, low_peaks)
+    min_int = min_hist[low_peaks]
+    low_peaks_height = np.mean([min_int, np.roll(min_int, -1)], axis=0)[:-1]
+    diff_height = min_hist[peaks] - low_peaks_height
+    peaks = peaks[diff_height > threshold]
+    # widths = signal.peak_widths(min_hist, peaks)[0]
+    # x = np.arange(min_hist.shape[0])
+    # fig, ax = plt.subplots(1, 2)
+    # ax[1].bar(x, min_hist, width=1)
+    # ax[1].plot(x[peaks], min_hist[peaks], "ro")
+    # plt.show()
+    return peaks, low_peaks
+
+    # x = np.arange(min_hist.shape[0])
+
+
+def distance_distribution(image, centroid, bins):
+    diff = np.linalg.norm(np.argwhere(image) - centroid, axis=-1)
+    hist, _ = np.histogram(diff, bins=bins)
+    hist = signal.savgol_filter(hist, 2, 1)
+    return hist
+
+def generate_random_distributions(image, centroid, quantiles, bins):
+    random_distribs = []
+    for q in quantiles:
+        noisy_image = np.random.normal(1, 0.5, image.shape)
+        t = np.percentile(noisy_image, q)
+        noisy_image[noisy_image < t] = 0
+        th_hist = distance_distribution(noisy_image, centroid, bins)
+        random_distribs.append(th_hist)
+    return random_distribs
+
+def quantile_distance_distributions(image_maldi, quantiles=[], w=10):
+    th_image = image_maldi[..., 0].copy()
+    th_image[:] = 1
+    width, height = th_image.shape
+    centroid = [width//2, height//2]
+    th_diff = np.linalg.norm(np.argwhere(th_image) - centroid, axis=-1)
+    bins = int(max(centroid))//w
+    distribs = generate_random_distributions(th_image, centroid, quantiles, bins)
+    distributions = []
+    for i in range(image_maldi.shape[-1]):
+        image2D = image_maldi[..., i]
+        image2D = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
+        upper_threshold = np.percentile(image2D, 100)
+        min_value = sys.maxsize
+        min_distrib = []
+        for ind_quantile, quantile in enumerate(quantiles):
+            threshold = int(np.percentile(image2D, quantile))
+            mask = (image2D > threshold) & (image2D <= upper_threshold)
+            binaryimg = image2D.copy()
+            binaryimg[mask] = 1
+            binaryimg[~mask] = 0
+
+            moments = measure.moments(binaryimg, order=1)
+            number_non_zero = np.count_nonzero(binaryimg)
+            if (number_non_zero == 0):
+                continue
+            centroid = [moments[1, 0]/moments[0, 0], moments[0, 1]/moments[0, 0]]
+            min_hist = distance_distribution(mask, centroid, bins)
+            th_distrib = distribs[ind_quantile]
+            correlation = pearsonr(th_distrib.flatten(), min_hist.flatten()).statistic
+            if correlation < min_value:
+                min_value = correlation
+                min_distrib = min_hist
+        if min_value == sys.maxsize:
+            min_value = 0
+            min_value_sample = 0
+        distributions.append(min_distrib)
+    distributions = np.array(distributions)
+    return distributions
+
+def find_similar_images_dispersion_peaks(image_maldi, factor, quantiles=[], in_sample=False, return_indices=False, return_thresholds=False, size_elem=5):
+    values = []
+    values_sample = []
+    coords = []
+    th_image = image_maldi[..., 0].copy()
+    th_image[:] = 1
+    width, height = th_image.shape
+    centroid = [width//2, height//2]
+    w = 10
+    bins = int(max(centroid))//w
+    distribs = generate_random_distributions(th_image, centroid, quantiles, bins)
+    thresholds = []
+    for i in range(image_maldi.shape[-1]):
+        image2D = image_maldi[..., i]
+        image2D = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
+        upper_threshold = np.percentile(image2D, 100)
+        min_value = sys.maxsize
+        min_value_sample = sys.maxsize
+        min_distrib = []
+        c = []
+        best_threshold = 0
+        for ind_quantile, quantile in enumerate(quantiles):
+            threshold = int(np.percentile(image2D, quantile))
+            mask = (image2D > threshold) & (image2D <= upper_threshold)
+            binaryimg = image2D.copy()
+            binaryimg[mask] = 1
+            binaryimg[~mask] = 0
+
+            moments = measure.moments(binaryimg, order=1)
+            number_non_zero = np.count_nonzero(binaryimg)
+            if (number_non_zero == 0):
+                continue
+            centroid = [moments[1, 0]/moments[0, 0], moments[0, 1]/moments[0, 0]]
+            min_hist = distance_distribution(mask, centroid, bins)
+            ind = np.argwhere(mask)
+            diff = np.linalg.norm(ind - centroid, axis=-1)
+            min_hist = distance_distribution(mask, centroid, bins)
+            th_distrib = distribs[ind_quantile]
+            correlation = pearsonr(th_distrib.flatten(), min_hist.flatten()).statistic
+            value_sample = np.amin(diff)
+            if correlation < min_value:
+                min_value = correlation
+                min_value_sample = value_sample
+                min_distrib = min_hist
+                c = ind
+                best_threshold = threshold
+        if min_value == sys.maxsize:
+            min_value = 0
+            min_value_sample = 0
+        values.append(min_value)
+        values_sample.append(min_value_sample)
+        coords.append(c)
+        thresholds.append(best_threshold)
+    value_array = np.array(values)
+    value_sample_array = np.array(values_sample)
+    coords = np.array(coords)
+    thresholds = np.array(thresholds)
+    if in_sample:
+        off_sample_image, off_sample_cond = determine_on_off_sample(image_maldi, value_sample_array, size_elem)
+        # off_sample_cond = np.array([np.median(off_sample_image[coord.T[0], coord.T[1]]) for coord in coords])
+    indices = (value_array < factor) & (off_sample_cond < 0.1)
+    similar_images = image_maldi[..., indices]
+    to_return = (similar_images,)
+    if return_indices:
+        to_return += (value_array, indices)
+    if in_sample:
+        to_return += (off_sample_image, off_sample_cond)
+    if return_thresholds:
+        to_return += (thresholds,)
+    return to_return
+
 def find_similar_images_dispersion(image_maldi, factor, quantiles=[], in_sample=False, return_indices=False):
     values = []
     values_sample = []
@@ -714,12 +882,16 @@ def find_similar_images_dispersion(image_maldi, factor, quantiles=[], in_sample=
     th_image[:] = 1
     th_diff = np.linalg.norm(np.argwhere(th_image) - centroid, axis=-1)
     th_std = np.std(th_diff)
+    w = 10
+    bins = int(max(centroid))//w
+    th_hist, bins = np.histogram(th_diff, bins=bins)
     for i in range(image_maldi.shape[-1]):
         image2D = image_maldi[..., i]
         image2D = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
         upper_threshold = np.percentile(image2D, 100)
         min_value = sys.maxsize
         min_value_sample = sys.maxsize
+        min_distrib = []
         c = []
         for quantile in quantiles:
             threshold = int(np.percentile(image2D, quantile))
@@ -727,7 +899,6 @@ def find_similar_images_dispersion(image_maldi, factor, quantiles=[], in_sample=
             binaryimg = image2D.copy()
             binaryimg[mask] = 1
             binaryimg[~mask] = 0
-
 
             moments = measure.moments(binaryimg, order=1)
             number_non_zero = np.count_nonzero(binaryimg)
@@ -741,10 +912,12 @@ def find_similar_images_dispersion(image_maldi, factor, quantiles=[], in_sample=
             if variance < min_value:
                 min_value = variance
                 min_value_sample = value_sample
+                min_distrib = diff
                 c = ind
         if min_value == sys.maxsize:
             min_value = 0
             min_value_sample = 0
+
         values.append(min_value)
         values_sample.append(min_value_sample)
         coords.append(c)
@@ -763,25 +936,26 @@ def find_similar_images_dispersion(image_maldi, factor, quantiles=[], in_sample=
         to_return += (off_sample_image, off_sample_cond)
     return to_return
 
-def determine_on_off_sample(image_maldi, value_array):
+def determine_on_off_sample(image_maldi, value_array, size_elem=1):
     kmeans = KMeans(n_clusters=2, random_state=0).fit(value_array.reshape(-1, 1))
     labels = kmeans.labels_
     cond = np.mean(value_array[labels == 0]) > np.mean(value_array[labels == 1])
     im = io.normalize(image_maldi)
     number_cluster = 0 if cond else 1
     off_sample = np.zeros_like(im[..., 0])
-    sub_image = im[..., labels==number_cluster]
+    sub_image = image_maldi[..., labels==number_cluster]
     for i in range(sub_image.shape[-1]):
         current_sub = sub_image[..., i]
         thresh = threshold_otsu(current_sub)
         off_sample[current_sub > thresh] = 1
+    off_sample = closing(off_sample, disk(size_elem))
     off_sample_cond = []
     for i in range(image_maldi.shape[-1]):
         im = image_maldi[..., i]
         thresh = threshold_otsu(im)
         coord = np.argwhere(im > thresh)
-        median = np.mean(off_sample[coord.T[0], coord.T[1]])
-        off_sample_cond.append(median)
+        mean = np.mean(off_sample[coord.T[0], coord.T[1]])
+        off_sample_cond.append(mean)
     off_sample_cond = np.array(off_sample_cond)
     return off_sample, off_sample_cond
 

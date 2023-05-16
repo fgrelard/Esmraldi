@@ -10,7 +10,7 @@ on this subset
 
 import esmraldi.segmentation as seg
 import esmraldi.imzmlio as imzmlio
-import nibabel as nib
+import SimpleITK as sitk
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2 as cv
@@ -51,7 +51,6 @@ parser.add_argument("-t", "--threshold", help="Lower threshold for region growin
 parser.add_argument("-q", "--quantiles", nargs="+", type=int, help="Quantile lower thresholds", default=[60, 70, 80, 90])
 parser.add_argument("-u", "--quantile_upper", help="Quantile upper threshold", default=100)
 parser.add_argument("--fill_holes", help="Fill holes in the image.", default=0)
-parser.add_argument("--tolerance", help="m/z tolerance value", default=0)
 args = parser.parse_args()
 
 threshold = int(args.threshold)
@@ -61,7 +60,6 @@ factor = float(args.factor)
 quantiles = args.quantiles
 quantile_upper = int(args.quantile_upper)
 fill_holes = int(args.fill_holes)
-tolerance = float(args.tolerance)
 
 radius = 1
 selem = disk(radius)
@@ -69,13 +67,17 @@ selem = disk(radius)
 
 if inputname.lower().endswith(".imzml"):
     imzml = imzmlio.open_imzml(inputname)
-    mz, I = imzml.getspectrum(0)
-    spectra = imzmlio.get_full_spectra(imzml)
-    img_data = MSImage(spectra, coordinates=imzml.coordinates, tolerance=tolerance)
+    spectra = imzmlio.get_spectra(imzml)
+    coordinates = imzml.coordinates
+    max_x = max(coordinates, key=lambda item:item[0])[0]
+    max_y = max(coordinates, key=lambda item:item[1])[1]
+    max_z = max(coordinates, key=lambda item:item[2])[2]
+    full_spectra = imzmlio.get_full_spectra(imzml)
+    img_data = imzmlio.get_images_from_spectra(full_spectra, (max_x, max_y, max_z))
 else:
-    image = nib.load(inputname)
-    img_data = image.get_data()
-
+    image_itk = sitk.ReadImage(inputname)
+    img_data = sitk.GetArrayFromImage(image_itk).T
+    mzs = np.loadtxt(os.path.splitext(inputname)[0] + ".csv")
 
 padding = 3
 list_padding = [(padding, padding) for i in range(len(img_data.shape)-1)] + [(0,0)]
@@ -120,13 +122,10 @@ ax[1].imshow(mask.T)
 ax[2].imshow(masked_mean_image.T)
 plt.show()
 
-nibimg_similar = nib.Nifti1Image(similar_images, np.eye(4))
-similar_name = os.path.splitext(outname)[0] + "_relevantset.nii"
-nibimg_similar.to_filename(similar_name)
+similar_name = os.path.splitext(outname)[0] + "_relevantset.tif"
+sitk.WriteImage(sitk.GetImageFromArray(similar_images.T), similar_name)
 
-nibimg = nib.Nifti1Image(masked_mean_image, np.eye(4))
-nibimg.to_filename(outname)
+sitk.WriteImage(sitk.GetImageFromArray(masked_mean_image.T), outname)
 
-nibimg_evolution = nib.Nifti1Image(evolution_segmentation, np.eye(4))
-evolution_name = os.path.splitext(outname)[0] + "_evolution.nii"
-nibimg_evolution.to_filename(evolution_name)
+evolution_name = os.path.splitext(outname)[0] + "_evolution.tif"
+sitk.WriteImage(sitk.GetImageFromArray(evolution_segmentation.T), evolution_name)

@@ -35,6 +35,8 @@ def precision(im1, im2):
     """
     tp = np.count_nonzero((im2 + im1) == 2)
     allp = np.count_nonzero(im2 == 1)
+    if allp == 0:
+        return 0
     return tp * 1.0 / allp
 
 def recall(im1, im2):
@@ -56,6 +58,8 @@ def recall(im1, im2):
     """
     tp = np.count_nonzero((im2 + im1) == 2)
     allr = np.count_nonzero(im1 == 1)
+    if allr == 0:
+        return 0
     return tp * 1.0 / allr
 
 def quality_registration(imRef, imRegistered, threshold=-1, display=False):
@@ -131,8 +135,9 @@ def fmeasure(precision, recall):
     ----------
     float
         fmeasure
-
     """
+    if precision + recall == 0:
+        return 0
     return 2 * precision * recall / (precision + recall)
 
 
@@ -314,7 +319,6 @@ def find_best_transformation(scale_and_rotation, initial_transform, fixed, movin
     tx = sitk.Transform(initial_transform)
     scale = scale_and_rotation[0]
     rotation = scale_and_rotation[1]
-    print(scale, rotation)
     parameters = list(tx.GetParameters())
     parameters[0] = scale
     parameters[1] = rotation
@@ -324,13 +328,18 @@ def find_best_transformation(scale_and_rotation, initial_transform, fixed, movin
     resampler = initialize_resampler(fixed, tx)
     deformed = resampler.Execute(moving)
 
+    # fig, ax = plt.subplots(1, 2)
+    # ax[0].imshow(sitk.GetArrayFromImage(fixed).T)
+    # ax[1].imshow(sitk.GetArrayFromImage(deformed).T)
+    # plt.show()
+
     #Compute metric
     if update_DT:
-        # metric = dt_mutual_information(fixed, deformed)
-        metric = utils.dt_mse(fixed, deformed)
+        metric = -dt_mutual_information(fixed, deformed)
+        #metric = utils.dt_mse(fixed, deformed)
     else:
-        # metric = mutual_information(fixed, deformed)
-        metric = utils.mse(fixed, deformed)
+        metric = -mutual_information(fixed, deformed, 50)
+        # metric = utils.mse(fixed, deformed)
 
     return metric
 
@@ -479,7 +488,7 @@ def register_component_images(fixed_array, moving_array, component_images_array,
 
 
 
-def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotation=False, use_DT=True, update_DT=False, normalize_DT=False, seed=1, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
+def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotation=False, use_DT=True, update_DT=True, normalize_DT=False, seed=1, learning_rate=1.1, min_step=0.001, relaxation_factor=0.8):
     """
     Registration between reference (fixed)
     and deformable (moving) images.
@@ -534,13 +543,13 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
     if fixed.GetDimension()==3:
         transform = sitk.Similarity3DTransform()
 
+    if use_DT:
+        fixed_DT = utils.compute_DT(fixed)
+        moving_DT = utils.compute_DT(moving)
+
     if find_best_rotation:
         fixed_DT = fixed
         moving_DT = moving
-
-        if use_DT:
-            fixed_DT = utils.compute_DT(fixed)
-            moving_DT = utils.compute_DT(moving)
 
         if normalize_DT:
             fixed_DT = utils.normalized_dt(fixed)
@@ -551,11 +560,11 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
         tx2 = sitk.CenteredTransformInitializer(fixed_DT, moving_DT, transform, sitk.CenteredTransformInitializerFilter.GEOMETRY)
 
         x = [0, 0]
-        ranges = (slice(0.1, 2.0, 0.1), slice(-3.2, 3.2, 0.05))
-        ranges = (slice(0.9, 1.0, 0.1), slice(-3.2, 3.2, 0.1))
+        ranges = (slice(0.4, 0.7, 0.1), slice(-3.2, 3.2, 0.05))
+        # ranges = (slice(0.9, 1.0, 0.1), slice(-3.2, 3.2, 0.1))
         x1, metric1, _, _ = optimizer.brute(lambda x=x: find_best_transformation(x, tx, fixed_DT, moving_DT, update_DT), ranges=ranges, finish=None, full_output=True)
         x2, metric2, _, _ = optimizer.brute(lambda x=x: find_best_transformation(x, tx2, fixed_DT, moving_DT, update_DT), ranges=ranges, finish=None, full_output=True)
-        print(metric1, metric2)
+        print(metric1)
         x0 = x1
         if metric2 < metric1:
             x0 = x2
@@ -571,7 +580,9 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
 
     R.SetMetricAsMattesMutualInformation(number_of_bins)
     R.SetMetricSamplingPercentage(sampling_percentage, seed)
-    R.SetMetricAsMeanSquares()
+    if use_DT:
+        R.SetMetricAsMeanSquares()
+
     R.SetOptimizerAsRegularStepGradientDescent(
         learningRate=learning_rate,
         minStep=min_step,
@@ -592,9 +603,13 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
     R.SetInitialTransform(transform)
 
     try:
-        outTx = R.Execute(fixed, moving)
+        if use_DT:
+            outTx = R.Execute(fixed_DT, moving_DT)
+        else:
+            outTx = R.Execute(fixed, moving)
     except Exception as e:
         outTx = transform
+    print(outTx.GetParameters())
     resampler = initialize_resampler(fixed, outTx)
     return resampler
     return None

@@ -31,6 +31,9 @@ class WorkerPeakPickingMeanSpectrum(QtCore.QObject):
         self.is_abort = True
 
 class PeakPickingMeanSpectrumController:
+    """
+    Peak picking performed on mean spectra
+    """
     def __init__(self, view, imageview):
         self.view = view
         self.imageview = imageview

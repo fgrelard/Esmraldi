@@ -26,6 +26,7 @@ import esmraldi.spectraprocessing as sp
 
 from esmraldi.msimage import MSImage
 from esmraldi.msimagefly import MSImageOnTheFly
+from esmraldi.msimageimpl import MSImageImplementation
 from esmraldi.sparsematrix import SparseMatrix
 from esmraldi.utils import msimage_for_visualization,  indices_search_sorted
 
@@ -39,7 +40,10 @@ from gui.thresholding_controller import ThresholdingController
 from gui.signal import Signal
 
 class WorkerOpen(QObject):
-
+    """
+    Class to open a file in a different
+    thread
+    """
     signal_start = pyqtSignal()
     signal_end = pyqtSignal(object, str)
     signal_progress = pyqtSignal(int)
@@ -50,6 +54,11 @@ class WorkerOpen(QObject):
         ----------
         path: str
             path to the filename
+        npy_path: str
+            path to mean spectra
+        npy_indexing_path: str
+            path to indexes to improve ion image
+            display speed
         """
         super().__init__()
         self.path = path
@@ -59,6 +68,14 @@ class WorkerOpen(QObject):
         self.is_abort = False
 
     def get_spectra(self, imzml):
+        """
+        Get spectra from imzML
+
+        Returns
+        ----------
+        np.ndarray
+            n_pixels * 2 (m/z, intensities) * values array
+        """
         spectra = []
         coordinates = imzml.coordinates
         length = len(coordinates)
@@ -78,6 +95,16 @@ class WorkerOpen(QObject):
         return np.array(spectra)
 
     def open_imzML(self):
+        """
+        Opening imzML file
+
+        Returns
+        ----------
+        MSImageBase
+            Returns on-the-fly or dense MS image
+            depending on its size (>10Gb or <10Gb, respectively)
+
+        """
         imzml = io.open_imzml(self.path)
         mz, I = imzml.getspectrum(0)
         spectra = self.get_spectra(imzml)
@@ -110,16 +137,23 @@ class WorkerOpen(QObject):
         return img_data
 
     def open_other_formats(self):
+        """
+        Open other imaging formats
+        """
+        mzs = np.array([])
+        if self.path.endswith("tif"):
+            return io.open_tif(self.path)
         try:
             im_itk = sitk.ReadImage(self.path)
         except:
-            print("Reading with OpenCV")
-            return cv2.imread(self.path)
-
-        return sitk.GetArrayFromImage(im_itk)
+            return cv2.imread(self.path), mzs
+        return sitk.GetArrayFromImage(im_itk), mzs
 
     @pyqtSlot()
     def work(self):
+        """
+        Actual function run when starting worker
+        """
         self.signal_start.emit()
         if self.path.lower().endswith(".imzml"):
             img_data = self.open_imzML()
@@ -131,13 +165,27 @@ class WorkerOpen(QObject):
                     np.save(self.npy_indexing_path, img_data.indexing)
                 img_data.indexing = np.load(self.npy_indexing_path, mmap_mode="r")
         else:
-            img_data = self.open_other_formats()
+            images, mzs = self.open_other_formats()
+            if mzs.size:
+                images = images.T
+                intensities, _ = io.get_spectra_from_images(images, full=True)
+                intensities = np.array(intensities)
+                all_mzs = np.tile(mzs, (np.prod(images.shape[:-1]), 1))
+                spectra = np.stack([all_mzs, intensities], axis=1)
+                img_data = MSImageImplementation(spectra, images, mzs, tolerance=14)
+                img_data = msimage_for_visualization(img_data)
+            else:
+                img_data = images
+
         self.signal_end.emit(img_data, self.path)
 
     def abort(self):
         self.is_abort = True
 
 class WorkerSave(QObject):
+    """
+    Worker to save an image
+    """
 
     signal_start = pyqtSignal()
     signal_end = pyqtSignal()
@@ -147,8 +195,8 @@ class WorkerSave(QObject):
         """
         Parameters
         ----------
-        ive: ImageViewExtended
-            the image view
+        image: MSImageBase
+            the image to save
         path: str
             path to the filename
         """
@@ -158,6 +206,10 @@ class WorkerSave(QObject):
         self.is_abort = False
 
     def save_imzML(self):
+        """
+        Save imzML by collecting mz, intensities and
+        coordinates from an image
+        """
         image = self.image.transpose((2, 1, 0))
         mz = self.image.spectra[:, 0]
         I, coordinates = io.get_spectra_from_images(image)
@@ -166,6 +218,9 @@ class WorkerSave(QObject):
         io.write_imzml(mz, I, coordinates, self.path)
 
     def save_other_formats(self):
+        """
+        Save image as other format
+        """
         try:
             if len(self.image.shape) >= 3:
                 if self.image.shape[-1] <= 4:
@@ -173,7 +228,10 @@ class WorkerSave(QObject):
                 else:
                     root, ext = os.path.splitext(self.path)
                     io.to_csv(self.image.mzs, root + ".csv")
-                    sitk.WriteImage(sitk.GetImageFromArray(self.image.image.astype(np.float32)), self.path)
+                    if ext == ".tif":
+                        io.to_tif(self.image.image.astype(np.float32), self.image.mzs, self.path)
+                    else:
+                        sitk.WriteImage(sitk.GetImageFromArray(self.image.image.astype(np.float32)), self.path)
             else:
                 sitk.WriteImage(sitk.GetImageFromArray(self.image), self.path)
         except:
@@ -181,6 +239,9 @@ class WorkerSave(QObject):
 
     @pyqtSlot()
     def work(self):
+        """
+        Main function run when worker is started
+        """
         self.signal_start.emit()
         if self.path.lower().endswith(".imzml"):
             self.save_imzML()
@@ -203,18 +264,6 @@ class MainController:
         QMainWindow
     config: configparser.ConfigParser
         configuration file
-    img_data: np.ndarray
-        current displayed image
-    images: dict
-        dictionary mapping filename to open images
-    threads: list
-        thread pool
-    expfitcontroller: ExpFitController
-        controller for expfit dialog
-    nlmeanscontroller: NLMeansController
-        controller for nlmeans dialog
-    tpccontroller: TPCController
-        controller for tpc dialog
     """
     def __init__(self, app, mainview, config):
         mainview.closeEvent = self.exit_app
@@ -288,8 +337,8 @@ class MainController:
         self.thresholdingcontroller.trigger_end.signal.connect(self.mainview.clear_frame)
 
 
-        self.mainview.actionNewMask.triggered.connect(self.newMask)
-        self.mainview.actionMaskAdd.triggered.connect(self.maskAdd)
+        self.mainview.actionNewMask.triggered.connect(self.new_mask)
+        self.mainview.actionMaskAdd.triggered.connect(self.mask_add)
 
         #shortcuts
         shortcut_link = QShortcut(QKeySequence('Ctrl+L'), self.mainview.parent)
@@ -312,7 +361,7 @@ class MainController:
         # self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/synthetic.imzML")
 
         # self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/random.imzML")
-        self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/20210112_107x25_20um_Mouse_Spleen_DAN_Neg_mode_200-2000mz_70K_Laser37_6p5kV_350C_Slens90_Line_centroid.imzml")
+        self.open_file("/mnt/d/CouplageMSI-Immunofluo/Scan rate 37° line/test.tif")
         # self.open_file("/mnt/d/CouplageMSI-Immunofluo/20211102 DAN 5um - laser 39/IF/20211102 Rate3#6-BF 10x - Post scan DAN- washed.tif")
         # self.open_file("/mnt/d/CBMN/random.imzML")
 
@@ -321,7 +370,7 @@ class MainController:
 
     def open(self):
         """
-        Opens Bruker directory
+        Main function to open a file (GUI + core)
         """
 
         filenames, ext = QtWidgets.QFileDialog.getOpenFileNames(self.mainview.centralwidget, "Select image", self.config['default']["imzmldir"])
@@ -333,6 +382,9 @@ class MainController:
             self.open_file(filename)
 
     def open_file(self, filename):
+        """
+        Core function to open a file
+        """
         worker = WorkerOpen(path=filename)
         thread = QThread()
         worker.moveToThread(thread)
@@ -350,6 +402,9 @@ class MainController:
 
 
     def save(self):
+        """
+        Main function to save a file (GUI + core)
+        """
         widget = self.mainview.gridLayout.itemAtPosition(0, 2).widget()
         index = 0
         if widget.isVisible():
@@ -364,6 +419,9 @@ class MainController:
         self.save_file(filename, index)
 
     def save_file(self, filename, index=0):
+        """
+        Core function to save a file
+        """
         data = self.imagehandlecontroller.img_data
         if index == 1:
             data = self.imagehandlecontroller2.img_data
@@ -408,12 +466,18 @@ class MainController:
 
 
     def update_number_view(self, number=1):
+        """
+        Updating the number of view (1 or 2)
+        """
         if number > 1:
             self.mainview.show_second_view()
         else:
             self.mainview.hide_second_view()
 
     def on_combo_changed(self, index, handle1, handle2):
+        """
+        Updating image when changing combobox value
+        """
         def set_combo(combo_ref, combo_target):
             items = [combo_ref.itemText(i) for i in range(combo_ref.count())]
             combo_target.clear()
@@ -446,6 +510,9 @@ class MainController:
 
 
     def display_peaks_mean_spectrum(self, peaks):
+        """
+        Display peaks in the mean spectrum
+        """
         imageview = self.mainview.imagehandleview.imageview
         imageview.winPlot.setVisible(True)
         unique = np.unique(np.hstack(peaks) if peaks.size else peaks)
@@ -456,6 +523,10 @@ class MainController:
         imageview.plot.setPoints(data[0], data[1], size=5, brush=pg.mkBrush("r"))
 
     def peak_picking(self):
+        """
+        Peak picking in each spectrum
+        Can be very slow
+        """
         def end_computation(peaks):
             imageview = self.mainview.imagehandleview.imageview
             imageview.image.peaks = peaks
@@ -473,6 +544,9 @@ class MainController:
         self.threads.append((self.peakpickingcontroller.thread, self.peakpickingcontroller.worker))
 
     def peak_picking_mean_spectrum(self):
+        """
+        Peak picking from mean spectrum
+        """
         def end_computation(peaks, intensities):
             imageview = self.mainview.imagehandleview.imageview
             imageview.image.peaks = peaks
@@ -491,6 +565,9 @@ class MainController:
         self.threads.append((self.peakpickingmeanspectrumcontroller.thread, self.peakpickingmeanspectrumcontroller.worker))
 
     def peaks_metaspace(self):
+        """
+        Add peaks from METASPACE
+        """
         filenames, ext = QtWidgets.QFileDialog.getOpenFileNames(self.mainview.centralwidget, "Select METASPACE .csv file", self.config['default']["imzmldir"])
         for filename in filenames:
             if not filename:
@@ -526,11 +603,17 @@ class MainController:
             msg.exec_()
 
     def clear_peaks(self):
+        """
+        Remove all peaks
+        """
         imageview = self.mainview.imagehandleview.imageview
         imageview.image.peaks = np.array([])
         self.display_peaks_mean_spectrum(imageview.image.peaks)
 
     def spectra_alignment(self):
+        """
+        Align spectra to have a common m/z axis
+        """
         def end_computation(image):
             name = self.imagehandlecontroller.current_name
             new_name = "aligned_" + name
@@ -546,11 +629,18 @@ class MainController:
         self.threads.append((self.spectraalignmentcontroller.thread, self.spectraalignmentcontroller.worker))
 
     def start_registration_selection(self, event):
+        """
+        Allows to add markers in the image
+        for fiducial-based registration
+        """
         self.mainview.show_second_view()
         self.registrationselectioncontroller.set_clickable(True)
         self.mainview.set_frame(self.mainview.registrationselectionview)
 
     def compute_registration_selection(self):
+        """
+        Compute the transform from fiducial markers
+        """
         def end_computation(registered):
             name = self.imagehandlecontroller2.current_name
             new_name = "registered_" + name
@@ -564,6 +654,10 @@ class MainController:
         self.threads.append((self.registrationselectioncontroller.thread, self.registrationselectioncontroller.worker))
 
     def extract_channels(self):
+        """
+        Extract a channel in a multichannel image
+        by its number
+        """
         def end_computation(image, number):
             name = self.imagehandlecontroller.current_name
             new_name = "channel_" + str(number) + "_" + name
@@ -577,6 +671,9 @@ class MainController:
         self.threads.append((self.extractchannelcontroller.thread, self.extractchannelcontroller.worker))
 
     def manual_thresholding(self):
+        """
+        Threshold an image by selecting values
+        """
         def end_computation(image):
             name = self.imagehandlecontroller.current_name
             new_name = "threshold_" + name
@@ -587,7 +684,11 @@ class MainController:
         self.thresholdingcontroller.thread.start()
         self.threads.append((self.thresholdingcontroller.thread, self.thresholdingcontroller.worker))
 
-    def newMask(self):
+    def new_mask(self):
+        """
+        Create a new blank image the same dimensions
+        as current image
+        """
         iview = self.imagehandlecontroller.imagehandleview.imageview
         iview2 = self.imagehandlecontroller2.imagehandleview.imageview
         image = np.zeros_like(iview.current_image, dtype=np.uint8)
@@ -595,7 +696,10 @@ class MainController:
         self.mainview.show_second_view()
 
 
-    def maskAdd(self):
+    def mask_add(self):
+        """
+        Add current selected ROI to mask
+        """
         iview2 = self.imagehandlecontroller2.imagehandleview.imageview
         name = self.imagehandlecontroller2.current_name
         if name != "Mask":
@@ -615,6 +719,11 @@ class MainController:
             iview2.updateImage()
 
     def link_views(self):
+        """
+        Link the display between the two image views
+        This means the cursor at one position in an image will
+        be at the same position in another image
+        """
         def disconnect(signal, oldhandler):
             try:
                 while True:
