@@ -60,6 +60,7 @@ parser.add_argument("-o", "--output", help="Output files")
 parser.add_argument("--names", help="Names to analyze (default all)", nargs="+", type=str, default=None)
 parser.add_argument("--gmm", help="GMM model (.joblib)", default=None)
 parser.add_argument("--proba", help="Proba", default=0)
+parser.add_argument("--rank", help="Nth rank for prediction", default=1)
 args = parser.parse_args()
 
 input_name = args.input
@@ -69,6 +70,7 @@ outname = args.output
 analysis_names = args.names
 gmm_name = args.gmm
 proba = float(args.proba)
+rank = int(args.rank)
 
 mzs_name = os.path.splitext(input_name)[0] + "_mzs.csv"
 names_name = os.path.splitext(input_name)[0] + "_names.csv"
@@ -104,7 +106,6 @@ np.savetxt(peaks_coef_name, data, header="mzs,"+",".join(names), delimiter=",", 
 # scaler = StandardScaler()
 # target_im = scaler.fit_transform(target_im)
 out = regression.predict(target_im)
-print(out.shape)
 # separation = np.array([len(s.split("_")) for s in names])
 # end_pigments = np.where(separation==2)[0][-1]
 # end_binders = np.where(separation==1)[0][-1]
@@ -123,6 +124,7 @@ if "ET&LO" in names:
 
 
 labels = np.argmax(out, axis=-1)
+labels = np.argsort(out, axis=-1)[..., -rank]
 
 array_colors = np.array(cm.colors)
 names_array = np.array(analysis_names)
@@ -134,7 +136,9 @@ cm = colors.ListedColormap(array_colors)
 if gmm_name is not None:
     gmm = joblib.load(gmm_name)
     labels = gmm.predict(out)
+    print(labels.shape)
     probas = gmm.predict_proba(out)
+    labels = np.argsort(probas, axis=-1)[..., -rank]
     uncertain_label = len(analysis_names)
     if proba > 0:
         labels[probas.max(axis=-1) < proba] = uncertain_label
@@ -148,6 +152,7 @@ if gmm_name is not None:
     names = np.append(names, ["Uncertain"])
 else:
     min_value, max_value = np.amin(out, axis=0), np.amax(out, axis=0)
+    min_value, max_value = np.amin(out), np.amax(out)
     opacity = (out - min_value) / (max_value - min_value)
     opacity = np.take_along_axis(opacity, labels[:, None], axis=-1)
 

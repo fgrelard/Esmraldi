@@ -26,6 +26,7 @@ parser.add_argument("--gmm", help="Use GMM model", action="store_true")
 parser.add_argument("--normalization", help="TIC normalization", action="store_true")
 parser.add_argument("--msi_masks", help="Create masks from MSI", action="store_true")
 parser.add_argument("--visual", action="store_true", help="Visual assessment")
+parser.add_argument("--rank", help="Nth rank for prediction", default=1)
 args = parser.parse_args()
 
 is_train = args.train
@@ -39,10 +40,17 @@ is_msi_masks = args.msi_masks
 is_visual = args.visual
 parameters_train = args.parameters_train
 normalization = args.normalization
+rank = args.rank
 print(parameters_train)
 
 test_datasets = {}
 home_folder = "/home/fgrelard/Data/Vaclav/"
+
+
+test_datasets["VonStuck"] = home_folder + "20230419 Von Stuck S3 #3 - 12um DHB/20230419_90x130_5um_VonStuckS3#3__DHBspray_POS_mode_60-1000mz_70K_Laser35_4P5KV_350C_Slens90_aligned15.imzML"
+test_datasets["ModelsSalt"] = home_folder + "20230419 Models #1 - 12um DHB/20230419_213x311_25um_Models#1__DHBspray_Na2CO3Spray_POS_mode_60-1000mz_70K_Laser37_4P5KV_350C_Slens90_aligned500.imzML"
+test_datasets["JoseSanchez#4CMC"] = home_folder + "20230419 Jose Sanchez CMC #4 - 12um DHB TFA/20230419_x_5um_JoseSanchez CMC #4__DHBspray_POS_mode_60-1000mz_70K_Laser35_4P5KV_350C_Slens90_aligned75.imzML"
+test_datasets["JoseSanchez#4"] = home_folder + "20230418 Jose Senchez #4 - 12um DHB TFA/20230418_140x770_5um_JoseSanchezS8#4__DHBspray_POS_mode_60-1000mz_70K_Laser35_4P5KV_350C_Slens90_aligned75.imzML"
 
 test_datasets["Models"] = home_folder + "20230116 Models #4  - 12um DHB/20230116_241x365_5um_Models #4_DHBspray_POS_mode_60-900mz_70K_Laser35_4P5KV_350C_Slens90_aligned1000.imzML"
 test_datasets["JoseSanchez"] = home_folder + "20221205 Jose Sanchez #5 - DHB 5um/20221202_204x921_5um_JoseSanchez#5__DHBspray_POS_mode_60-900mz_70K_Laser35_4P5KV_350C_Slens90_aligned500.imzML"
@@ -218,7 +226,7 @@ if is_validation:
 
 if is_test:
     binders = ["Casein", "Collagen", "ET", "LO", "Matrix"]
-    pigments = ["CalciumCarbonate", "Leadwhite", "Ochre", "Sienna", "Tape", "Ultramarine", "Umber"]
+    pigments = ["CalciumCarbonate", "Leadwhite", "Ochre", "Sienna", "Tape", "Ultramarine"]
 
     # binders.remove("Matrix")
     # pigments.remove("Tape")
@@ -237,13 +245,11 @@ if is_test:
             gmm_pigments = os.path.splitext(input_model)[0] + "_gmm_pigments_local_nomatrix.joblib"
             cmd_gmm_binders = "python3 -m examples.model_assign_gmm -i " + input_model +  " --msi " + name_dir + " --names " + name_binders + " -o " + gmm_binders
             cmd_gmm_pigments = "python3 -m examples.model_assign_gmm -i " + input_model +  " --msi " + name_dir + " --names " + name_pigments + " -o " + gmm_pigments
-            subprocess.call(cmd_gmm_binders, shell=True)
-            subprocess.call(cmd_gmm_pigments, shell=True)
+            # subprocess.call(cmd_gmm_binders, shell=True)
+            # subprocess.call(cmd_gmm_pigments, shell=True)
         for key, name_test in test_datasets.items():
-            if key != "Models":
+            if key != "ModelsSalt" and key != "VonStuck" and key != "JoseSanchez#4CMC" and key != "JoseSanchez#4":
                 continue
-            # if key != "P7D5TM" and key != "P7D5Rot" and key != "P3C3":
-            #     continue
             print(key)
             # if key not in test_keys:
             #     continue
@@ -259,14 +265,16 @@ if is_test:
                     outdircurr += "train/"
                 os.makedirs(outdircurr, exist_ok=True)
                 out_dir = outdircurr + key + ".png"
+                if rank != 1:
+                    out_dir = outdircurr + key + "_" + rank + ".png"
                 if i == 0:
-                    cmd_test = "python3 -m examples.pls_test -i " + input_model + " -t " + name_test_escape + " -o " + out_dir + " --names " + name_binders + " --proba 0.95"
+                    cmd_test = "python3 -m examples.pls_test -i " + input_model + " -t " + name_test_escape + " -o " + out_dir + " --names " + name_binders + " --proba 0.95 --rank " + rank
                     if is_gmm:
                         cmd_test += " --gmm " + gmm_binders
                     if normalization:
                         cmd_test += " -n"
                 else:
-                    cmd_test = "python3 -m examples.pls_test -i " + input_model + " -t " + name_test_escape + " -o " + out_dir + " --names " + name_pigments + " --proba 0.95"
+                    cmd_test = "python3 -m examples.pls_test -i " + input_model + " -t " + name_test_escape + " -o " + out_dir + " --names " + name_pigments + " --proba 0.95 --rank " + rank
                     if is_gmm:
                         cmd_test += " --gmm " + gmm_pigments
                     if normalization:
@@ -276,7 +284,7 @@ if is_test:
 print(is_validate_prediction)
 if is_validate_prediction:
     binders = ["Casein", "Collagen", "ET", "LO", "Matrix"]
-    pigments = ["CalciumCarbonate", "Leadwhite", "Ochre", "Sienna", "Tape", "Ultramarine", "Umber"]
+    pigments = ["CalciumCarbonate", "Leadwhite", "Ochre", "Sienna", "Tape", "Ultramarine"]
 
     # binders.remove("Matrix")
     # pigments.remove("Tape")
@@ -308,7 +316,7 @@ if is_validate_prediction:
             cmd_binders  += " -n"
             cmd_pigments += " -n"
         print(cmd_binders)
-        subprocess.call(cmd_binders, shell=True)
+        # subprocess.call(cmd_binders, shell=True)
         print(cmd_pigments)
         subprocess.call(cmd_pigments, shell=True)
 

@@ -7,6 +7,7 @@ import SimpleITK as sitk
 import matplotlib.pyplot as plt
 import xlsxwriter
 import os
+import natsort
 
 import esmraldi.utils as utils
 from skimage.color import rgb2gray
@@ -108,7 +109,7 @@ else:
 
 regions = []
 print("Read image")
-for region_name in region_names:
+for region_name in natsort.natsorted(region_names):
     region = read_image(region_name)
     regions.append(region)
 

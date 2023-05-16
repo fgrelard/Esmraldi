@@ -35,6 +35,8 @@ def precision(im1, im2):
     """
     tp = np.count_nonzero((im2 + im1) == 2)
     allp = np.count_nonzero(im2 == 1)
+    if allp == 0:
+        return 0
     return tp * 1.0 / allp
 
 def recall(im1, im2):
@@ -56,6 +58,8 @@ def recall(im1, im2):
     """
     tp = np.count_nonzero((im2 + im1) == 2)
     allr = np.count_nonzero(im1 == 1)
+    if allr == 0:
+        return 0
     return tp * 1.0 / allr
 
 def quality_registration(imRef, imRegistered, threshold=-1, display=False):
@@ -131,8 +135,9 @@ def fmeasure(precision, recall):
     ----------
     float
         fmeasure
-
     """
+    if precision + recall == 0:
+        return 0
     return 2 * precision * recall / (precision + recall)
 
 
@@ -330,8 +335,8 @@ def find_best_transformation(scale_and_rotation, initial_transform, fixed, movin
 
     #Compute metric
     if update_DT:
-        # metric = -dt_mutual_information(fixed, deformed)
-        metric = utils.dt_mse(fixed, deformed)
+        metric = -dt_mutual_information(fixed, deformed)
+        #metric = utils.dt_mse(fixed, deformed)
     else:
         metric = -mutual_information(fixed, deformed, 50)
         # metric = utils.mse(fixed, deformed)
@@ -555,7 +560,7 @@ def register(fixed, moving, number_of_bins, sampling_percentage, find_best_rotat
         tx2 = sitk.CenteredTransformInitializer(fixed_DT, moving_DT, transform, sitk.CenteredTransformInitializerFilter.GEOMETRY)
 
         x = [0, 0]
-        ranges = (slice(0.5, 0.7, 0.05), slice(-3.2, 3.2, 0.05))
+        ranges = (slice(0.4, 0.7, 0.1), slice(-3.2, 3.2, 0.05))
         # ranges = (slice(0.9, 1.0, 0.1), slice(-3.2, 3.2, 0.1))
         x1, metric1, _, _ = optimizer.brute(lambda x=x: find_best_transformation(x, tx, fixed_DT, moving_DT, update_DT), ranges=ranges, finish=None, full_output=True)
         x2, metric2, _, _ = optimizer.brute(lambda x=x: find_best_transformation(x, tx2, fixed_DT, moving_DT, update_DT), ranges=ranges, finish=None, full_output=True)

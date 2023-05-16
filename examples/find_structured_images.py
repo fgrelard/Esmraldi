@@ -120,7 +120,8 @@ indices_roc = np.where(indices_roc)[0]
 print(indices_roc.size)
 
 
-similar_images, value_array, indices, off_sample_image, off_sample_cond = seg.find_similar_images_dispersion_peaks(img_data, factor, quantiles=quantiles, in_sample=True, return_indices=True)
+similar_images, value_array, indices, off_sample_image, off_sample_cond, thresholds = seg.find_similar_images_dispersion_peaks(img_data, factor, quantiles=quantiles, in_sample=True, return_indices=True, return_thresholds=True)
+
 
 sigmas = []
 for i in range(img_data.shape[-1]):
@@ -133,12 +134,6 @@ for i in range(img_data.shape[-1]):
 # np.savetxt("test.csv", value_array, delimiter=",", newline=" ")
 plt.imsave("off_sample.png", off_sample_image.T)
 
-threshold_off = 0.95
-im_off = img_data[..., off_sample_cond >= threshold_off]
-im_incert = img_data[..., (off_sample_cond < threshold_off) & (off_sample_cond > 0.5)]
-im_on = img_data[..., off_sample_cond <= 0.1]
-print(mzs.shape, off_sample_cond.shape)
-print(im_on.shape, im_off.shape, im_incert.shape)
 fig, ax = plt.subplots(1)
 label = np.vstack((mzs, off_sample_cond, value_array, sigmas, indices)).T
 tracker = SliceViewer(ax, np.transpose(img_data, (2, 1, 0)), labels=label)
@@ -149,12 +144,17 @@ plt.show()
 indices = np.where(indices)[0]
 indices = np.intersect1d(indices, indices_roc)
 similar_images = img_data[..., indices]
+thresholds = thresholds[indices]
+
+image_thresholded = similar_images.copy()
+image_thresholded[image_thresholded < thresholds] = 0
+print(image_thresholded.shape, thresholds.shape)
 
 # similar_images, indices = seg.find_similar_images_variance(img_data, factor, return_indices=True)
 # similar_images, indices = seg.find_similar_images_spatial_coherence(img_data, factor, quantiles=quantiles, upper=quantile_upper, fn=seg.median_perimeter)
 # similar_images = seg.find_similar_images_spatial_chaos(img_data, factor, quantiles=[60, 70, 80, 90])
 # similar_images = seg.find_similar_images_variance(img_data, factor)
-print(mzs[indices], mzs[indices].shape)
+print(mzs[indices], mzs[indices].shape, image_thresholded.shape, similar_images.shape)
 
 fig, ax = plt.subplots(1)
 tracker = SliceViewer(ax, np.transpose(similar_images, (2, 1, 0)))
@@ -163,5 +163,8 @@ plt.show()
 
 root, ext = os.path.splitext(outname)
 
-sitk.WriteImage(sitk.GetImageFromArray(similar_images.T), outname)
+print(image_thresholded.dtype, similar_images.dtype)
+imzmlio.to_tif(image_thresholded.T,  mzs[indices], root + "_binary.tif")
+imzmlio.to_tif(similar_images.T,  mzs[indices], outname)
 imzmlio.to_csv(mzs[indices], root + ".csv")
+imzmlio.to_csv(mzs[indices], root + "_binary.csv")

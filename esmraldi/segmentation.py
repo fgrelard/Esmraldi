@@ -802,7 +802,7 @@ def quantile_distance_distributions(image_maldi, quantiles=[], w=10):
     distributions = np.array(distributions)
     return distributions
 
-def find_similar_images_dispersion_peaks(image_maldi, factor, quantiles=[], in_sample=False, return_indices=False, size_elem=5):
+def find_similar_images_dispersion_peaks(image_maldi, factor, quantiles=[], in_sample=False, return_indices=False, return_thresholds=False, size_elem=5):
     values = []
     values_sample = []
     coords = []
@@ -813,6 +813,7 @@ def find_similar_images_dispersion_peaks(image_maldi, factor, quantiles=[], in_s
     w = 10
     bins = int(max(centroid))//w
     distribs = generate_random_distributions(th_image, centroid, quantiles, bins)
+    thresholds = []
     for i in range(image_maldi.shape[-1]):
         image2D = image_maldi[..., i]
         image2D = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
@@ -821,6 +822,7 @@ def find_similar_images_dispersion_peaks(image_maldi, factor, quantiles=[], in_s
         min_value_sample = sys.maxsize
         min_distrib = []
         c = []
+        best_threshold = 0
         for ind_quantile, quantile in enumerate(quantiles):
             threshold = int(np.percentile(image2D, quantile))
             mask = (image2D > threshold) & (image2D <= upper_threshold)
@@ -845,15 +847,18 @@ def find_similar_images_dispersion_peaks(image_maldi, factor, quantiles=[], in_s
                 min_value_sample = value_sample
                 min_distrib = min_hist
                 c = ind
+                best_threshold = threshold
         if min_value == sys.maxsize:
             min_value = 0
             min_value_sample = 0
         values.append(min_value)
         values_sample.append(min_value_sample)
         coords.append(c)
+        thresholds.append(best_threshold)
     value_array = np.array(values)
     value_sample_array = np.array(values_sample)
     coords = np.array(coords)
+    thresholds = np.array(thresholds)
     if in_sample:
         off_sample_image, off_sample_cond = determine_on_off_sample(image_maldi, value_sample_array, size_elem)
         # off_sample_cond = np.array([np.median(off_sample_image[coord.T[0], coord.T[1]]) for coord in coords])
@@ -864,6 +869,8 @@ def find_similar_images_dispersion_peaks(image_maldi, factor, quantiles=[], in_s
         to_return += (value_array, indices)
     if in_sample:
         to_return += (off_sample_image, off_sample_cond)
+    if return_thresholds:
+        to_return += (thresholds,)
     return to_return
 
 def find_similar_images_dispersion(image_maldi, factor, quantiles=[], in_sample=False, return_indices=False):

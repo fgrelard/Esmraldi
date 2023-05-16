@@ -6,6 +6,22 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 
+def max_region(image):
+    image_copy = image.copy().astype(int)
+    for (x,y) in np.ndindex(image.shape):
+        values = []
+        for i in range(-1, 2):
+            for j in range(-1, 2):
+                if (i == 0 and j == 0) or x+i < 0 or y+j < 0 or x+i >= image.shape[0] or y+j >= image.shape[1]:
+                    continue
+                values.append(image[x+i, y+j])
+        unique, counts = np.unique(values, return_counts=True)
+        if unique.size > 1:
+            image_copy[x, y] = unique[np.argmax(counts)]
+        else:
+            image_copy[x, y] = image[x, y]
+    return image_copy
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input")
 parser.add_argument("-o", "--output", help="Output")
@@ -32,6 +48,13 @@ if is_merge:
     max_im //= 2
 
 print(max_im, correspondences, indices)
+
+image[image > max_im] -= max_im
+image_copy = max_region(image.astype(int))
+plt.imshow(image_copy.T, cmap="Set3", interpolation="none", vmax=max_im)
+plt.axis("off")
+plt.savefig("test.png", bbox_inches="tight")
+exit()
 
 for ind, intensity in enumerate(indices):
     if is_merge:

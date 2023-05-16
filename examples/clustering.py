@@ -68,7 +68,8 @@ image_flatten = fusion.flatten(images, is_spectral=True).T
 print(image_flatten.shape)
 kmeans = KMeans(k, random_state=0).fit(image_flatten)
 labels = kmeans.labels_
-image_labels = labels.reshape(images.shape[:-1])
+image_labels = labels.reshape(images.shape[:-1]).T
+sitk.WriteImage(sitk.GetImageFromArray(image_labels.astype(np.uint8)), out_name)
 
 plt.imshow(image_labels.T)
 plt.show()

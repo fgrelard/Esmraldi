@@ -8,9 +8,9 @@ import SimpleITK as sitk
 import matplotlib.pyplot as plt
 import xlsxwriter
 import os
+import seaborn
 
 from skimage.color import rgb2gray
-
 
 
 def read_image(image_name):
@@ -40,7 +40,6 @@ is_weighted = args.weight
 
 unique_image = False
 if input_name.lower().endswith(".imzml"):
-
     imzml = io.open_imzml(input_name)
     spectra = io.get_spectra(imzml)
     print(spectra.shape)
@@ -108,7 +107,7 @@ else:
 
     current_image = images[..., closest_mz_indices]
 
-colors = ["b", "r", "g"]
+colors = ["#dfaa01", "#9901ff", "#ff0000", "#0070c0", "#00b050"]
 for i in range(current_image.shape[-1]):
     c = current_image[..., i]
     if normalization > 0:
@@ -126,12 +125,16 @@ for i in range(current_image.shape[-1]):
         # A = current_values.max() - current_values
         # ppv, recall, _ = precision_recall_curve(binary_label, current_values)
         # npv, recall2, _ = precision_recall_curve(binary_label, A, pos_label=0)
-        plt.plot(fpr, tpr, color=colors[j], label=region_names[j])
-        plt.plot([0,1], [0,1], "--", c="k")
+        ax = plt.subplot(111)
+        ax.plot(fpr, tpr, color=colors[j], label=region_names[j])
+        ax.plot([0,1], [0,1], "--", c="k")
         plt.xlim((0, 1))
         plt.ylim((0, 1))
         plt.title(mzs[closest_mz_indices[i]])
-        print("Cutoff", fusion.single_roc_cutoff(c, indices, [binary_label], lambda fpr, tpr, thresholds: fusion.cutoff_generalized_youden(fpr, tpr, thresholds, nb_zeros, nb_ones), is_weighted=is_weighted))
+        ax.spines[['top', 'right']].set_visible(False)
+        plt.grid()
+
+        print("Cutoff", fusion.single_roc_cutoff(c, indices, [binary_label], lambda fpr, tpr, thresholds, nb_zeros, nb_ones: fusion.cutoff_generalized_youden(fpr, tpr, thresholds, nb_zeros, nb_ones), is_weighted=is_weighted))
         print(fusion.single_roc_auc(c, indices, [binary_label], is_weighted=is_weighted))
     plt.show()
 

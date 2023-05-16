@@ -11,7 +11,7 @@ import os
 from skimage.color import rgb2gray
 from skimage.metrics import structural_similarity
 from skimage.filters import threshold_multiotsu, threshold_niblack, threshold_sauvola, threshold_otsu
-from sklearn.cluster import AgglomerativeClustering, MeanShift, estimate_bandwidth, DBSCAN, KMeans
+from sklearn.cluster import AgglomerativeClustering, MeanShift, estimate_bandwidth, DBSCAN, KMeans, OPTICS
 from sklearn.manifold import MDS, LocallyLinearEmbedding, Isomap, TSNE
 from sklearn.decomposition import KernelPCA
 from sklearn.metrics import silhouette_score
@@ -61,12 +61,13 @@ def onpick(event, mzs, image, im_display):
     im_display.set_clim(vmin=currimg.min(), vmax=currimg.max())
     im_display.axes.figure.canvas.draw()
 
-def onclick(event, linkage, pos_array, shape):
+def onclick(event, pos_array, shape, linkage=None, cluster_image=None):
     if event.inaxes != ax[0]:
         return
     if event.dblclick:
-        clusters = hc.fcluster(linkage, t=event.ydata, criterion="distance")
-        cluster_image = clusters.reshape(shape)
+        if cluster_image is None:
+            clusters = hc.fcluster(linkage, t=event.ydata, criterion="distance")
+            cluster_image = clusters.reshape(shape)
         print("k=", cluster_image.max())
         if len(shape) >= 2:
             ax_scatter.imshow(cluster_image, cmap="Set1")
@@ -107,8 +108,8 @@ def get_linkage(model):
 
 
 
-def draw_graph(matrix, mzs, is_mds, new_separation=False, color_regions="b", is_text=True):
-    ax_scatter.clear()
+def draw_graph(matrix, ax, mzs, is_mds, new_separation=False, color_regions="b", is_text=True):
+    ax.clear()
     print(is_mds)
     diffs = matrix[matrix>0]
     smallest_value = diffs.max() - diffs.min()
@@ -144,11 +145,11 @@ def draw_graph(matrix, mzs, is_mds, new_separation=False, color_regions="b", is_
         pos_array = np.array(list(pos.values())).T
 
     print(pos_array.shape)
-    ax_scatter.scatter(*pos_array, marker='o', s=50, edgecolor='None', c=color_regions, picker=True)
+    ax.scatter(*pos_array, marker='o', s=50, edgecolor='None', c=color_regions, picker=True)
     # mplcursors.cursor(multiple=True).connect("add", lambda sel: sel.annotation.set_text("{:.3f}".format(mzs[sel.target.index])))
     if is_text:
         for k, p in enumerate(pos_array.T):
-            ax_scatter.text(*p, "{:.2f}".format(mzs[k]))
+            ax.text(*p, "{:.2f}".format(mzs[k]))
 
     if not is_3D:
         ax_scatter.axis('equal')
@@ -198,7 +199,7 @@ def on_lims_change(axes):
     xs = dendro["icoord"]
     if xmin < np.amin(xs) and xmax > np.amax(xs):
         print("Full reset")
-        pos_array = draw_graph(distance_matrix, mzs, is_mds, new_separation=False, color_regions=color_regions)
+        pos_array = draw_graph(distance_matrix, ax_scatter, mzs, is_mds, new_separation=False, color_regions=color_regions)
         # current_image = current_image
     else:
         print("Partial view")
@@ -211,7 +212,7 @@ def on_lims_change(axes):
         c = color_regions[indices_mzs]
         # current_image = current_image[..., indices_mzs]
         d = distance_matrix[indices_mzs, :][:, indices_mzs]
-        pos_array = draw_graph(d, m, is_mds, new_separation=True, color_regions=c)
+        pos_array = draw_graph(d, ax_scatter, m, is_mds, new_separation=True, color_regions=c)
     # plot_tree(dendro, axes, pos=indices)
 
 
@@ -434,10 +435,9 @@ if normalization>0:
         normalization_image = sitk.GetArrayFromImage(normalization_image).T
         mzs = np.loadtxt(os.path.splitext(normalization_dataset)[0] + ".csv")
         norm_img = imageutils.get_norm_image(normalization_image, normalization, mzs)
-        plt.imshow(norm_img)
-        plt.show()
     else:
         norm_img = imageutils.get_norm_image(image, normalization, mzs)
+    print(norm_img.dtype, image.dtype)
     for i in range(image.shape[-1]):
         image[..., i] = imageutils.normalize_image(image[...,i], norm_img)
 
@@ -446,6 +446,7 @@ if is_normalized:
     #     currimg = image[..., i]
     #     image[..., i] = currimg/np.std(currimg)
     image = io.normalize(image)
+    image = image.astype(np.float128) / 255.0
 
 color_regions = ["m"] * image.shape[-1]
 regions = []
@@ -506,7 +507,7 @@ metrics = ["cosine", "correlation", "euclidean", "sqeuclidean", "cityblock", "ha
 
 metrics = ["cosine"]
 
-fig, ax = plt.subplots(2, max(2,len(metrics)//2))
+# fig, ax = plt.subplots(2, max(2,len(metrics)//2))
 
 for i, s in enumerate(metrics):
     # distance_matrix = distance.squareform(distance.pdist(image_norm, metric=lambda u, v: vifp(u.reshape(current_image.shape[:-1])[..., np.newaxis],v.reshape(current_image.shape[:-1])[..., np.newaxis])))
@@ -526,20 +527,30 @@ for i, s in enumerate(metrics):
 # plt.imshow(distance_matrix, cmap="RdBu", interpolation="nearest")
 # plt.show()
 
+print(distance_matrix)
 draw_hierarchical = True
 is_3D = False
 
 if draw_hierarchical:
+    not_diag = ~np.eye(distance_matrix.shape[0], dtype=bool)
+    not_diag_min = distance_matrix[not_diag].min()
+    distance_matrix = (distance_matrix - not_diag_min) / (distance_matrix.max() - not_diag_min)
+    np.fill_diagonal(distance_matrix, 0)
+    # model = AgglomerativeClustering(linkage="average", affinity="precomputed", n_clusters=None, distance_threshold=0)
 
-    model = AgglomerativeClustering(linkage="average", affinity="precomputed", n_clusters=None, distance_threshold=0)
-    model = model.fit(distance_matrix)
+    bandwidth = estimate_bandwidth(image_norm, quantile=0.08)
+    model = MeanShift(bandwidth=bandwidth, bin_seeding=False)
+    model = model.fit(image_norm)
+    clusters = model.labels_
+    print(clusters.max())
+    cluster_image = clusters.reshape(shape)
 
     fig, ax = plt.subplots(1, 3)
-    linkage_matrix = get_linkage(model)
+    # linkage_matrix = get_linkage(model)
 
-    # Plot the corresponding dendrogram
-    dendro = hc.dendrogram(linkage_matrix, truncate_mode=None, p=10, no_plot=True)
-    plot_tree(dendro, ax[0])
+    # # Plot the corresponding dendrogram
+    # dendro = hc.dendrogram(linkage_matrix, truncate_mode=None, p=10, no_plot=True)
+    # plot_tree(dendro, ax[0])
 
     artists = []
     dim = 2
@@ -549,15 +560,15 @@ if draw_hierarchical:
     else:
         ax_scatter = ax[1]
 
-    pos_array = draw_graph(distance_matrix, mzs, is_mds, False, color_regions)
+    pos_array = draw_graph(distance_matrix, ax_scatter, mzs, is_mds, False, color_regions)
 
     im_display = ax[2].imshow(image[..., 0].T)
-    cid = fig.canvas.mpl_connect('button_press_event', lambda event:onclick(event, linkage_matrix, pos_array, shape))
+    cid = fig.canvas.mpl_connect('button_press_event', lambda event:onclick(event, pos_array, shape, linkage=None, cluster_image=cluster_image))
     fig.canvas.mpl_connect('pick_event', lambda event: onpick(event, mzs, current_image, im_display))
     ax[0].callbacks.connect('xlim_changed', on_lims_change)
 
-fig, ax_scatter = plt.subplots()
-draw_graph(distance_matrix, mzs, is_mds, True, color_regions, is_text=True)
+fig, ax_graph = plt.subplots()
+draw_graph(distance_matrix, ax_graph, mzs, is_mds, False, color_regions, is_text=True)
 
 plt.tight_layout()
 plt.show()
