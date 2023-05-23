@@ -49,14 +49,19 @@ def read_image(image_name):
     mask = mask.T
     return mask
 
-def plot_reg(x, y, std, ax, name):
+def plot_reg(x, y, std, ax, name, is_weighted=False):
     # res = stats.linregress(x,y)
     # print(res.slope, res.intercept, res.rvalue)
     xr = x.reshape(-1, 1).astype(np.float128)
     yr = y.reshape(-1, 1).astype(np.float128)
     df = pd.DataFrame({"x": x, "y": y})
     w = np.ones_like(std).astype(np.float128)
-    w = 1/np.divide(x, std, where=(std!=0) & (x!=0), out=w)
+    print(std)
+    #w = 1/np.divide(x, std, where=(std!=0) & (x!=0), out=w)
+    if is_weighted:
+        #factor = np.where((std < 1) & (std != 0), 1/std**2, std**2)
+        w = np.divide(1, std**2, where=std!=0, out=w)
+
     wregr = linear_model.LinearRegression(fit_intercept=True)
     res = wregr.fit(xr, yr, sample_weight=w)
     yw_pred = res.predict(xr)
@@ -82,6 +87,7 @@ parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given
 *-1: TIC;\n\
 *>0: mz of the standard ion", default=0)
 parser.add_argument("-o", "--output", help="Output .xlsx files with stats")
+parser.add_argument("--weight", help="Whether to perform WLS", action="store_true")
 args = parser.parse_args()
 
 plt.style.use('dark_background')
@@ -92,6 +98,7 @@ tissue_regions_name = args.tissue_regions
 output_name = args.output
 normalization = float(args.normalization)
 peak_list = args.peak_list
+is_weighted = args.weight
 
 region = read_image(mask_name)
 
@@ -181,7 +188,7 @@ for i in range(all_intensities.shape[-1]):
     curr_i = all_intensities[:, i][ind]
     curr_stds = stds[:, i][ind]
     curr_c = np.sort(concentrations[i]).astype(float)
-    res = plot_reg(curr_c, curr_i, curr_stds, ax[i], names[i])
+    res = plot_reg(curr_c, curr_i, curr_stds, ax[i], names[i], is_weighted)
     regression_coefficients.append(res)
     f = all_intensities.shape[0]+1
     worksheet.merge_range(0, i*f+1, 0, i*f+f-1, peaks[i], header_format)
@@ -202,8 +209,12 @@ if tissue_regions_name is not None:
         intensities, stds, n = compute_average_from_region(curr_spectra, mzs, step, peaks)
         concentrations = []
         for j, res in enumerate(regression_coefficients):
-            c = res.predict(np.array([intensities[j]]).reshape(-1, 1))
-            c = c.flatten()[0]
+            #c = res.predict(np.array([intensities[j]]).reshape(-1, 1))
+            #c = c.flatten()[0]
+            if res.coef_.flatten()[0] == 0:
+                c = 0
+            else:
+                c =  (intensities[j] - res.intercept_.flatten()[0]) / res.coef_.flatten()[0]
             concentrations.append(c)
         if i == 0:
             curr_mzs = peaks if peaks is not None else mzs
