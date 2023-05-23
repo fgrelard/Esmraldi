@@ -102,22 +102,22 @@ if normalization > 0:
 
 img_data = imzmlio.normalize(img_data)
 
-
-roc_values_df = pd.read_excel(roc_name)
-roc_auc_scores = np.array(roc_values_df).T
-names = roc_auc_scores[0, :]
-if roc_names is None:
-    end = 4
-    end = roc_auc_scores.shape[-1]
-    ind_names = np.arange(end).astype(int)
-else:
-    ind_names = np.array([n in roc_names for n in names])
-roc_auc_scores = roc_auc_scores[1:, ind_names]
-value = 0.8
-cond = (roc_auc_scores > 1 - value) & (roc_auc_scores < value)
-indices_roc = np.all(cond, axis=-1)
-indices_roc = np.where(indices_roc)[0]
-print(indices_roc.size)
+if roc_name is not None:
+    roc_values_df = pd.read_excel(roc_name)
+    roc_auc_scores = np.array(roc_values_df).T
+    names = roc_auc_scores[0, :]
+    if roc_names is None:
+        end = 4
+        end = roc_auc_scores.shape[-1]
+        ind_names = np.arange(end).astype(int)
+    else:
+        ind_names = np.array([n in roc_names for n in names])
+    roc_auc_scores = roc_auc_scores[1:, ind_names]
+    value = 0.8
+    cond = (roc_auc_scores > 1 - value) & (roc_auc_scores < value)
+    indices_roc = np.all(cond, axis=-1)
+    indices_roc = np.where(indices_roc)[0]
+    print(indices_roc.size)
 
 
 similar_images, value_array, indices, off_sample_image, off_sample_cond, thresholds = seg.find_similar_images_dispersion_peaks(img_data, factor, quantiles=quantiles, in_sample=True, return_indices=True, return_thresholds=True)
@@ -142,7 +142,8 @@ plt.show()
 
 
 indices = np.where(indices)[0]
-indices = np.intersect1d(indices, indices_roc)
+if roc_name is not None:
+    indices = np.intersect1d(indices, indices_roc)
 similar_images = img_data[..., indices]
 thresholds = thresholds[indices]
 
@@ -154,7 +155,6 @@ print(image_thresholded.shape, thresholds.shape)
 # similar_images, indices = seg.find_similar_images_spatial_coherence(img_data, factor, quantiles=quantiles, upper=quantile_upper, fn=seg.median_perimeter)
 # similar_images = seg.find_similar_images_spatial_chaos(img_data, factor, quantiles=[60, 70, 80, 90])
 # similar_images = seg.find_similar_images_variance(img_data, factor)
-print(mzs[indices], mzs[indices].shape, image_thresholded.shape, similar_images.shape)
 
 fig, ax = plt.subplots(1)
 tracker = SliceViewer(ax, np.transpose(similar_images, (2, 1, 0)))

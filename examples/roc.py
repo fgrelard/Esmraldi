@@ -62,7 +62,10 @@ if input_name.lower().endswith(".imzml"):
 else:
     image_itk = sitk.ReadImage(input_name)
     images = sitk.GetArrayFromImage(image_itk).T
-    mzs = np.loadtxt(os.path.splitext(input_name)[0] + ".csv", encoding="utf-8-sig")
+    try:
+        mzs = np.loadtxt(os.path.splitext(input_name)[0] + ".csv", encoding="utf-8-sig")
+    except ValueError as ve:
+        mzs = np.genfromtxt(os.path.splitext(input_name)[0] + ".csv", encoding="utf-8-sig", dtype='str')
 
 workbook = xlsxwriter.Workbook(output_name, {'strings_to_urls': False})
 header_format = workbook.add_format({'bold': True,
@@ -109,7 +112,8 @@ else:
 
 regions = []
 print("Read image")
-for region_name in natsort.natsorted(region_names):
+region_names =  natsort.natsorted(region_names)
+for region_name in region_names:
     region = read_image(region_name)
     regions.append(region)
 

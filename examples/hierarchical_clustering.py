@@ -7,6 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import mplcursors
 import xlsxwriter
 import os
+import pandas as pd
 
 from skimage.color import rgb2gray
 from skimage.metrics import structural_similarity
@@ -27,6 +28,8 @@ import esmraldi.imzmlio as io
 import esmraldi.fusion as fusion
 import esmraldi.segmentation as seg
 import esmraldi.imageutils as imageutils
+from esmraldi.sliceviewer import SliceViewer
+
 import networkx as nx
 from sklearn.mixture import GaussianMixture
 from skimage import feature
@@ -61,8 +64,22 @@ def onpick(event, mzs, image, im_display):
     im_display.set_clim(vmin=currimg.min(), vmax=currimg.max())
     im_display.axes.figure.canvas.draw()
 
+
+def update_graph_clustering(ax, clusters, mzs, distance_matrix):
+    ax[1, 1].clear()
+    smallest_value = distance_matrix[distance_matrix > 0].min()
+    colors = clusters.copy()
+    matrix= np.where(colors[:, None] == colors[:, None].T, 1, 10000)
+    mds = umap.UMAP(random_state=0, n_neighbors=3, min_dist=0.1, metric="euclidean")
+    pos_array = mds.fit_transform(matrix).T
+    scatter = ax[1, 1].scatter(*pos_array, marker='o', s=50, c=colors, edgecolor='None', cmap="gist_rainbow", picker=True)
+    for k, p in enumerate(pos_array.T):
+        ax[1, 1].text(*p, "{:.2f}".format(mzs[k]))
+
+
+
 def onclick(event, pos_array, shape, linkage=None, cluster_image=None):
-    if event.inaxes != ax[0]:
+    if event.inaxes != ax[0, 0]:
         return
     if event.dblclick:
         if cluster_image is None:
@@ -75,13 +92,17 @@ def onclick(event, pos_array, shape, linkage=None, cluster_image=None):
             for a in artists:
                 a.remove()
             artists.clear()
-            cm = plt.cm.get_cmap("Set3")
-            n_cm = len(cm.colors)
+            cm = plt.cm.get_cmap("gist_rainbow")
             points = ax_scatter.collections[0]
-            points.set_color(cm(cluster_image%n_cm))
+            if hasattr(cm, "colors"):
+                n_cm = len(cm.colors)
+                points.set_color(cm(cluster_image%n_cm))
+            else:
+                n_cm = cluster_image.max()
+                points.set_color(cm(cluster_image/n_cm))
+            update_graph_clustering(ax, clusters, mzs, linkage[..., 1])
             for i in np.unique(cluster_image):
                 indices = np.where(cluster_image == i)[0]
-                print(current_image.shape)
                 av_image = np.mean(current_image[..., indices], axis=-1)
                 x0, y0 = np.median([pos_array[0, indices], pos_array[1, indices]], axis=-1)
                 img = OffsetImage(av_image.T, zoom=0.1, cmap='gray')
@@ -118,7 +139,6 @@ def draw_graph(matrix, ax, mzs, is_mds, new_separation=False, color_regions="b",
     not_diag = ~np.eye(distance_matrix.shape[0], dtype=bool)
     not_diag_min = distance_matrix[not_diag].min()
     distance_matrix = (distance_matrix - not_diag_min) / (distance_matrix.max() - not_diag_min)
-    print(matrix[0,0])
     np.fill_diagonal(distance_matrix, 0)
     if new_separation:
         k = 1/smallest_value
@@ -128,7 +148,7 @@ def draw_graph(matrix, ax, mzs, is_mds, new_separation=False, color_regions="b",
         # mds = TSNE(n_components=2, metric="precomputed", perplexity=1, learning_rate=1, early_exaggeration=1)
         # mds = MDS(n_components=2, dissimilarity="precomputed")
         # mds = KernelPCA(n_components=2, kernel='rbf', gamma=10)
-        mds = umap.UMAP(random_state=0, n_neighbors=3, min_dist=0.1, metric="cosine")
+        mds = umap.UMAP(random_state=0, n_neighbors=3, min_dist=0.1, metric="euclidean")
         pos_array = mds.fit_transform(distance_matrix).T
         print(pos_array.shape)
 
@@ -192,10 +212,10 @@ def plot_tree(P, ax, pos=None):
 
 def on_lims_change(axes):
     global current_image, color_regions
-    if axes == ax[1]:
+    if axes == ax[0, 1]:
         return
     print("Lims change")
-    xmin, xmax = ax[0].xaxis.get_view_interval()
+    xmin, xmax = ax[0, 0].xaxis.get_view_interval()
     xs = dendro["icoord"]
     if xmin < np.amin(xs) and xmax > np.amax(xs):
         print("Full reset")
@@ -396,6 +416,10 @@ parser.add_argument("-n", "--normalization", help="Normalize w.r.t. to given m/z
 parser.add_argument("-o", "--output", help="Output .csv files with stats")
 parser.add_argument("-r", "--regions", help="Subregions inside mask", nargs="+", type=str)
 parser.add_argument("--mds", help="Use Multidimensional scaling to project points", action="store_true")
+parser.add_argument("--roc", help="ROC file (.xlsx)")
+parser.add_argument("--names", help="Names to restrict ROC", nargs="+", default=None)
+parser.add_argument("--correlation_names", help="Images used to compute correlation with ion images. When correlation is high, corresponding ion images are discarded.", nargs="+", default=None)
+
 args = parser.parse_args()
 
 input_name = args.input
@@ -405,6 +429,9 @@ is_normalized = args.preprocess
 normalization = float(args.normalization)
 normalization_dataset = args.normalization_dataset
 is_mds = args.mds
+roc_name = args.roc
+roc_names = args.names
+correlation_names = args.correlation_names
 
 if input_name.lower().endswith(".imzml"):
     imzml = io.open_imzml(input_name)
@@ -426,8 +453,6 @@ else:
     image = sitk.GetArrayFromImage(image_itk).T
     mzs = np.loadtxt(os.path.splitext(input_name)[0] + ".csv")
 
-
-
 norm_img = None
 if normalization>0:
     if normalization_dataset is not None:
@@ -437,9 +462,65 @@ if normalization>0:
         norm_img = imageutils.get_norm_image(normalization_image, normalization, mzs)
     else:
         norm_img = imageutils.get_norm_image(image, normalization, mzs)
-    print(norm_img.dtype, image.dtype)
     for i in range(image.shape[-1]):
         image[..., i] = imageutils.normalize_image(image[...,i], norm_img)
+
+
+
+indices_restrict = []
+if correlation_names is None:
+    if roc_name is not None:
+        roc_values_df = pd.read_excel(roc_name)
+        roc_auc_scores = np.array(roc_values_df).T
+        names = roc_auc_scores[0, :]
+        if roc_names is None:
+            end = 4
+            end = roc_auc_scores.shape[-1]
+            ind_names = np.arange(end).astype(int)
+        else:
+            ind_names = np.array([n in roc_names for n in names])
+        roc_auc_scores = roc_auc_scores[1:, ind_names]
+        value = 0.85
+        cond = (roc_auc_scores > 1 - value) & (roc_auc_scores < value)
+
+        indices_restrict = np.all(cond, axis=-1)
+        indices_restrict = np.where(indices_restrict)[0]
+else:
+    correlation_images = []
+    cosines = []
+    for correlation_name in correlation_names:
+        correlation = read_image(correlation_name)
+        correlation_images.append(correlation)
+    for i in range(image.shape[-1]):
+        max_cos = 0
+        for correlation_image in correlation_images:
+            cos = cosine_similarity(correlation_image.flatten().reshape((1, -1)), image[..., i].flatten().reshape((1, -1)))[0, 0]
+            # if mzs[i] > 861 and mzs[i] < 862:
+            #     print(mzs[i], cos)
+            #     fig, ax = plt.subplots(1, 2)
+            #     ax[0].imshow(correlation_image)
+            #     ax[1].imshow(image[..., i])
+            #     plt.show()
+            if cos > max_cos:
+                max_cos = cos
+        cosines.append(max_cos)
+    np.set_printoptions(suppress=True)
+    fig, ax = plt.subplots(1)
+    label = np.vstack((mzs, cosines)).T
+    tracker = SliceViewer(ax, np.transpose(image, (2, 1, 0)), labels=label)
+    fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
+    plt.show()
+
+
+for i in range(image.shape[-1]):
+    if cosines[i] < 0.3:
+        print(cosines[i])
+        print(mzs[i])
+        plt.imshow(image[..., i])
+        plt.show()
+print(len(indices_restrict))
+
+
 
 if is_normalized:
     # for i in range(image.shape[-1]):
@@ -447,6 +528,7 @@ if is_normalized:
     #     image[..., i] = currimg/np.std(currimg)
     image = io.normalize(image)
     image = image.astype(np.float128) / 255.0
+
 
 color_regions = ["m"] * image.shape[-1]
 regions = []
@@ -532,25 +614,16 @@ draw_hierarchical = True
 is_3D = False
 
 if draw_hierarchical:
-    not_diag = ~np.eye(distance_matrix.shape[0], dtype=bool)
-    not_diag_min = distance_matrix[not_diag].min()
-    distance_matrix = (distance_matrix - not_diag_min) / (distance_matrix.max() - not_diag_min)
-    np.fill_diagonal(distance_matrix, 0)
-    # model = AgglomerativeClustering(linkage="average", affinity="precomputed", n_clusters=None, distance_threshold=0)
-
-    bandwidth = estimate_bandwidth(image_norm, quantile=0.08)
-    model = MeanShift(bandwidth=bandwidth, bin_seeding=False)
+    model = AgglomerativeClustering(linkage="ward", affinity="euclidean", n_clusters=None, distance_threshold=0)
+    # model = model.fit(distance_matrix)
     model = model.fit(image_norm)
-    clusters = model.labels_
-    print(clusters.max())
-    cluster_image = clusters.reshape(shape)
 
-    fig, ax = plt.subplots(1, 3)
-    # linkage_matrix = get_linkage(model)
+    fig, ax = plt.subplots(2, 2)
+    linkage_matrix = get_linkage(model)
 
-    # # Plot the corresponding dendrogram
-    # dendro = hc.dendrogram(linkage_matrix, truncate_mode=None, p=10, no_plot=True)
-    # plot_tree(dendro, ax[0])
+    # Plot the corresponding dendrogram
+    dendro = hc.dendrogram(linkage_matrix, truncate_mode=None, p=10, no_plot=True)
+    plot_tree(dendro, ax[0, 0])
 
     artists = []
     dim = 2
@@ -558,14 +631,14 @@ if draw_hierarchical:
         dim = 3
         ax_scatter = plt.axes(projection="3d")
     else:
-        ax_scatter = ax[1]
+        ax_scatter = ax[0, 1]
 
     pos_array = draw_graph(distance_matrix, ax_scatter, mzs, is_mds, False, color_regions)
 
-    im_display = ax[2].imshow(image[..., 0].T)
-    cid = fig.canvas.mpl_connect('button_press_event', lambda event:onclick(event, pos_array, shape, linkage=None, cluster_image=cluster_image))
+    im_display = ax[1, 0].imshow(image[..., 0].T)
+    cid = fig.canvas.mpl_connect('button_press_event', lambda event:onclick(event, pos_array, shape, linkage=linkage_matrix, cluster_image=None))
     fig.canvas.mpl_connect('pick_event', lambda event: onpick(event, mzs, current_image, im_display))
-    ax[0].callbacks.connect('xlim_changed', on_lims_change)
+    ax[0, 0].callbacks.connect('xlim_changed', on_lims_change)
 
 fig, ax_graph = plt.subplots()
 draw_graph(distance_matrix, ax_graph, mzs, is_mds, False, color_regions, is_text=True)

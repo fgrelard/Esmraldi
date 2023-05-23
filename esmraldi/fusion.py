@@ -469,6 +469,7 @@ def remove_indices(image):
 
 def roc_indices(mask, shape, norm_img=None):
     indices = np.where(mask > 0)
+    print(indices)
     print(shape)
     indices_ravel = np.ravel_multi_index(indices, shape, order='F')
 
