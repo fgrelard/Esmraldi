@@ -775,6 +775,8 @@ def to_csv(array, filename):
 
 
 def to_tif(array, mzs, filename):
+    root, ext = os.path.splitext(filename)
+    to_csv(mzs, root + ".csv")
     tifffile.imwrite(filename, array, imagej=True, metadata={"axes": "ZYX", "Labels": [str(mz) for mz in mzs]})
 
 def open_tif(filename):

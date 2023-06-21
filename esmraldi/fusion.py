@@ -7,6 +7,7 @@ import esmraldi.imzmlio as imzmlio
 import numpy as np
 import cv2 as cv
 import sklearn.metrics as metrics
+from scipy import integrate
 from sklearn.decomposition import PCA
 from sklearn.decomposition import NMF
 from sklearn.cluster import KMeans, AffinityPropagation
@@ -469,15 +470,12 @@ def remove_indices(image):
 
 def roc_indices(mask, shape, norm_img=None):
     indices = np.where(mask > 0)
-    print(indices)
-    print(shape)
     indices_ravel = np.ravel_multi_index(indices, shape, order='F')
 
     if norm_img is not None:
         norm_indices = np.ravel_multi_index(np.where(norm_img > 0), shape, order='F')
         indices_ravel = np.intersect1d(indices_ravel, norm_indices)
         indices = np.unravel_index(indices_ravel, shape, order="F")
-
     return indices, indices_ravel
 
 
@@ -496,37 +494,80 @@ def weighted_roc_curve(y_true, y_score, *, pos_label=None, sample_weight=None, d
     fpr, tpr, thresholds = metrics.roc_curve(y_true, y_score, pos_label=pos_label, sample_weight=sample_weight, drop_intermediate=drop_intermediate)
     nb_ones = np.count_nonzero(y_true)
     nb_zeros = np.count_nonzero(~y_true)
-    weights_tns = nb_ones / nb_zeros
+    ratio = nb_ones / nb_zeros
+    weights_tps = nb_zeros / nb_ones
+    weights_tns = ratio
+    # fx = np.ones_like(fpr)
     fps = fpr * nb_zeros
     tps = tpr * nb_ones
     tns = fps[-1] - fps
     fns = tps[-1] - tps
-    fpr = fps / (tns * weights_tns + fps)
-    tpr = tps / (fns * weights_tns + tps)
-    dfp = tns * weights_tns + fps
-    dtp = fns * weights_tns + tps
+    fpr = fps / (tns + fps)
+    tpr =  tps / (fns + tps)
+    value = tpr[tpr < 1].max()
+    fpr = fps * weights_tps  / (tns  + fps * weights_tps)
+    tpr = tps * weights_tps / (fns + tps * weights_tps)
+    # tpr *= value
+    tpr[-1] = 1
+    # diff_fpr = np.diff(fpr)<=0
+    # diff_tpr = np.diff(tpr)<=0
+    # weights_tns_tpr = weights_tns.copy()
+    # weights_tns_fpr = weights_tns.copy()
+    # i = 1
+    # while (weights_tns_tpr.max() < 1 or weights_tns_fpr.max() < 1) and (diff_fpr.any() or diff_tpr.any()):
+    #     ind_fpr = np.argwhere(diff_fpr)
+    #     ind_tpr = np.argwhere(diff_tpr)
+    #     weights_tns_fpr[ind_fpr] = ratio / fx[ind_fpr]*i
+    #     weights_tns_tpr[ind_tpr] = ratio / fx[ind_tpr]*i
+    #     # weights_tns = np.maximum.accumulate(weights_tns)
+    #     print(weights_tns_tpr)
+    #     fpr = fps / (tns * weights_tns_fpr + fps)
+    #     tpr = tps / (fns * weights_tns_tpr + tps)
+    #     print(fpr, tpr)
+    #     diff_fpr = np.diff(fpr)<=0
+    #     diff_tpr = np.diff(tpr)<=0
+    #     i+=1
     return fpr, tpr, thresholds
 
-def weighted_auc_roc(y_true, y_score, sample_weight=None, max_fpr=None):
-    fpr, tpr, _ = weighted_roc_curve(y_true, y_score, sample_weight=sample_weight)
-    return metrics.auc(fpr, tpr)
+def roc_curve_projection(fpr, tpr, thresholds):
+    if tpr[-2] < fpr[-2]:
+        tpr = np.insert(tpr, -1, fpr[-2])
+        fpr = np.insert(fpr, -1, fpr[-2])
+    else:
+        fpr = np.insert(fpr, -1, tpr[-2])
+        tpr = np.insert(tpr, -1, tpr[-2])
+    thresholds = np.insert(thresholds, -1, thresholds[-2])
+    return fpr, tpr, thresholds
 
-def roc_curve(y_true, y_score, *, pos_label=None, sample_weight=None, drop_intermediate=True, is_weighted=False):
+
+def auc_roc(y_true, y_score, sample_weight=None, max_fpr=None, is_weighted=False, is_projection=False):
+    try:
+        fpr, tpr, thresholds = roc_curve(y_true, y_score, sample_weight=sample_weight, is_weighted=is_weighted, is_projection=is_projection)
+        return metrics.auc(fpr, tpr)
+    except ValueError as ve:
+        sorted_index = np.argsort(fpr)
+        fpr_list_sorted =  np.array(fpr)[sorted_index]
+        tpr_list_sorted = np.array(tpr)[sorted_index]
+        return integrate.trapz(y=tpr_list_sorted, x=fpr_list_sorted)
+
+def roc_curve(y_true, y_score, *, pos_label=None, sample_weight=None, drop_intermediate=True, is_weighted=False, is_projection=False):
     if is_weighted:
-        return weighted_roc_curve(y_true, y_score, sample_weight=sample_weight)
-    return metrics.roc_curve(y_true, y_score, sample_weight=sample_weight)
+        fpr, tpr, thresholds = weighted_roc_curve(y_true, y_score, sample_weight=sample_weight)
+    else:
+        fpr, tpr, thresholds = metrics.roc_curve(y_true, y_score, sample_weight=sample_weight)
+    if is_projection:
+        fpr, tpr, thresholds = roc_curve_projection(fpr, tpr, thresholds)
+    return fpr, tpr, thresholds
 
-def single_roc_auc(image, indices, region_bool, is_weighted=False):
+def single_roc_auc(image, indices, region_bool, is_weighted=False, is_projection=False):
     sub_region = image[indices]
     current_values = sub_region.flatten()
     rocs = np.zeros(len(region_bool))
     for j, binary_label in enumerate(region_bool):
         if np.all(binary_label == binary_label[0]):
             auc = 0
-        elif is_weighted:
-            auc = weighted_auc_roc(binary_label, current_values)
         else:
-            auc = metrics.roc_auc_score(binary_label, current_values)
+            auc = auc_roc(binary_label, current_values, is_weighted=is_weighted, is_projection=is_projection)
         rocs[j] = auc
     return rocs
 
@@ -583,7 +624,7 @@ def cutoff_efficiency(fpr, tpr, thresholds, nb_zeros, nb_ones, return_index=Fals
         return eff.max(), np.argmax(eff)
     return eff.max()
 
-def roc_auc_analysis(images, indices, region_bool, norm_img=None, thresholded_variants=False, is_weighted=False):
+def roc_auc_analysis(images, indices, region_bool, norm_img=None, thresholded_variants=False, is_weighted=False, is_projection=False):
     nreg = len(region_bool)
     roc_auc_scores = np.zeros((images.shape[-1], nreg))
     for i in range(images.shape[-1]):
@@ -598,7 +639,7 @@ def roc_auc_analysis(images, indices, region_bool, norm_img=None, thresholded_va
                 else:
                     roc_auc_scores[i, :] = np.minimum(roc_auc_scores[i, :], auc_scores)
         else:
-            roc_auc_scores[i, :] = single_roc_auc(current_image, indices, region_bool, is_weighted=is_weighted)
+            roc_auc_scores[i, :] = single_roc_auc(current_image, indices, region_bool, is_weighted=is_weighted, is_projection=is_projection)
 
     return roc_auc_scores
 

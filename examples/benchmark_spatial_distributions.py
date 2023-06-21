@@ -11,9 +11,11 @@ import esmraldi.imageutils as imageutils
 from sklearn.decomposition import NMF, PCA
 import scipy.spatial.distance as distance
 from sklearn.cluster import AgglomerativeClustering, MeanShift, estimate_bandwidth, DBSCAN, KMeans
+from sklearn.metrics import silhouette_score
 import scipy.cluster.hierarchy as hc
 
 from esmraldi.registration import precision, recall, fmeasure
+from yellowbrick.cluster import KElbowVisualizer
 import sklearn.metrics as metrics
 
 def get_linkage(model):
@@ -183,23 +185,22 @@ print(M.shape)
 
 if is_clustering:
     recalls = []
+    silhouettes = []
+    inertias = []
     x = np.arange(5, 100, 1)
     x = [26]
+    x = [n]
     for i in x:
         kmeans = KMeans(i, random_state=0)
         fit_kmeans = kmeans.fit(M)
         labels = kmeans.predict(M)
         label_image = labels.reshape(image_shape).T
-        sitk.WriteImage(sitk.GetImageFromArray(label_image.astype(np.uint8)), "cluster_26.tif")
-        exit()
+        sitk.WriteImage(sitk.GetImageFromArray(label_image.astype(np.uint8)), "cluster_" + str(i) + ".tif")
+        inertias.append(fit_kmeans.inertia_)
        #  print(label_image.shape)
     #     max_recall = fmeasure_stat(label_image, image_target)
-    #     recalls.append(max_recall)
-    #     plt.imshow(label_image)
-    #     plt.show()
-    # plt.plot(x, recalls)
-    # plt.show()
-    # exit()
+        plt.imshow(label_image)
+        plt.show()
     # distance_matrix = distance.squareform(distance.pdist(M, metric="euclidean"))
     # distance_matrix[np.isnan(distance_matrix)] = 0
     # np.save("distance_matrix_nan.npy", distance_matrix)

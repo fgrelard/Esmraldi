@@ -19,12 +19,14 @@ from sklearn.cluster import KMeans
 from sklearn.neighbors import NearestNeighbors
 from skimage.measure import find_contours
 from skimage import measure
-from skimage.filters import threshold_otsu, rank, sobel
+from skimage.filters import threshold_otsu, rank, sobel, threshold_multiotsu
 from skimage.transform import hough_circle, hough_circle_peaks
 from skimage.feature import canny
 from skimage import data, color, util
 from skimage.draw import disk as drawdisk
-from skimage.morphology import binary_erosion, closing, disk
+from skimage.morphology import binary_erosion, closing, disk, remove_small_objects
+from scipy.ndimage.morphology import distance_transform_edt
+from scipy.ndimage import binary_fill_holes
 
 import matplotlib.pyplot as plt
 import scipy.signal as signal
@@ -721,6 +723,184 @@ def find_similar_images_variance(image_maldi, factor_variance=0.1, return_indice
     if return_indices:
         return similar_images, indices
     return similar_images
+
+
+def find_associated_distance_transforms(image_maldi, masks, quantiles, add_otsu_thresholds=True):
+    dt_masks = []
+    for mask in masks:
+        threshold = threshold_otsu(mask)
+        mask_invert = 255-np.where(mask>threshold, 255, 0)
+        dt_mask = distance_transform_edt(mask_invert)
+        dt_masks.append(dt_mask)
+
+    dt_ions = []
+    for i in range(image_maldi.shape[-1]):
+        image2D = image_maldi[..., i]
+        norm_img = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
+        upper_threshold = np.percentile(norm_img, 100)
+        if add_otsu_thresholds:
+            otsu_thresholds = threshold_multiotsu(norm_img)
+        else:
+            otsu_thresholds = []
+        quantile_thresholds = [int(np.percentile(norm_img, quantile)) for quantile in quantiles]
+        thresholds = np.concatenate((quantile_thresholds, otsu_thresholds))
+        distances = []
+        images_invert = []
+        indices_distances_masks = []
+        for threshold in thresholds:
+            condition = (norm_img > threshold) & (norm_img <= upper_threshold)
+            image_binary = np.where(condition, 255, 0)
+            image_invert = 255 - image_binary
+            dt_cleaned = distance_transform_edt(image_invert)
+            min_d = []
+            distances_masks = []
+            for j, mask in enumerate(masks):
+                d_mask_cleaned = dt_cleaned[masks[j] > 0]
+                dist = max(d_mask_cleaned)
+                distances_masks.append(dist)
+            index_masks = np.argmin(distances_masks)
+            distances.append(distances_masks[index_masks])
+            images_invert.append(image_invert)
+            indices_distances_masks.append(index_masks)
+        index_distance = np.argmax(distances)
+        best_im_invert = images_invert[index_distance]
+        dt_best = distance_transform_edt(best_im_invert)
+        dt_ions.append(dt_best)
+        #     fig, ax = plt.subplots(2, 3)
+        #     ax[0, 0].imshow(masks[indices_distances_masks[index_distance]])
+        #     ax[0, 1].imshow(255-best_im_invert)
+        #     ax[0, 2].imshow(image2D)
+        #     ax[1, 0].imshow(dt_masks[indices_distances_masks[index_distance]])
+        #     # ax[1, 1].imshow(dt)
+        #     plt.show()
+    return dt_masks, dt_ions
+
+def find_similar_image_distance_map_percentile(image_maldi, masks, factor, quantiles=[], add_otsu_thresholds=True, reverse=False, is_min=False, return_indices=False, return_distances=False):
+    values = []
+    # dt_masks = []
+    # for mask in masks:
+    #     threshold = threshold_otsu(mask)
+    #     mask_invert = 255-np.where(mask>threshold, 255, 0)
+    #     dt_mask = distance_transform_edt(mask_invert)
+    #     dt_masks.append(dt_mask)
+
+    dt_masks, dt_ions = find_associated_distance_transforms(image_maldi, masks, quantiles, add_otsu_thresholds)
+
+    if reverse:
+        dt_ions, dt_masks = dt_masks, dt_ions
+
+    all_distances = []
+    for i, dt_ion in enumerate(dt_ions):
+        distances = []
+        for j, dt_mask in enumerate(dt_masks):
+            d_mask_cleaned = dt_ion[dt_mask == 0]
+            d_ion = dt_mask[dt_ion == 0]
+            dist = np.percentile(d_mask_cleaned, 95)
+            dist_mask = np.percentile(d_ion, 95)
+            if is_min:
+                dist_both = np.mean([dist, dist_mask])
+            else:
+                dist_both = max([dist, dist_mask])
+            distances.append(dist_both)
+        all_distances.append(distances)
+        index_distance = np.argmin(distances)
+        min_distance = distances[index_distance]
+        values.append(min_distance)
+        # fig, ax = plt.subplots(2, 2)
+        # print(min_distance)
+        # if reverse:
+        #     ax[0, 0].imshow(image_maldi[..., index_distance].T)
+        #     ax[0, 1].imshow(masks[i].T)
+        # else:
+        #     ax[0, 0].imshow(image_maldi[..., i].T)
+        #     ax[0, 1].imshow(masks[index_distance].T)
+        # ax[1, 0].imshow(dt_ion.T)
+        # ax[1, 1].imshow(dt_masks[index_distance].T)
+        # # ax[1, 1].imshow(dt)
+        # plt.show()
+    value_array = np.array(values)
+    all_distances = np.array(all_distances)
+    indices = (value_array < factor)
+    if reverse:
+        similar_images = np.array(masks)[indices]
+    else:
+        similar_images = image_maldi[..., indices]
+    to_return = (similar_images,)
+    if return_indices:
+        to_return += (value_array, indices)
+    if return_distances:
+        to_return += (all_distances,)
+    return to_return
+
+
+
+def find_similar_image_distance_map_cc(image_maldi, masks, factor, quantiles=[], add_otsu_thresholds=True, return_indices=False, reverse=False):
+    values = []
+    dt_masks = []
+    for mask in masks:
+        threshold = threshold_otsu(mask)
+        mask_invert = 255-np.where(mask>threshold, 255, 0)
+        dt_mask = distance_transform_edt(mask_invert)
+        dt_masks.append(dt_mask)
+
+    for i in range(image_maldi.shape[-1]):
+        image2D = image_maldi[..., i]
+        norm_img = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
+        upper_threshold = np.percentile(norm_img, 100)
+        distances = []
+        distances_both = []
+        if add_otsu_thresholds:
+            otsu_thresholds = threshold_multiotsu(norm_img)
+        else:
+            otsu_thresholds = []
+        quantile_thresholds = [int(np.percentile(norm_img, quantile)) for quantile in quantiles]
+        thresholds = np.concatenate((quantile_thresholds, otsu_thresholds))
+        print(thresholds)
+        indices_distances_masks = []
+        images_invert = []
+        for threshold in thresholds:
+
+            condition = (norm_img > threshold) & (norm_img <= upper_threshold)
+            image_binary = np.where(condition, 255, 0)
+            image_invert = 255 - image_binary
+            image_invert_clean = binary_fill_holes(image_binary)*255
+            image_invert_clean = remove_small_objects(image_invert_clean>0, min_size=10, connectivity=2).astype(int)*255
+            image_invert_clean = 255-image_invert_clean
+            dt_cleaned = distance_transform_edt(image_invert)
+            min_d = []
+            distances_masks = []
+            for j, mask in enumerate(masks):
+                d_mask_cleaned = dt_cleaned[masks[j] > 0]
+                d_ion = dt_masks[j][image_binary > 0]
+                dist = max(d_mask_cleaned)
+                dist_mask = max(d_ion)
+                images_invert.append(image_binary)
+                distances_masks.append(dist)
+            index_masks = np.argmin(distances_masks)
+            distances.append(distances_masks[index_masks])
+            indices_distances_masks.append(index_masks)
+        index_distance = np.argmax(distances)
+        print(distances[index_distance])
+        best_im_invert = images_invert[indices_distances_masks[index_distance]]
+        dt_best = distance_transform_edt(best_im_invert)
+        fig, ax = plt.subplots(2, 3)
+        ax[0, 0].imshow(masks[indices_distances_masks[index_distance]])
+        ax[0, 1].imshow(255-best_im_invert)
+        ax[0, 2].imshow(image2D)
+        ax[1, 0].imshow(dt_masks[indices_distances_masks[index_distance]])
+        # ax[1, 1].imshow(dt)
+        plt.show()
+        min_distance = distances[index_distance]
+        values.append(min_distance)
+    value_array = np.array(values)
+    indices = (value_array < factor)
+    similar_images = image_maldi[..., indices]
+    to_return = (similar_images,)
+    if return_indices:
+        to_return += (value_array, indices)
+    return to_return
+
+
 
 
 def extract_peaks_from_distribution(min_hist, bins, threshold):

@@ -31,6 +31,7 @@ parser.add_argument("-o", "--output", help="Output .xlsx files with stats")
 parser.add_argument("--cutoffs", action="store_true", help="Compute cutoff analysis")
 parser.add_argument("--stats", action="store_true", help="Include various statistics on masks and their complementary")
 parser.add_argument("-w", "--weight", help="Weight ROC by amount of points in each condition", action="store_true")
+parser.add_argument("--projection", help="Projection of the ROC curve along the bisector", action="store_true")
 args = parser.parse_args()
 
 input_name = args.input
@@ -41,8 +42,7 @@ normalization = args.normalization
 is_weighted = args.weight
 is_cutoffs = args.cutoffs
 is_stats = args.stats
-
-
+is_projection = args.projection
 
 if input_name.lower().endswith(".imzml"):
     imzml = io.open_imzml(input_name)
@@ -131,17 +131,13 @@ if normalization != None:
     for i in range(images.shape[-1]):
         images[..., i] = imageutils.normalize_image(images[...,i], norm_img)
 
-
-
-indices, indices_ravel = fusion.roc_indices(mask, images.shape[:-1], norm_img)
-
-
+indices, indices_ravel = fusion.roc_indices(mask, images.shape[:-1], None)
 
 print("Starting ROC AUC")
 region_bool = fusion.region_to_bool(regions, indices_ravel, images.shape[:-1])
 region_bool_compl = [~r for r in region_bool]
 
-roc_auc_scores = fusion.roc_auc_analysis(images, indices, region_bool, norm_img, is_weighted=is_weighted)
+roc_auc_scores = fusion.roc_auc_analysis(images, indices, region_bool, norm_img, is_weighted=is_weighted, is_projection=is_projection)
 
 L = [roc_auc_scores]
 

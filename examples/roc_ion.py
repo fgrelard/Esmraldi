@@ -29,6 +29,7 @@ parser.add_argument("-r", "--regions", help="Subregions inside mask", nargs="+",
 parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given m/z", default=0)
 parser.add_argument("--mz", help="M/Z", nargs="+", type=float)
 parser.add_argument("-w", "--weight", help="Weight ROC by amount of points in each condition", action="store_true")
+parser.add_argument("--projection", help="Projection onto the bisector", action="store_true")
 args = parser.parse_args()
 
 input_name = args.input
@@ -37,6 +38,7 @@ region_names = args.regions
 normalization = float(args.normalization)
 mz = args.mz
 is_weighted = args.weight
+is_projection = args.projection
 
 unique_image = False
 if input_name.lower().endswith(".imzml"):
@@ -64,8 +66,11 @@ else:
         mzs = np.array([0])
         unique_image = True
 
+if mask_name is not None:
+    mask = read_image(mask_name)
+else:
+    mask = np.ones_like(images[..., 0])
 
-mask = read_image(mask_name)
 regions = []
 for region_name in region_names:
     region = read_image(region_name).astype(bool)
@@ -73,13 +78,9 @@ for region_name in region_names:
 
 n = len(np.where(mask>0)[0])
 
-
-
 name = "No norm"
 if normalization > 0:
     name = str(normalization)
-
-
 
 norm_img = None
 if normalization > 0:
@@ -89,8 +90,7 @@ shape = images.shape[:-1]
 if unique_image:
     shape = images.shape
 
-indices, indices_ravel = fusion.roc_indices(mask, shape, norm_img)
-
+indices, indices_ravel = fusion.roc_indices(mask, shape, None)
 region_bool = fusion.region_to_bool(regions, indices_ravel, shape)
 
 if unique_image:
@@ -102,7 +102,7 @@ else:
     for m in mz:
         closest_mz_index = np.abs(mzs - m).argmin()
         closest_mz_indices.append(closest_mz_index)
-        print("Found", mzs[closest_mz_index], mz)
+        print("Found", mzs[closest_mz_index], m)
     closest_mz_indices = np.array(closest_mz_indices)
 
     current_image = images[..., closest_mz_indices]
@@ -118,7 +118,7 @@ for i in range(current_image.shape[-1]):
     current_values = sub_region.flatten()
 
     for j, binary_label in enumerate(region_bool):
-        fpr, tpr, thresholds = fusion.roc_curve(binary_label, current_values, is_weighted=is_weighted)
+        fpr, tpr, thresholds = fusion.roc_curve(binary_label, current_values, is_weighted=is_weighted, is_projection=is_projection)
         nb_ones = np.count_nonzero(binary_label)
         nb_zeros = np.count_nonzero(~binary_label)
         current_values = current_values.astype(np.float64)
@@ -134,8 +134,8 @@ for i in range(current_image.shape[-1]):
         ax.spines[['top', 'right']].set_visible(False)
         plt.grid()
 
-        print("Cutoff", fusion.single_roc_cutoff(c, indices, [binary_label], lambda fpr, tpr, thresholds, nb_zeros, nb_ones: fusion.cutoff_generalized_youden(fpr, tpr, thresholds, nb_zeros, nb_ones), is_weighted=is_weighted))
-        print(fusion.single_roc_auc(c, indices, [binary_label], is_weighted=is_weighted))
+        # print("Cutoff", fusion.single_roc_cutoff(c, indices, [binary_label], lambda fpr, tpr, thresholds, nb_zeros, nb_ones: fusion.cutoff_generalized_youden(fpr, tpr, thresholds, nb_zeros, nb_ones), is_weighted=is_weighted))
+        print(fusion.single_roc_auc(c, indices, [binary_label], is_weighted=is_weighted, is_projection=is_projection))
     plt.show()
 
 # plt.plot([0, 1], [0, 1], color="k", linestyle="--")
