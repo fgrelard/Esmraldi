@@ -35,3 +35,10 @@ mmappickle>=1.0.0
 opencv-python-headless>=4.6.0.66
 numba>=0.56.0
 treelib>=1.6.1
+sparse>=0.13.0
+h5py>=3.7.0
+mpldatacursor>=0.7.1
+mplcairo>=0.5
+umap-learn>=0.5.3
+yellowbrick>=1.5
+natsort==8.2.0
