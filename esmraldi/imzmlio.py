@@ -3,7 +3,6 @@ Module for the input/output
 of imzML files
 Conversion to numpy array
 """
-
 import pyimzml.ImzMLWriter as imzmlwriter
 import pyimzml.ImzMLParser as imzmlparser
 # import esmraldi.imzmlparsermmapped as imzmlparser

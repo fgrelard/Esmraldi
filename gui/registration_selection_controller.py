@@ -33,6 +33,7 @@ class WorkerRegistrationSelection(QtCore.QObject):
         before registration
         """
         is_ms_image = hasattr(image, "image")
+        print(is_ms_image)
         processed_image = image
         shape = ((2,) if image.ndim == 3 else ()) + (0, 1)
         if is_ms_image:
@@ -83,12 +84,14 @@ class WorkerRegistrationSelection(QtCore.QObject):
             fixed_itk = sitk.GetImageFromArray(fixed)
             resampler = reg.initialize_resampler(fixed_itk, landmark_transform)
         if fixed_dim == 3:
-            fixed_itk = sitk.GetImageFromArray(fixed[..., 0])
+            fixed_itk = sitk.GetImageFromArray(fixed[..., 0].T)
             resampler = reg.initialize_resampler(fixed_itk, landmark_transform)
 
+        print(resampler)
         if dim == 2:
             register_itk = sitk.GetImageFromArray(register)
             deformed_itk = resampler.Execute(register_itk)
+
         elif dim == 3:
             slices = []
             for i in range(size[2]):
@@ -159,8 +162,6 @@ class RegistrationSelectionController:
 
     def start(self):
         self.set_clickable(True)
-        self.imageview.points = [[1110, 715], [1374, 696], [1374, 905]]
-        self.imageview2.points = [[0, 0], [9, 0], [9, 9]]
         self.compute_transformation()
 
     def set_clickable(self, clickable):
