@@ -781,7 +781,7 @@ def to_tif(array, mzs, filename):
 def open_tif(filename):
     mzs = []
     tif = tifffile.TiffFile(filename)
-    if 50839 in tif.pages[0].tags.keys():
+    if 50839 in tif.pages[0].tags.keys() and "Labels" in tif.pages[0].tags[50839].value:
         mzs_str = tif.pages[0].tags[50839].value["Labels"]
         try:
             mzs = [float(mz) for mz in mzs_str]
