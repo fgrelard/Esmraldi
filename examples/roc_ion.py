@@ -26,7 +26,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input .imzML")
 parser.add_argument("-m", "--mask", help="Mask image (any ITK format)")
 parser.add_argument("-r", "--regions", help="Subregions inside mask", nargs="+", type=str)
-parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given m/z", default=0)
+parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given m/z", default=None)
 parser.add_argument("--mz", help="M/Z", nargs="+", type=float)
 parser.add_argument("-w", "--weight", help="Weight ROC by amount of points in each condition", action="store_true")
 parser.add_argument("--projection", help="Projection onto the bisector", action="store_true")
@@ -35,7 +35,7 @@ args = parser.parse_args()
 input_name = args.input
 mask_name = args.mask
 region_names = args.regions
-normalization = float(args.normalization)
+normalization = args.normalization
 mz = args.mz
 is_weighted = args.weight
 is_projection = args.projection
@@ -78,12 +78,12 @@ for region_name in region_names:
 
 n = len(np.where(mask>0)[0])
 
-name = "No norm"
-if normalization > 0:
-    name = str(normalization)
-
 norm_img = None
-if normalization > 0:
+if normalization != None:
+    try:
+        normalization = float(normalization)
+    except:
+        pass
     norm_img = imageutils.get_norm_image(images, normalization, mzs)
 
 shape = images.shape[:-1]
@@ -108,9 +108,11 @@ else:
     current_image = images[..., closest_mz_indices]
 
 colors = ["#dfaa01", "#9901ff", "#ff0000", "#0070c0", "#00b050"]
+if len(region_bool) > len(colors):
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 for i in range(current_image.shape[-1]):
     c = current_image[..., i]
-    if normalization > 0:
+    if norm_img != None:
         c = imageutils.normalize_image(c, norm_img)
 
 
