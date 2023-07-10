@@ -112,7 +112,7 @@ if len(region_bool) > len(colors):
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 for i in range(current_image.shape[-1]):
     c = current_image[..., i]
-    if norm_img != None:
+    if normalization != None:
         c = imageutils.normalize_image(c, norm_img)
 
 
