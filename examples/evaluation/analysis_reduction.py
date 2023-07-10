@@ -64,7 +64,10 @@ else:
             csv_reader = csv.reader(csv_file, delimiter=";")
             mzs = [float(row[0]) for row in csv_reader]
     else:
-        mzs = [i for i in range(image.shape[2])]
+        try:
+            mzs = np.loadtxt(os.path.splitext(input_name)[0] + ".csv", encoding="utf-8-sig")
+        except ValueError as ve:
+            mzs = np.genfromtxt(os.path.splitext(input_name)[0] + ".csv", encoding="utf-8-sig", dtype='str')
     mzs = np.asarray(mzs)
 
 image = image[..., mzs >= threshold]
