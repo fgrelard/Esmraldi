@@ -68,7 +68,7 @@ factor = float(args.factor)
 quantiles = args.quantiles
 quantile_upper = int(args.quantile_upper)
 roc_name = args.roc
-normalization = float(args.normalization)
+normalization = args.normalization
 roc_names = args.names
 size_se = float(args.size_se)
 
