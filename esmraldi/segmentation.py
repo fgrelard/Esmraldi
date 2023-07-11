@@ -1024,7 +1024,7 @@ def find_similar_images_dispersion_peaks(image_maldi, factor, quantiles=[], in_s
             min_hist = distance_distribution(mask, centroid, bins)
             th_distrib = distribs[ind_quantile]
             correlation = pearsonr(th_distrib.flatten(), min_hist.flatten()).statistic
-            value_sample = np.percentile(diff, 1, method="higher")
+            value_sample = np.amin(diff)
             if correlation < min_value:
                 min_value = correlation
                 min_value_sample = value_sample
@@ -1129,10 +1129,10 @@ def determine_on_off_sample(image_maldi, value_array, size_elem=1):
     sub_image = image_maldi[..., labels==number_cluster]
     for i in range(sub_image.shape[-1]):
         current_sub = sub_image[..., i]
-        plt.imshow(current_sub)
-        plt.show()
         thresh = threshold_otsu(current_sub)
-        off_sample[current_sub > thresh] = 1
+        off_sample[current_sub > thresh] += 1
+    thresh = threshold_otsu(off_sample)
+    off_sample = np.where(off_sample > thresh, 1, 0)
     off_sample = closing(off_sample, disk(size_elem))
     off_sample_cond = []
     for i in range(image_maldi.shape[-1]):

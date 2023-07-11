@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from sklearn import linear_model
 from esmraldi.peakdetectionmeanspectrum import PeakDetectionMeanSpectrum
 
-def compute_average_from_region(curr_spectra, mzs, step, peaks=None):
+def compute_average_from_region(curr_spectra, mzs, step, peaks=None, average=False, full=False):
     if peaks is not None:
         curr_mzs = peaks
         out_spectra = sp.realign_generic(curr_spectra, peaks, step, is_ppm=True)
@@ -29,7 +29,12 @@ def compute_average_from_region(curr_spectra, mzs, step, peaks=None):
         actual_mzs = np.unique(np.hstack(out_spectra[:, 0]))
         actual_mzs = actual_mzs[actual_mzs > 0]
         indices = utils.indices_search_sorted(actual_mzs, curr_mzs)
-        actual_intensities = np.mean(curr_intensities, axis=0)
+        if average:
+            actual_intensities = np.mean(curr_intensities, axis=0)
+        else:
+            actual_intensities = np.median(curr_intensities, axis=0)
+        if full:
+            all_intensities = curr_intensities
         actual_stds = np.std(curr_intensities, axis=0)
         intensities = np.zeros_like(curr_mzs)
         stds = np.zeros_like(curr_mzs)
@@ -37,7 +42,11 @@ def compute_average_from_region(curr_spectra, mzs, step, peaks=None):
         stds[indices] = actual_stds
         n = np.repeat(len(indices_regions), len(curr_mzs))
     else:
-        curr_mzs, intensities, stds, n, _, _ = sp.realign_mean_spectrum(mzs, curr_spectra[:, 1], curr_spectra[:, 0], step, is_ppm=True, return_stats=True)
+        curr_mzs, means, stds, n, intensities, _, all_intensities = sp.realign_mean_spectrum(mzs, curr_spectra[:, 1], curr_spectra[:, 0], step, is_ppm=True, return_stats=True)
+        if average:
+            intensities = means
+    if full:
+        return intensities, stds, n, all_intensities
     return intensities, stds,  n
 
 
@@ -49,7 +58,7 @@ def read_image(image_name):
     mask = mask.T
     return mask
 
-def plot_reg(x, y, std, ax, name, is_weighted=False):
+def plot_reg(x, y, std, ax, name, is_weighted=False, custom_weights=None):
     # res = stats.linregress(x,y)
     # print(res.slope, res.intercept, res.rvalue)
     xr = x.reshape(-1, 1).astype(np.float128)
@@ -61,6 +70,10 @@ def plot_reg(x, y, std, ax, name, is_weighted=False):
     if is_weighted:
         #factor = np.where((std < 1) & (std != 0), 1/std**2, std**2)
         w = np.divide(1, std**2, where=std!=0, out=w)
+    print(w)
+    if custom_weights is not None:
+        w = np.array(custom_weights).astype(np.float128)
+    print(w)
 
     wregr = linear_model.LinearRegression(fit_intercept=True)
     res = wregr.fit(xr, yr, sample_weight=w)
@@ -88,6 +101,8 @@ parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given
 *>0: mz of the standard ion", default=0)
 parser.add_argument("-o", "--output", help="Output .xlsx files with stats")
 parser.add_argument("--weight", help="Whether to perform WLS", action="store_true")
+parser.add_argument("--custom_weights", help="Custom weights: separate each value by a space. There must as many weights as there are data points.", nargs="+", default=None)
+parser.add_argument("--full", help="Points for full masks", action="store_true")
 args = parser.parse_args()
 
 plt.style.use('dark_background')
@@ -99,6 +114,8 @@ output_name = args.output
 normalization = float(args.normalization)
 peak_list = args.peak_list
 is_weighted = args.weight
+custom_weights = args.custom_weights
+is_full = args.full
 
 region = read_image(mask_name)
 
@@ -184,11 +201,15 @@ stds = np.array(stds)
 regression_coefficients = []
 fig, ax = plt.subplots(1, len(peaks), figsize=(17, 10))
 for i in range(all_intensities.shape[-1]):
+    if len(peaks) > 1:
+        ax_tmp = ax[i]
+    else:
+        ax_tmp = ax
     ind = np.argsort(all_intensities[:, i])
     curr_i = all_intensities[:, i][ind]
     curr_stds = stds[:, i][ind]
     curr_c = np.sort(concentrations[i]).astype(float)
-    res = plot_reg(curr_c, curr_i, curr_stds, ax[i], names[i], is_weighted)
+    res = plot_reg(curr_c, curr_i, curr_stds, ax_tmp, names[i], is_weighted, custom_weights)
     regression_coefficients.append(res)
     f = all_intensities.shape[0]+1
     worksheet.merge_range(0, i*f+1, 0, i*f+f-1, peaks[i], header_format)
@@ -198,6 +219,8 @@ for i in range(all_intensities.shape[-1]):
     worksheet.write(4, i*f+1, res.intercept_)
 
 if tissue_regions_name is not None:
+    display_concentrations = [[] for i in range(all_intensities.shape[-1])]
+    y = [[] for i in range(all_intensities.shape[-1])]
     for i, region_name in enumerate(tissue_regions_name):
         region2 = read_image(region_name)
         if region2.shape != region.shape:
@@ -206,7 +229,10 @@ if tissue_regions_name is not None:
             exit(0)
         indices_regions = np.ravel_multi_index(np.where(region2 > 0), (max_x, max_y), order='F')
         curr_spectra = spectra[indices_regions]
-        intensities, stds, n = compute_average_from_region(curr_spectra, mzs, step, peaks)
+        if is_full:
+            intensities, stds, n, full_intensities = compute_average_from_region(curr_spectra, mzs, step, peaks, average=True, full=is_full)
+        else:
+            intensities, stds, n = compute_average_from_region(curr_spectra, mzs, step, peaks, average=True, full=is_full)
         concentrations = []
         for j, res in enumerate(regression_coefficients):
             #c = res.predict(np.array([intensities[j]]).reshape(-1, 1))
@@ -216,6 +242,12 @@ if tissue_regions_name is not None:
             else:
                 c =  (intensities[j] - res.intercept_.flatten()[0]) / res.coef_.flatten()[0]
             concentrations.append(c)
+            if is_full:
+                y[j] += full_intensities[..., j].tolist()
+                if res.coef_.flatten()[0] == 0:
+                    display_concentrations[j] += np.zeros_like(full_intensities[..., j]).tolist()
+                else:
+                    display_concentrations[j] += ((full_intensities[..., j] - res.intercept_.flatten()[0]) / res.coef_.flatten()[0]).tolist()
         if i == 0:
             curr_mzs = peaks if peaks is not None else mzs
             worksheet2.write_row(0, 2, curr_mzs, header_format)
@@ -226,6 +258,13 @@ if tissue_regions_name is not None:
         worksheet2.write_row(i*f+1, 2, intensities)
         worksheet2.write_row(i*f+2, 2, stds)
         worksheet2.write_row(i*f+3, 2, concentrations)
+    if is_full:
+        for i in range(len(peaks)):
+            if len(peaks) > 1:
+                ax_tmp = ax[i]
+            else:
+                ax_tmp = ax
+            ax_tmp.scatter(display_concentrations[i], y[i], c="gray", s=10)
 
 
 worksheet.freeze_panes(1, 1)
