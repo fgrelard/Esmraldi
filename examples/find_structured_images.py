@@ -101,8 +101,8 @@ if normalization != None:
     except:
         pass
     norm_img = imageutils.get_norm_image(img_data, normalization, mzs)
-    for i in range(images.shape[-1]):
-        images[..., i] = imageutils.normalize_image(img_data[...,i], norm_img)
+    for i in range(img_data.shape[-1]):
+        img_data[..., i] = imageutils.normalize_image(img_data[...,i], norm_img)
 
 img_data = imzmlio.normalize(img_data)
 
