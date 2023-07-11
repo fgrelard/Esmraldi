@@ -529,7 +529,7 @@ def spatial_chaos(image, quantiles=[]):
     return chaos_measures
 
 
-def find_similar_images_spatial_chaos(img, threshold, quantiles):
+def find_similar_images_spatial_chaos(img, threshold, quantiles, return_indices=False):
     """
     Finds images with spatial
     chaos values greater than a given threshold.
@@ -552,7 +552,10 @@ def find_similar_images_spatial_chaos(img, threshold, quantiles):
     chaos_array = np.array(chaos_measures)
     chaos_indices = np.where( (chaos_array > 1) & (chaos_array < threshold))
     spatially_coherent = np.take(img, chaos_indices[0], axis=-1)
-    return spatially_coherent
+    to_return = (spatially_coherent,)
+    if return_indices:
+        to_return += (chaos_measures, chaos_indices)
+    return to_return
 
 def spatial_coherence(image):
     """
@@ -775,7 +778,7 @@ def find_associated_distance_transforms(image_maldi, masks, quantiles, add_otsu_
         #     plt.show()
     return dt_masks, dt_ions
 
-def find_similar_image_distance_map_percentile(image_maldi, masks, factor, quantiles=[], add_otsu_thresholds=True, reverse=False, is_min=False, return_indices=False, return_distances=False):
+def find_similar_image_distance_map_percentile(image_maldi, masks, factor, quantiles=[], add_otsu_thresholds=True, reverse=False, is_mean=False, return_indices=False, return_distances=False):
     values = []
     # dt_masks = []
     # for mask in masks:
@@ -797,7 +800,7 @@ def find_similar_image_distance_map_percentile(image_maldi, masks, factor, quant
             d_ion = dt_mask[dt_ion == 0]
             dist = np.percentile(d_mask_cleaned, 95)
             dist_mask = np.percentile(d_ion, 95)
-            if is_min:
+            if is_mean:
                 dist_both = np.mean([dist, dist_mask])
             else:
                 dist_both = max([dist, dist_mask])
@@ -1021,7 +1024,7 @@ def find_similar_images_dispersion_peaks(image_maldi, factor, quantiles=[], in_s
             min_hist = distance_distribution(mask, centroid, bins)
             th_distrib = distribs[ind_quantile]
             correlation = pearsonr(th_distrib.flatten(), min_hist.flatten()).statistic
-            value_sample = np.amin(diff)
+            value_sample = np.percentile(diff, 1, method="higher")
             if correlation < min_value:
                 min_value = correlation
                 min_value_sample = value_sample
@@ -1126,6 +1129,8 @@ def determine_on_off_sample(image_maldi, value_array, size_elem=1):
     sub_image = image_maldi[..., labels==number_cluster]
     for i in range(sub_image.shape[-1]):
         current_sub = sub_image[..., i]
+        plt.imshow(current_sub)
+        plt.show()
         thresh = threshold_otsu(current_sub)
         off_sample[current_sub > thresh] = 1
     off_sample = closing(off_sample, disk(size_elem))

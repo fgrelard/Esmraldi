@@ -148,7 +148,7 @@ if off_sample_image is not None:
 
 np.set_printoptions(suppress=True)
 fig, ax = plt.subplots(1)
-label = np.vstack((mzs, off_sample_cond, value_array, indices)).T
+label = np.vstack((mzs, off_sample_cond, value_array, off_sample_cond)).T
 tracker = SliceViewer(ax, np.transpose(img_data, (2, 1, 0)), labels=label)
 fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
 plt.show()
