@@ -52,12 +52,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input (.nii or imzML)")
 parser.add_argument("--on_sample", help="Whether to consider only on-sample points", action="store_true")
 parser.add_argument("-r", "--roc", help="ROC file (.xlsx)")
-parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given m/z", default=0)
+parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given m/z", default=None)
 parser.add_argument("-o", "--output", help="Output segmentation (.nii)")
 parser.add_argument("-f", "--factor", help="Factor for the spatially coherent images")
 parser.add_argument("-q", "--quantiles", nargs="+", type=int, help="Quantile lower thresholds", default=[60, 70, 80, 90])
 parser.add_argument("-u", "--quantile_upper", help="Quantile upper threshold", default=100)
 parser.add_argument("--names", help="Names to restrict ROC", nargs="+", default=None)
+parser.add_argument("--size_se", help="Size SE for off sample image", default=5)
 args = parser.parse_args()
 
 inputname = args.input
@@ -69,6 +70,7 @@ quantile_upper = int(args.quantile_upper)
 roc_name = args.roc
 normalization = float(args.normalization)
 roc_names = args.names
+size_se = float(args.size_se)
 
 radius = 1
 selem = disk(radius)
@@ -93,12 +95,14 @@ else:
 
 print(img_data.shape)
 
-norm_img = None
-if normalization > 0:
-    norm_img = imageutils.get_norm_image(img_data, normalization, mzs)
-    for i in range(img_data.shape[-1]):
-        img_data[..., i] = imageutils.normalize_image(img_data[..., i], norm_img)
-
+if normalization != None:
+    try:
+        normalization = float(normalization)
+    except:
+        pass
+    norm_img = imageutils.get_norm_image(images, normalization, mzs)
+    for i in range(images.shape[-1]):
+        images[..., i] = imageutils.normalize_image(images[...,i], norm_img)
 
 img_data = imzmlio.normalize(img_data)
 
@@ -119,9 +123,15 @@ if roc_name is not None:
     indices_roc = np.where(indices_roc)[0]
     print(indices_roc.size)
 
+zero_array = np.zeros_like(mzs)
+off_sample_cond, value_array, indices = zero_array, zero_array, zero_array
+off_sample_image = None
 
-similar_images, value_array, indices, off_sample_image, off_sample_cond, thresholds = seg.find_similar_images_dispersion_peaks(img_data, factor, quantiles=quantiles, in_sample=True, return_indices=True, return_thresholds=True)
+similar_images, value_array, indices, off_sample_image, off_sample_cond, thresholds = seg.find_similar_images_dispersion_peaks(img_data, factor, quantiles=quantiles, in_sample=True, return_indices=True, return_thresholds=True,  size_elem=size_se)
 
+# similar_images, value_array, _ = seg.find_similar_images_spatial_chaos(img_data, factor, quantiles=quantiles, return_indices=True)
+# indices = (value_array < factor) & (off_sample_cond < 0.1)
+# similar_images = img_data[..., indices]
 
 sigmas = []
 for i in range(img_data.shape[-1]):
@@ -132,24 +142,20 @@ for i in range(img_data.shape[-1]):
     s = np.sum(stdI)/nb_pixels
     sigmas.append(s)
 # np.savetxt("test.csv", value_array, delimiter=",", newline=" ")
-plt.imsave("off_sample.png", off_sample_image.T)
 
+if off_sample_image is not None:
+    plt.imsave("off_sample.png", off_sample_image.T)
+
+np.set_printoptions(suppress=True)
 fig, ax = plt.subplots(1)
-label = np.vstack((mzs, off_sample_cond, value_array, sigmas, indices)).T
+label = np.vstack((mzs, off_sample_cond, value_array, indices)).T
 tracker = SliceViewer(ax, np.transpose(img_data, (2, 1, 0)), labels=label)
 fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
 plt.show()
 
-
 indices = np.where(indices)[0]
-if roc_name is not None:
-    indices = np.intersect1d(indices, indices_roc)
-similar_images = img_data[..., indices]
-thresholds = thresholds[indices]
 
-image_thresholded = similar_images.copy()
-image_thresholded[image_thresholded < thresholds] = 0
-print(image_thresholded.shape, thresholds.shape)
+
 
 # similar_images, indices = seg.find_similar_images_variance(img_data, factor, return_indices=True)
 # similar_images, indices = seg.find_similar_images_spatial_coherence(img_data, factor, quantiles=quantiles, upper=quantile_upper, fn=seg.median_perimeter)
@@ -162,9 +168,19 @@ fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
 plt.show()
 
 root, ext = os.path.splitext(outname)
-
-print(image_thresholded.dtype, similar_images.dtype)
-imzmlio.to_tif(image_thresholded.T,  mzs[indices], root + "_binary.tif")
 imzmlio.to_tif(similar_images.T,  mzs[indices], outname)
 imzmlio.to_csv(mzs[indices], root + ".csv")
-imzmlio.to_csv(mzs[indices], root + "_binary.csv")
+
+
+if thresholds is not None:
+
+    if roc_name is not None:
+        indices = np.intersect1d(indices, indices_roc)
+    similar_images = img_data[..., indices]
+    thresholds = thresholds[indices]
+
+    image_thresholded = similar_images.copy()
+    image_thresholded[image_thresholded < thresholds] = 0
+    print(image_thresholded.shape, thresholds.shape)
+    imzmlio.to_tif(image_thresholded.T,  mzs[indices], root + "_binary.tif")
+    imzmlio.to_csv(mzs[indices], root + "_binary.csv")
