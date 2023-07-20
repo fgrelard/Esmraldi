@@ -67,7 +67,7 @@ def onpick(event, mzs, image, im_display):
     if ind < mzs.size:
         if current_clusters is None:
             print(mzs[ind])
-        else:
+        elif ind < current_clusters.size:
             print(mzs[ind], current_clusters[ind])
     currimg = image[..., ind]
     im_display.set_data(currimg.T)
@@ -75,22 +75,44 @@ def onpick(event, mzs, image, im_display):
     im_display.axes.figure.canvas.draw()
 
 
-def update_graph_clustering(ax, clusters, mzs, distance_matrix, mzs_target=None, image=None, output_name=None):
+def update_graph_clustering(ax, clusters, mzs, distance_matrix, mzs_target=None, image=None, output_name=None, mzs_display=None):
     ax[1, 1].clear()
     smallest_value = distance_matrix[distance_matrix > 0].min()
     print("Smallest value", smallest_value)
     colors = clusters.copy()
-    k = np.where(colors[:, None] == colors[:, None].T, 1, 1/(smallest_value-np.floor(smallest_value)))
+    cm = plt.cm.get_cmap("tab20")
+    all_colors = cm(colors)
+    colors_fixed = ["r", "g", "b"]
+    n_colors = distance_matrix.shape[0]-colors.size
+    for i in range(n_colors):
+        current_color = [0, 0, 0, 1]
+        current_color[i] = 1
+        current_color = np.array(current_color).reshape(1, -1)
+        all_colors = np.concatenate((all_colors, current_color))
+        colors = np.append(colors, colors_fixed[i%3])
+    # k = np.where(colors[:, None] == colors[:, None].T, 1, 1/(smallest_value-np.floor(smallest_value)))
+    k = np.where(colors[:, None] == colors[:, None].T, 1, 10)
+    k[-n_colors:] = 1
+    k[:, -n_colors:]=1
+    print(k)
     print(distance_matrix.shape,  k.shape)
     matrix = distance_matrix*k
-    mds = umap.UMAP(random_state=0, n_neighbors=3, min_dist=0.9, metric="euclidean")
+    for i in range(n_colors):
+        current_ind = -n_colors+i
+        row = matrix[current_ind, :]
+        index = np.ma.masked_less_equal(row, 0).argmin()
+        matrix[current_ind, :] = matrix[index]
+
+    mds = umap.UMAP(random_state=1, n_neighbors=3, min_dist=0.9, metric="euclidean")
     pos_array = mds.fit_transform(matrix).T
-    scatter = ax[1, 1].scatter(*pos_array, marker='o', s=50, c=colors, edgecolor='None', cmap="tab20", picker=True)
+    scatter = ax[1, 1].scatter(*pos_array, marker='o', s=50, c=all_colors, edgecolor='None', picker=True)
     if image is not None and output_name is not None:
         os.makedirs(output_name, exist_ok=True)
-        info_export = np.vstack((mzs, pos_array, colors)).T
-        np.savetxt(output_name + os.path.sep + "2D_coordinates.csv", info_export)
-        for k, color in enumerate(np.unique(colors)):
+        if mzs_display is None:
+            mzs_display = mzs
+        info_export = np.vstack((mzs_display, pos_array, colors)).T
+        np.savetxt(output_name + os.path.sep + "2D_coordinates.csv", info_export, fmt="%s", delimiter=",")
+        for k, color in enumerate(np.unique(colors[:-n_colors])):
             indices = (colors == color)
             av_image = np.mean(image[..., indices], axis=-1).astype(np.float32)
             sitk.WriteImage(sitk.GetImageFromArray(av_image.T), output_name + "av_image" + str(k) + ".tif")
@@ -143,7 +165,7 @@ def tree_bisecting_kmeans(image):
     return cluster_hierarchy
 
 
-def update_clustering(pos_array, y, shape, criterion="distance", matrix=None, linkage=None, cluster_image=None, mzs_target=None, image=None, output_name=None):
+def update_clustering(pos_array, y, shape, criterion="distance", matrix=None, linkage=None, cluster_image=None, mzs_target=None, image=None, output_name=None, mzs_display=None):
     global variable, current_clusters
     if cluster_image is None:
         clusters = hc.fcluster(linkage, t=y, criterion=criterion, depth=5)
@@ -165,10 +187,10 @@ def update_clustering(pos_array, y, shape, criterion="distance", matrix=None, li
         else:
             n_cm = cluster_image.max()
             points.set_color(cm(cluster_image/n_cm))
-        update_graph_clustering(ax, clusters, mzs, matrix, mzs_target, image, output_name)
+        update_graph_clustering(ax, clusters, mzs, matrix, mzs_target, image, output_name, mzs_display)
         for i in np.unique(cluster_image):
             indices = np.where(cluster_image == i)[0]
-            av_image = np.mean(current_image[..., indices], axis=-1)
+            av_image = np.mean(image[..., indices], axis=-1)
             x0, y0 = np.median([pos_array[0, indices], pos_array[1, indices]], axis=-1)
             img = OffsetImage(av_image.T, zoom=0.1, cmap='gray')
             ab = AnnotationBbox(img, (x0, y0), xycoords='data', frameon=False)
@@ -295,7 +317,7 @@ def plot_tree(P, ax, pos=None):
         ax.set_ylim(ymin, ymax + 0.1*abs(ymax))
 
 def on_lims_change(axes):
-    global current_image, color_regions
+    global image, color_regions
     if axes == ax[0, 1]:
         return
     print("Lims change")
@@ -304,7 +326,6 @@ def on_lims_change(axes):
     if xmin < np.amin(xs) and xmax > np.amax(xs):
         print("Full reset")
         pos_array = draw_graph(distance_matrix, ax_scatter, mzs, is_mds, new_separation=False, color_regions=color_regions)
-        # current_image = current_image
     else:
         print("Partial view")
         indices = np.where((xs >= xmin) & (xs <= xmax))[0]
@@ -314,7 +335,6 @@ def on_lims_change(axes):
         m = mzs[indices_mzs]
         print(color_regions.shape)
         c = color_regions[indices_mzs]
-        # current_image = current_image[..., indices_mzs]
         d = distance_matrix[indices_mzs, :][:, indices_mzs]
         pos_array = draw_graph(d, ax_scatter, m, is_mds, new_separation=True, color_regions=c)
     # plot_tree(dendro, axes, pos=indices)
@@ -517,7 +537,7 @@ parser.add_argument("-o", "--output", help="Output .csv files with stats")
 parser.add_argument("-r", "--regions", help="Subregions inside mask", nargs="+", type=str)
 parser.add_argument("--mds", help="Use Multidimensional scaling to project points", action="store_true")
 parser.add_argument("--roc", help="ROC file (.xlsx)")
-parser.add_argument("--value", help="Threshold for correlation", default=0)
+parser.add_argument("--value", help="Threshold for correlation", default=None)
 parser.add_argument("--names", help="Names to restrict ROC", nargs="+", default=None)
 parser.add_argument("--correlation_names", help="Images used to compute correlation with ion images. When correlation is high, corresponding ion images are discarded.", nargs="+", default=None)
 parser.add_argument("--restrict_coordinates", help="Restrict coordinates", nargs="+", type=int)
@@ -534,7 +554,9 @@ is_mds = args.mds
 roc_name = args.roc
 roc_names = args.names
 correlation_names = args.correlation_names
-correlation_value = float(args.value)
+correlation_value = args.value
+if correlation_value is not None:
+    correlation_value = float(correlation_value)
 restrict_coordinates = args.restrict_coordinates
 
 if input_name.lower().endswith(".imzml"):
@@ -600,14 +622,15 @@ else:
     for correlation_name in correlation_names:
         correlation = read_image(correlation_name)
         correlation_images.append(correlation)
-    similar_images, distances, indices_restrict = seg.find_similar_image_distance_map_percentile(image, correlation_images, correlation_value, quantiles=[0, 96, 97, 98], return_indices=True)
-    indices_restrict = np.invert(indices_restrict)
-    np.set_printoptions(suppress=True)
-    fig, ax = plt.subplots(1)
-    label = np.vstack((mzs, distances)).T
-    tracker = SliceViewer(ax, np.transpose(image, (2, 1, 0)), labels=label)
-    fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
-    plt.show()
+    if correlation_value is not None:
+        similar_images, distances, indices_restrict = seg.find_similar_image_distance_map_percentile(image, correlation_images, correlation_value, quantiles=[0], add_otsu_thresholds=True, return_indices=True)
+        indices_restrict = np.invert(indices_restrict)
+        np.set_printoptions(suppress=True)
+        fig, ax = plt.subplots(1)
+        label = np.vstack((mzs, distances)).T
+        tracker = SliceViewer(ax, np.transpose(image, (2, 1, 0)), labels=label)
+        fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
+        plt.show()
 
 if not np.all(indices_restrict):
     indices_discard = np.invert(indices_restrict)
@@ -623,8 +646,9 @@ print("Keeping", np.count_nonzero(indices_restrict), "images.")
 
 indices_restrict = np.array(indices_restrict).astype(bool)
 image = image[..., indices_restrict]
+print(image.shape)
 mzs = mzs[indices_restrict]
-# io.to_tif(image.T, mzs, os.path.splitext(input_name)[0] + "_filtered.tif")
+io.to_tif(image.T, mzs, os.path.splitext(input_name)[0] + "_filtered.tif")
 print(image.shape)
 
 
@@ -647,39 +671,35 @@ if is_normalized:
 #               644.5015869, 715.5759, #LT
 #               287.0937, 296.0824, 746.512]
 
-mzs_target = [837.549, 863.56, 889.58]
+mzs_target = [837.549, 838.56, 863.56, 889.58]
 indices = [np.abs(mzs - mz).argmin() for mz in mzs_target]
 
 
-current_image = image.copy()
+color_regions = ["m"] * image.shape[-1]
+regions = []
+mzs_display = mzs.copy().astype(str)
+if region_names is not None:
+    c = ["r", "g", "b"]
+    for i, region_name in enumerate(region_names):
+        name_trimmed, ext = os.path.splitext(os.path.basename(region_name))
+        region = read_image(region_name)
+        if is_normalized:
+            region = io.normalize(region)
+            region = region.astype(np.float128) / 255.0
+        regions.append(region)
+        mzs = np.append(mzs, -1)
+        mzs_display = np.append(mzs_display, name_trimmed)
+        color_regions.append(c[i%3])
+    image = np.dstack((image, np.dstack(regions)))
 
-# mzs = np.array(mzs_target)
-# color_regions = color_regions[indices]
-# current_image = current_image[..., indices]
-# current_image = current_image.astype(float)
-
-image_norm = fusion.flatten(current_image, is_spectral=True)
+image_norm = fusion.flatten(image, is_spectral=True)
 
 is_spectral = True
-shape = (image_norm.shape[0],)
+shape = (image_norm.shape[0]-len(regions),)
 
 if not is_spectral:
     image_norm = image_norm.T
     shape = image.shape[:-1]
-
-
-color_regions = ["m"] * image_norm.shape[0]
-regions = []
-if region_names is not None:
-    c = ["r", "g", "b"]
-    for i, region_name in enumerate(region_names):
-        region = read_image(region_name)
-        if is_normalized:
-            region = io.normalize(region)
-        regions.append(region)
-        mzs = np.append(mzs, -1)
-        color_regions.append(c[i%3])
-    image = np.dstack((image, np.dstack(regions)))
 
 color_regions = np.array(color_regions)
 color_regions[indices] = "y"
@@ -688,7 +708,7 @@ color_regions[indices] = "y"
 
 is_distribution = False
 if is_distribution:
-    distributions = seg.quantile_distance_distributions(current_image, [60, 70, 80], w=10)
+    distributions = seg.quantile_distance_distributions(image, [60, 70, 80], w=10)
     image_norm = distributions
 
 print(image_norm.shape)
@@ -703,23 +723,8 @@ metrics = ["cosine"]
 # fig, ax = plt.subplots(2, max(2,len(metrics)//2))
 
 for i, s in enumerate(metrics):
-    # distance_matrix = distance.squareform(distance.pdist(image_norm, metric=lambda u, v: vifp(u.reshape(current_image.shape[:-1])[..., np.newaxis],v.reshape(current_image.shape[:-1])[..., np.newaxis])))
-    # distance_matrix = distance.squareform(distance.pdist(image_norm, metric=lambda u, v: call_metrics(u,v,s)))
     distance_matrix = distance.squareform(distance.pdist(image_norm, metric="correlation"))
     distance_matrix[np.isnan(distance_matrix)] = 0
-    # distance_matrix = distance.squareform(distance.pdist(image_norm, metric=lambda u, v: correlation_histmatching(u,v)))
-    # plt.imshow(distance_matrix, cmap="RdBu", interpolation="nearest")
-    # ix = i//(len(metrics)//2)
-    # iy = i%(len(metrics)//2)
-    # ax[ix, iy].set_title(metrics[i])
-    # ax[ix, iy].imshow(distance_matrix, cmap="RdBu", interpolation="nearest")
-    # pos = np.arange(0, len(mzs))
-    # ax[ix, iy].set_xticks(pos)
-    # ax[ix, iy].set_xticklabels(np.around(mzs, 2))
-    # ax[ix, iy].set_yticks(pos)
-    # ax[ix, iy].set_yticklabels(np.around(mzs, 2))
-# plt.imshow(distance_matrix, cmap="RdBu", interpolation="nearest")
-# plt.show()
 
 draw_hierarchical = True
 is_3D = False
@@ -733,7 +738,7 @@ if draw_hierarchical:
 
     model = AgglomerativeClustering(linkage="ward", affinity="euclidean", n_clusters=None, distance_threshold=0)
     # model = model.fit(distance_matrix)
-    model = model.fit(image_norm)
+    model = model.fit(image_norm[:-len(region_names), ...])
 
     fig, ax = plt.subplots(2, 2)
 
@@ -755,28 +760,18 @@ if draw_hierarchical:
     else:
         ax_scatter = ax[0, 1]
 
-    # x = np.arange(2, 40, dtype=int)
-    # scores = []
-    # for i in x:
-    #     labels = hc.fcluster(linkage_matrix, t=i, criterion="maxclust")
-    #     score = silhouette_score(image_norm, labels, metric="euclidean")
-    #     print(score)
-    #     scores.append(score)
-    # fig, ax = plt.subplots()
-    # ax.plot(x, scores)
-    # plt.show()
 
     pos_array = draw_graph(distance_matrix, ax_scatter, mzs, is_mds, False, color_regions)
 
     nb_clust = determine_when_same_group(linkage_matrix, shape, mzs, mzs_target, len(indices_restrict))
 
-    update_clustering(pos_array, 1.8, shape, criterion="inconsistent", matrix=distance_matrix, linkage=linkage_matrix, cluster_image=None, mzs_target=mzs_target, image=image, output_name=output_name)
+    update_clustering(pos_array, 1.7, shape, criterion="inconsistent", matrix=distance_matrix, linkage=linkage_matrix, cluster_image=None, mzs_target=mzs_target, image=image, output_name=output_name, mzs_display=mzs_display)
 
     # update_clustering(pos_array, nb_clust, shape, criterion="maxclust", matrix=distance_matrix, linkage=linkage_matrix, cluster_image=None, mzs_target=mzs_target, image=image, output_name=output_name)
 
     im_display = ax[1, 0].imshow(image[..., 0].T)
     cid = fig.canvas.mpl_connect('button_press_event', lambda event:onclick(event, pos_array, shape, distance_matrix, linkage=linkage_matrix, cluster_image=None, mzs_target=mzs_target))
-    fig.canvas.mpl_connect('pick_event', lambda event: onpick(event, mzs, current_image, im_display))
+    fig.canvas.mpl_connect('pick_event', lambda event: onpick(event, mzs, image, im_display))
     ax[0, 0].callbacks.connect('xlim_changed', on_lims_change)
 
 fig, ax_graph = plt.subplots()

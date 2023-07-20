@@ -550,11 +550,11 @@ def find_similar_images_spatial_chaos(img, threshold, quantiles, return_indices=
     """
     chaos_measures = spatial_chaos(img, quantiles)
     chaos_array = np.array(chaos_measures)
-    chaos_indices = np.where( (chaos_array > 1) & (chaos_array < threshold))
+    chaos_indices = np.where( (chaos_array >= 1) & (chaos_array < threshold))
     spatially_coherent = np.take(img, chaos_indices[0], axis=-1)
     to_return = (spatially_coherent,)
     if return_indices:
-        to_return += (chaos_measures, chaos_indices)
+        to_return += (chaos_array, chaos_indices)
     return to_return
 
 def spatial_coherence(image):
@@ -932,7 +932,7 @@ def extract_peaks_from_distribution(min_hist, bins, threshold):
 def distance_distribution(image, centroid, bins):
     diff = np.linalg.norm(np.argwhere(image) - centroid, axis=-1)
     hist, _ = np.histogram(diff, bins=bins)
-    hist = signal.savgol_filter(hist, 2, 1)
+    # hist = signal.savgol_filter(hist, 2, 1)
     return hist
 
 def generate_random_distributions(image, centroid, quantiles, bins):
@@ -985,6 +985,82 @@ def quantile_distance_distributions(image_maldi, quantiles=[], w=10):
     distributions = np.array(distributions)
     return distributions
 
+def find_similar_images_distance_map(image_maldi, mzs, factor, quantiles=[], in_sample=False, return_indices=False, return_thresholds=False, normalize_max=False, size_elem=5):
+    th_image = image_maldi[..., 0].copy()
+    width, height = th_image.shape
+    centroid = [width//2, height//2]
+    values = []
+    values_sample = []
+    best_thresholds = []
+    for i in range(image_maldi.shape[-1]):
+        # if mzs[i] < 871.55 or mzs[i] > 871.58:
+        #     continue
+        image2D = image_maldi[..., i]
+        norm_img = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
+        upper_threshold = np.percentile(norm_img, 100)
+        thresholds = [int(np.percentile(norm_img, quantile)) for quantile in sorted(quantiles)]
+        images_invert = []
+        indices_distances_masks = []
+        min_value = 0
+        min_value_sample = 0
+        if normalize_max:
+            min_value = sys.maxsize
+            min_value_sample = sys.maxsize
+        best_threshold = 0
+        value_max = 0
+        for ind_threshold, threshold in enumerate(thresholds):
+            condition = (norm_img > threshold) & (norm_img <= upper_threshold)
+            binaryimg = np.where(condition, 1, 0)
+            number_non_zero = np.count_nonzero(binaryimg)
+            if number_non_zero == 0:
+                continue
+            image_binary = np.where(condition, 255, 0)
+            dt_cleaned = distance_transform_edt(image_binary)
+            n2 = np.count_nonzero(dt_cleaned)
+            dt_cleaned[dt_cleaned > 0] -= 1
+            n1 = np.count_nonzero(dt_cleaned)
+            n3 = n2 - n1
+            dist = ((n1 - n3) * np.amax(dt_cleaned)) / ((n1 + n3) * np.sum(dt_cleaned) / n1)
+            divisor = np.count_nonzero(dt_cleaned)
+            if normalize_max:
+                divisor *= np.amax(dt_cleaned)
+            if divisor == 0:
+                divisor = 1
+            dist = np.sum(dt_cleaned) / divisor
+            if normalize_max:
+                dist = 1-dist
+            ind = np.argwhere(condition)
+            diff = np.linalg.norm(ind - centroid, axis=-1)
+            value_sample = np.amin(diff)
+            if (dist < min_value and normalize_max) or (dist > min_value and not normalize_max):
+                min_value = dist
+                min_value_sample = value_sample
+                best_threshold = quantiles[ind_threshold]
+        if (min_value == sys.maxsize and normalize_max) or (min_value == 0 and not normalize_max):
+            min_value = 0
+            min_value_sample = 0
+            best_threshold = quantiles[ind_threshold]
+        values.append(min_value)
+        values_sample.append(min_value_sample)
+        best_thresholds.append(best_threshold)
+    value_array = np.array(values)
+    value_sample_array = np.array(values_sample)
+    best_thresholds = np.array(best_thresholds)
+    if in_sample:
+        off_sample_image, off_sample_cond = determine_on_off_sample(image_maldi, value_sample_array, size_elem)
+        # off_sample_cond = np.array([np.median(off_sample_image[coord.T[0], coord.T[1]]) for coord in coords])
+    indices = (value_array > factor) & (off_sample_cond < 0.1)
+    similar_images = image_maldi[..., indices]
+    to_return = (similar_images,)
+    if return_indices:
+        to_return += (value_array, indices)
+    if in_sample:
+        to_return += (off_sample_image, off_sample_cond)
+    if return_thresholds:
+        to_return += (best_thresholds,)
+    print(best_thresholds)
+    return to_return
+
 def find_similar_images_dispersion_peaks(image_maldi, factor, quantiles=[], in_sample=False, return_indices=False, return_thresholds=False, size_elem=5):
     values = []
     values_sample = []
@@ -1030,7 +1106,7 @@ def find_similar_images_dispersion_peaks(image_maldi, factor, quantiles=[], in_s
                 min_value_sample = value_sample
                 min_distrib = min_hist
                 c = ind
-                best_threshold = threshold
+                best_threshold = quantiles[ind_quantile]
         if min_value == sys.maxsize:
             min_value = 0
             min_value_sample = 0
@@ -1055,6 +1131,7 @@ def find_similar_images_dispersion_peaks(image_maldi, factor, quantiles=[], in_s
     if return_thresholds:
         to_return += (thresholds,)
     return to_return
+
 
 def find_similar_images_dispersion(image_maldi, factor, quantiles=[], in_sample=False, return_indices=False):
     values = []
@@ -1087,7 +1164,7 @@ def find_similar_images_dispersion(image_maldi, factor, quantiles=[], in_sample=
             number_non_zero = np.count_nonzero(binaryimg)
             if (number_non_zero == 0):
                 continue
-            centroid = [moments[1, 0]/moments[0, 0], moments[0, 1]/moments[0, 0]]
+            # centroid = [moments[1, 0]/moments[0, 0], moments[0, 1]/moments[0, 0]]
             ind = np.argwhere(mask)
             diff = np.linalg.norm(ind - centroid, axis=-1)
             variance = np.std(diff) / th_std

@@ -36,26 +36,29 @@ size_se = float(args.size)
 correspondence_names = args.correspondences
 is_merge = args.merge
 
-os.makedirs(outputname, exist_ok=True)
-correspondences = pd.read_csv(correspondence_names, delimiter=",")
-indices = np.array(correspondences)[:, 0]
-correspondences = np.array(correspondences)[:, 1]
-correspondences = [s.replace(" ", "_") for s in correspondences]
+
 
 image = sitk.GetArrayFromImage(sitk.ReadImage(inputname)).T
 max_im = int(image.max())
 if is_merge:
     max_im //= 2
 
-print(max_im, correspondences, indices)
 
 image[image > max_im] -= max_im
-image_copy = max_region(image.astype(int))
-plt.imshow(image_copy.T, cmap="Set3", interpolation="none", vmax=max_im)
-plt.axis("off")
-plt.savefig("test.png", bbox_inches="tight")
+image_copy = max_region(image.astype(int)).astype(np.uint8)
+sitk.WriteImage(sitk.GetImageFromArray(image_copy.T), "test.png")
+# plt.imshow(image_copy.T, cmap="Set3", interpolation="none", vmax=max_im)
+# plt.axis("off")
+# plt.savefig("test.png", bbox_inches="tight")
 exit()
 
+os.makedirs(outputname, exist_ok=True)
+correspondences = pd.read_csv(correspondence_names, delimiter=",")
+indices = np.array(correspondences)[:, 0]
+correspondences = np.array(correspondences)[:, 1]
+correspondences = [s.replace(" ", "_") for s in correspondences]
+
+print(max_im, correspondences, indices)
 for ind, intensity in enumerate(indices):
     if is_merge:
         condition = (image == intensity) | (image == intensity+20)

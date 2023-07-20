@@ -10,6 +10,7 @@ on this subset
 
 import esmraldi.segmentation as seg
 import esmraldi.imzmlio as imzmlio
+import esmraldi.imageutils as imageutils
 import SimpleITK as sitk
 import matplotlib.pyplot as plt
 import numpy as np
@@ -48,6 +49,7 @@ parser.add_argument("-i", "--input", help="Input (.nii or imzML)")
 parser.add_argument("-o", "--output", help="Output segmentation (.nii)")
 parser.add_argument("-f", "--factor", help="Factor for the spatially coherent images")
 parser.add_argument("-t", "--threshold", help="Lower threshold for region growing", default=60)
+parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given m/z", default=0)
 parser.add_argument("-q", "--quantiles", nargs="+", type=int, help="Quantile lower thresholds", default=[60, 70, 80, 90])
 parser.add_argument("-u", "--quantile_upper", help="Quantile upper threshold", default=100)
 parser.add_argument("--fill_holes", help="Fill holes in the image.", default=0)
@@ -60,32 +62,44 @@ factor = float(args.factor)
 quantiles = args.quantiles
 quantile_upper = int(args.quantile_upper)
 fill_holes = int(args.fill_holes)
+normalization = float(args.normalization)
 
 radius = 1
 selem = disk(radius)
 
-
 if inputname.lower().endswith(".imzml"):
     imzml = imzmlio.open_imzml(inputname)
+    mz, I = imzml.getspectrum(0)
     spectra = imzmlio.get_spectra(imzml)
+    mzs = np.unique(np.hstack(spectra[:, 0]))
+    mzs = mzs[mzs>0]
+    full_spectra = imzmlio.get_full_spectra(imzml)
     coordinates = imzml.coordinates
     max_x = max(coordinates, key=lambda item:item[0])[0]
     max_y = max(coordinates, key=lambda item:item[1])[1]
     max_z = max(coordinates, key=lambda item:item[2])[2]
-    full_spectra = imzmlio.get_full_spectra(imzml)
-    img_data = imzmlio.get_images_from_spectra(full_spectra, (max_x, max_y, max_z))
+    shape = (max_x, max_y, max_z)
+    img_data = imzmlio.get_images_from_spectra(full_spectra, shape)
 else:
-    image_itk = sitk.ReadImage(inputname)
-    img_data = sitk.GetArrayFromImage(image_itk).T
-    mzs = np.loadtxt(os.path.splitext(inputname)[0] + ".csv")
+    image = sitk.ReadImage(inputname)
+    img_data = sitk.GetArrayFromImage(image).T
+    mzs = np.loadtxt(os.path.splitext(inputname)[0] + ".csv").astype(float)
+
+norm_img = None
+if normalization > 0:
+    norm_img = imageutils.get_norm_image(img_data, normalization, mzs)
+    for i in range(img_data.shape[-1]):
+        img_data[..., i] = imageutils.normalize_image(img_data[..., i], norm_img)
+
+img_data = imzmlio.normalize(img_data)
 
 padding = 3
 list_padding = [(padding, padding) for i in range(len(img_data.shape)-1)] + [(0,0)]
 img_data = np.pad(img_data, list_padding, 'constant')
 print(type(img_data))
 
-similar_images = seg.find_similar_images_spatial_coherence_percentage(img_data, factor, quantiles=quantiles, upper=quantile_upper)
-# similar_images = seg.find_similar_images_spatial_chaos(img_data, factor, quantiles=[60, 70, 80, 90])
+# similar_images = seg.find_similar_images_spatial_coherence_percentage(img_data, factor, quantiles=quantiles, upper=quantile_upper)
+similar_images = seg.find_similar_images_spatial_chaos(img_data, factor, quantiles=quantiles)
 # similar_images = seg.find_similar_images_variance(img_data, factor)
 print(similar_images.shape)
 similar_images = seg.sort_size_ascending(similar_images, threshold)

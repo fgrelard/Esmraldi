@@ -48,6 +48,11 @@ def read_image(image_name):
     return mask
 
 
+def onpick(event, tracker):
+    tracker.ind = event.ind[0]
+    tracker.update()
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input", help="Input (.nii or imzML)")
 parser.add_argument("--on_sample", help="Whether to consider only on-sample points", action="store_true")
@@ -127,31 +132,40 @@ zero_array = np.zeros_like(mzs)
 off_sample_cond, value_array, indices = zero_array, zero_array, zero_array
 off_sample_image = None
 
-similar_images, value_array, indices, off_sample_image, off_sample_cond, thresholds = seg.find_similar_images_dispersion_peaks(img_data, factor, quantiles=quantiles, in_sample=True, return_indices=True, return_thresholds=True,  size_elem=size_se)
+# similar_images, value_array, indices, off_sample_image, off_sample_cond, thresholds = seg.find_similar_images_dispersion_peaks(img_data, factor, quantiles=quantiles, in_sample=True, return_indices=True, return_thresholds=True,  size_elem=size_se)
+
+# similar_images, value_array, indices, off_sample_image, off_sample_cond = seg.find_similar_images_dispersion(img_data, factor, quantiles=quantiles, in_sample=True, return_indices=True)
+
+similar_images, value_array, indices, off_sample_image, off_sample_cond, thresholds = seg.find_similar_images_distance_map(img_data, mzs, factor, quantiles=quantiles, in_sample=True, return_indices=True, return_thresholds=True, normalize_max=True)
 
 # similar_images, value_array, _ = seg.find_similar_images_spatial_chaos(img_data, factor, quantiles=quantiles, return_indices=True)
 # indices = (value_array < factor) & (off_sample_cond < 0.1)
 # similar_images = img_data[..., indices]
 
-sigmas = []
-for i in range(img_data.shape[-1]):
-    stdI = imageutils.stddev_image(img_data[..., i])
-    nb_pixels = np.count_nonzero(stdI)
-    if nb_pixels == 0:
-        nb_pixels = 1
-    s = np.sum(stdI)/nb_pixels
-    sigmas.append(s)
+# sigmas = []
+# for i in range(img_data.shape[-1]):
+#     stdI = imageutils.stddev_image(img_data[..., i])
+#     nb_pixels = np.count_nonzero(stdI)
+#     if nb_pixels == 0:
+#         nb_pixels = 1
+#     s = np.sum(stdI)/nb_pixels
+#     sigmas.append(s)
 # np.savetxt("test.csv", value_array, delimiter=",", newline=" ")
 
 if off_sample_image is not None:
     plt.imsave("off_sample.png", off_sample_image.T)
 
 np.set_printoptions(suppress=True)
-fig, ax = plt.subplots(1)
-label = np.vstack((mzs, off_sample_cond, value_array, off_sample_cond)).T
-tracker = SliceViewer(ax, np.transpose(img_data, (2, 1, 0)), labels=label)
+fig, ax = plt.subplots(1, 2)
+print(off_sample_cond.size, value_array.size)
+ax[0].scatter(off_sample_cond, value_array, picker=True)
+label = np.vstack((mzs, off_sample_cond, value_array, indices, thresholds)).T
+tracker = SliceViewer(ax[1], np.transpose(img_data, (2, 1, 0)), labels=label)
+cid = fig.canvas.mpl_connect('pick_event', lambda event:onpick(event, tracker))
 fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
 plt.show()
+
+np.savetxt("values.csv", label, delimiter=",", comments="", header="mzs,off_sample,distance,indices,thresholds")
 
 indices = np.where(indices)[0]
 
@@ -173,10 +187,10 @@ imzmlio.to_csv(mzs[indices], root + ".csv")
 
 
 if thresholds is not None:
-
     if roc_name is not None:
         indices = np.intersect1d(indices, indices_roc)
     similar_images = img_data[..., indices]
+
     thresholds = thresholds[indices]
 
     image_thresholded = similar_images.copy()
