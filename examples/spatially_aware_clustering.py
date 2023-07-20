@@ -9,7 +9,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import esmraldi.segmentation as seg
-import esmraldi.imzmlio as imzmlio
+import esmraldi.imzmlio as io
 import esmraldi.fusion as fusion
 import esmraldi.imageutils as imageutils
 import scipy.ndimage as ndimage
