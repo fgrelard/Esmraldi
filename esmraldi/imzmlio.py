@@ -16,8 +16,6 @@ import matplotlib.pyplot as plt
 import h5py
 
 from skimage import exposure, img_as_ubyte
-from mmappickle.dict import mmapdict
-import mmappickle.stubs as stubs
 
 from esmraldi.sparsematrix import SparseMatrix
 from esmraldi.utils import progress, factors, attempt_reshape
