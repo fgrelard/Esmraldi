@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 import argparse
-import esmraldi.imzmlio as imzmlio
+import esmraldi.imzmlio_mmap as imzmlio
 import os
 import io
 import matplotlib.pyplot as plt
