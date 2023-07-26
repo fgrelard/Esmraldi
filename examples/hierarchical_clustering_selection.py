@@ -35,7 +35,6 @@ import umap
 from scipy import ndimage as nd
 from skimage.filters import gabor_kernel
 import esmraldi.haarpsi as haarpsi
-from image_similarity_measures.quality_metrics import fsim
 
 def read_image(image_name):
     sitk.ProcessObject_SetGlobalWarningDisplay(False)
@@ -217,12 +216,6 @@ def haar_similarity(x, y):
     # ax[2].imshow(i[..., 0])
     # ax[3].imshow(i[..., 1])
     # plt.show()
-
-def fsim_distance(x, y):
-    print("sh", x[..., np.newaxis].shape)
-    value = 1-fsim(x[..., np.newaxis], y[..., np.newaxis])
-    print(value)
-    return value
 
 
 parser = argparse.ArgumentParser()

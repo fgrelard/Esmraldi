@@ -60,8 +60,11 @@ common_indices = [np.abs(mzs - mz).argmin() for mz in common]
 
 
 root, ext = os.path.splitext(output_name)
-io.to_tif(images[..., common_indices].T, common, root + "_common.tif")
-io.to_tif(images[..., diff_indices].T, diff, root + "_diff.tif")
+if common.size:
+    io.to_tif(images[..., common_indices].T, common, root + "_common.tif")
+
+if diff.size:
+    io.to_tif(images[..., diff_indices].T, diff, root + "_diff.tif")
 
 if threshold_name is not None:
     data = np.genfromtxt(threshold_name, encoding="utf-8-sig", delimiter=",", names=True, dtype=float)
@@ -84,8 +87,10 @@ if threshold_name is not None:
         curr_img[curr_img < thresh] = 0
         thresholded_image[..., i] = curr_img
 
-    io.to_tif(thresholded_image[..., common_indices].T, common, root + "_common_binary.tif")
-    io.to_tif(thresholded_image[..., diff_indices].T, diff, root + "_diff_binary.tif")
+    if common.size:
+        io.to_tif(thresholded_image[..., common_indices].T, common, root + "_common_binary.tif")
+    if diff.size:
+        io.to_tif(thresholded_image[..., diff_indices].T, diff, root + "_diff_binary.tif")
 
 print(common.size)
 print(diff)

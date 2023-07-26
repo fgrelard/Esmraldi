@@ -39,7 +39,6 @@ import umap
 
 from scipy import ndimage as nd
 from skimage.filters import gabor_kernel
-from image_similarity_measures.quality_metrics import fsim
 import esmraldi.haarpsi as haarpsi
 
 
@@ -230,12 +229,15 @@ def elbow(linkage):
     fig.show()
 
 
-def inconsistencies(linkage):
+def inconsistencies(linkage, output_name):
     arange = np.arange(0.5, 2, 0.05)
     clust_numbers = []
     for i in arange:
         clusters = hc.fcluster(linkage, t=i, criterion="inconsistent", depth=5)
         clust_numbers.append(np.amax(clusters))
+    label = np.vstack((clust_numbers, arange)).T
+    if output_name is not None:
+        np.savetxt(output_name + os.path.sep + "inconsistencies.csv", label, delimiter=",", comments="", header="clust_number,inconsistency")
     fig, ax = plt.subplots()
     ax.plot(clust_numbers, arange)
     fig.show()
@@ -457,11 +459,6 @@ def haar_similarity(x, y):
     # ax[3].imshow(i[..., 1])
     # plt.show()
 
-def fsim_distance(x, y):
-    print("sh", x[..., np.newaxis].shape)
-    value = 1-fsim(x[..., np.newaxis], y[..., np.newaxis])
-    print(value)
-    return value
 
 def analyse_intensity_distributions(image_norm):
     best_regions = None
@@ -541,6 +538,7 @@ parser.add_argument("--value", help="Threshold for correlation", default=None)
 parser.add_argument("--names", help="Names to restrict ROC", nargs="+", default=None)
 parser.add_argument("--correlation_names", help="Images used to compute correlation with ion images. When correlation is high, corresponding ion images are discarded.", nargs="+", default=None)
 parser.add_argument("--restrict_coordinates", help="Restrict coordinates", nargs="+", type=int)
+parser.add_argument("--inconsistency", help="Inconsistency parameter to find optimal number of clusters", default=1.7)
 
 args = parser.parse_args()
 
@@ -555,6 +553,8 @@ roc_name = args.roc
 roc_names = args.names
 correlation_names = args.correlation_names
 correlation_value = args.value
+inconsistency = float(args.inconsistency)
+
 if correlation_value is not None:
     correlation_value = float(correlation_value)
 restrict_coordinates = args.restrict_coordinates
@@ -625,6 +625,12 @@ else:
     if correlation_value is not None:
         similar_images, distances, indices_restrict = seg.find_similar_image_distance_map_percentile(image, correlation_images, correlation_value, quantiles=[0], add_otsu_thresholds=True, return_indices=True)
         indices_restrict = np.invert(indices_restrict)
+        label = np.vstack((mzs, distances, indices_restrict)).T
+        fig, ax = plt.subplots()
+        ax.plot(mzs, distances)
+        fig.show()
+        if output_name is not None:
+            np.savetxt(output_name + os.path.sep + "distances.csv", label, delimiter=",", comments="", header="mzs,distances,restrict")
         np.set_printoptions(suppress=True)
         fig, ax = plt.subplots(1)
         label = np.vstack((mzs, distances)).T
@@ -746,7 +752,7 @@ if draw_hierarchical:
 
     linkage_matrix = get_linkage(model)
     elbow(linkage_matrix)
-    inconsistencies(linkage_matrix)
+    inconsistencies(linkage_matrix, output_name)
 
     # Plot the corresponding dendrogram
     # dendro = hc.dendrogram(linkage_matrix, truncate_mode=None, p=10, no_plot=True)
@@ -765,7 +771,7 @@ if draw_hierarchical:
 
     nb_clust = determine_when_same_group(linkage_matrix, shape, mzs, mzs_target, len(indices_restrict))
 
-    update_clustering(pos_array, 1.7, shape, criterion="inconsistent", matrix=distance_matrix, linkage=linkage_matrix, cluster_image=None, mzs_target=mzs_target, image=image, output_name=output_name, mzs_display=mzs_display)
+    update_clustering(pos_array, inconsistency, shape, criterion="inconsistent", matrix=distance_matrix, linkage=linkage_matrix, cluster_image=None, mzs_target=mzs_target, image=image, output_name=output_name, mzs_display=mzs_display)
 
     # update_clustering(pos_array, nb_clust, shape, criterion="maxclust", matrix=distance_matrix, linkage=linkage_matrix, cluster_image=None, mzs_target=mzs_target, image=image, output_name=output_name)
 

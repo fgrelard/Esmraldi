@@ -985,7 +985,7 @@ def quantile_distance_distributions(image_maldi, quantiles=[], w=10):
     distributions = np.array(distributions)
     return distributions
 
-def find_similar_images_distance_map(image_maldi, mzs, factor, quantiles=[], in_sample=False, return_indices=False, return_thresholds=False, normalize_max=False, size_elem=5):
+def find_similar_images_distance_map(image_maldi, mzs, factor, offsample_threshold=0.1, quantiles=[], in_sample=False, return_indices=False, return_thresholds=False, normalize_max=False, size_elem=5):
     th_image = image_maldi[..., 0].copy()
     width, height = th_image.shape
     centroid = [width//2, height//2]
@@ -993,8 +993,6 @@ def find_similar_images_distance_map(image_maldi, mzs, factor, quantiles=[], in_
     values_sample = []
     best_thresholds = []
     for i in range(image_maldi.shape[-1]):
-        # if mzs[i] < 871.55 or mzs[i] > 871.58:
-        #     continue
         image2D = image_maldi[..., i]
         norm_img = np.uint8(cv.normalize(image2D, None, 0, 255, cv.NORM_MINMAX))
         upper_threshold = np.percentile(norm_img, 100)
@@ -1016,11 +1014,7 @@ def find_similar_images_distance_map(image_maldi, mzs, factor, quantiles=[], in_
                 continue
             image_binary = np.where(condition, 255, 0)
             dt_cleaned = distance_transform_edt(image_binary)
-            n2 = np.count_nonzero(dt_cleaned)
             dt_cleaned[dt_cleaned > 0] -= 1
-            n1 = np.count_nonzero(dt_cleaned)
-            n3 = n2 - n1
-            dist = ((n1 - n3) * np.amax(dt_cleaned)) / ((n1 + n3) * np.sum(dt_cleaned) / n1)
             divisor = np.count_nonzero(dt_cleaned)
             if normalize_max:
                 divisor *= np.amax(dt_cleaned)
@@ -1049,7 +1043,7 @@ def find_similar_images_distance_map(image_maldi, mzs, factor, quantiles=[], in_
     if in_sample:
         off_sample_image, off_sample_cond = determine_on_off_sample(image_maldi, value_sample_array, size_elem)
         # off_sample_cond = np.array([np.median(off_sample_image[coord.T[0], coord.T[1]]) for coord in coords])
-    indices = (value_array > factor) & (off_sample_cond < 0.1)
+    indices = (value_array > factor) & (off_sample_cond < offsample_threshold)
     similar_images = image_maldi[..., indices]
     to_return = (similar_images,)
     if return_indices:

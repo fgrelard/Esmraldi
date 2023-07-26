@@ -60,6 +60,7 @@ parser.add_argument("-r", "--roc", help="ROC file (.xlsx)")
 parser.add_argument("-n", "--normalization", help="Normalization w.r.t. to given m/z", default=None)
 parser.add_argument("-o", "--output", help="Output segmentation (.nii)")
 parser.add_argument("-f", "--factor", help="Factor for the spatially coherent images")
+parser.add_argument("--offsample_threshold", help="Threshold for offsample", default=0.1)
 parser.add_argument("-q", "--quantiles", nargs="+", type=int, help="Quantile lower thresholds", default=[60, 70, 80, 90])
 parser.add_argument("-u", "--quantile_upper", help="Quantile upper threshold", default=100)
 parser.add_argument("--names", help="Names to restrict ROC", nargs="+", default=None)
@@ -76,6 +77,7 @@ roc_name = args.roc
 normalization = args.normalization
 roc_names = args.names
 size_se = float(args.size_se)
+offsample_threshold = float(args.offsample_threshold)
 
 radius = 1
 selem = disk(radius)
@@ -136,7 +138,7 @@ off_sample_image = None
 
 # similar_images, value_array, indices, off_sample_image, off_sample_cond = seg.find_similar_images_dispersion(img_data, factor, quantiles=quantiles, in_sample=True, return_indices=True)
 
-similar_images, value_array, indices, off_sample_image, off_sample_cond, thresholds = seg.find_similar_images_distance_map(img_data, mzs, factor, quantiles=quantiles, in_sample=True, return_indices=True, return_thresholds=True, normalize_max=True)
+similar_images, value_array, indices, off_sample_image, off_sample_cond, thresholds = seg.find_similar_images_distance_map(img_data, mzs, factor, offsample_threshold, quantiles=quantiles, in_sample=True, return_indices=True, return_thresholds=True, normalize_max=True)
 
 # similar_images, value_array, _ = seg.find_similar_images_spatial_chaos(img_data, factor, quantiles=quantiles, return_indices=True)
 # indices = (value_array < factor) & (off_sample_cond < 0.1)
