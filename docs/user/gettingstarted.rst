@@ -25,6 +25,7 @@ Easiest and cross-platform solution is to set up Esmraldi using `Anaconda <https
 
 Then, you can use Anaconda's GUI to import a new environment after downloading Esmraldi. Alternatively, you can paste the following commands in the Anaconda Powershell prompt::
 
+   conda install -c anaconda git
    git clone https://github.com/fgrelard/Esmraldi.git
    cd Esmraldi
    conda env create --file environment.yml
