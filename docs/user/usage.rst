@@ -1,21 +1,6 @@
-=======
- Usage
-=======
-
-Several examples are available for each step of the fusion workflow.
-They are located in the ``examples`` directory in the Esmraldi repository. These examples include code embedded in the `Quickstart tutorial`_ and `Advanced example`_, and make it easier to reuse the code.
-
-.. _Quickstart tutorial: quickstart.ipynb
-.. _Advanced example: advanced_example.ipynb
-
-The general command is the following: ::
-
-  python -m examples.module_name [--options] [--help]
-
-We strongly advise to refer to the output given by the ``help`` argument before using these examples; it describes the example file and its parameters.
-
-Typical workflow
-================
+==================
+ Typical workflow
+==================
 
 A typical workflow consists in:
 
