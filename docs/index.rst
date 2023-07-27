@@ -12,6 +12,8 @@ Esmraldi Documentation
 
    user/introduction.rst
    user/gettingstarted.rst
+   user/gui.rst
+   user/modules.rst
    user/usage.rst             
    user/quickstart.ipynb
    user/advanced_example.ipynb
