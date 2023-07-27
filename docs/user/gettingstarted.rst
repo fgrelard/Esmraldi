@@ -19,7 +19,10 @@ Setting up Esmraldi (cross-platform)
 
 Esmraldi requires Python 3.8. 
 
-Easiest and cross-platform solution is to set up Esmraldi using Anaconda. On Windows, follow `this tutorial <https://www.thewindowsclub.com/how-to-enable-or-disable-win32-long-paths-in-windows-11-10>`_ to enable long paths in the registry.
+Easiest and cross-platform solution is to set up Esmraldi using `Anaconda <https://www.anaconda.com/download>`_. Follow the installation steps. Anaconda command prompts as well as a GUI are installed.
+
+**On Windows:** follow `this tutorial <https://www.thewindowsclub.com/how-to-enable-or-disable-win32-long-paths-in-windows-11-10>`_ to enable long paths in the registry.
+
 Then, you can use Anaconda's GUI to import a new environment after downloading Esmraldi. Alternatively, you can paste the following commands in the Anaconda Powershell prompt::
 
    git clone https://github.com/fgrelard/Esmraldi.git
