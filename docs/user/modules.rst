@@ -77,7 +77,7 @@ Segmentation
 Regitration
 -----------
 
-* `registration.py`: use intensity similarity based methods for linear registration. Transforms the image using distance transformations.::
+* ``registration.py``: use intensity similarity based methods for linear registration. Transforms the image using distance transformations.::
 
     python -m examples.registration -f /home/Data/fixed.tif --moving /home/Data/moving.tif -r /home/Data/moving.tif --relaxation_factor 0.5 --learning_rate 1.5 -s --min_step 0.00001 -o /home/Data/registered.tif --resize
 
