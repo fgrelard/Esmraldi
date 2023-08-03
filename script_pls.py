@@ -26,7 +26,8 @@ parser.add_argument("--gmm", help="Use GMM model", action="store_true")
 parser.add_argument("--normalization", help="TIC normalization", action="store_true")
 parser.add_argument("--msi_masks", help="Create masks from MSI by linear regression", action="store_true")
 parser.add_argument("--visual", action="store_true", help="Visual assessment of the predictions (different parameters for lasso side by side)")
-parser.add_argument("--rank", help="Nth rank for prediction (choose nth best prediction for prediction). Default is 1.", default=1)
+parser.add_argument("--rank", help="Nth rank for prediction (choose nth best prediction for prediction). Default is 1.", default="1")
+parser.add_argument("--recompute_gmm", help="Switch to recompute GMM model", action="store_true")
 args = parser.parse_args()
 
 is_train = args.train
@@ -41,6 +42,7 @@ is_visual = args.visual
 parameters_train = args.parameters_train
 normalization = args.normalization
 rank = args.rank
+recompute_gmm = args.recompute_gmm
 print(parameters_train)
 
 #Number of repetitions for bootstrap
@@ -99,6 +101,9 @@ train_keys = ["P6F1", "P6E1", "P2D3", "P2F4", "P7E4", "P6B5", "P2A4", "P7D2", "P
 # validation_keys = ["P3E3", "P2D3Tol", "P7C5"]
 # validation_keys = ["P3E3", "P7B6", "P2C4", "P7D2", "P6F1"]
 validation_keys = ["P3E3", "P7B6", "P2C4"]
+
+restrict_datasets = ["JoseSanchez#4CMC", "JoseSanchez", "ModelsSalt"]
+restrict_datasets = list(test_datasets.keys())
 
 
 train_keys += validation_keys
@@ -230,18 +235,18 @@ if is_test:
         name_model_file = os.path.basename(name_model)
         name_model_dir = os.path.splitext(name_model)[0] + os.path.sep
         input_model = name_model_dir + name_model_file
-        # os.makedirs(name_model_dir + "results/", exist_ok=True)
-        # os.makedirs(name_model_dir + "results/binders", exist_ok=True)
-        # os.makedirs(name_model_dir + "results/pigments", exist_ok=True)
+
         if is_gmm:
             gmm_binders = os.path.splitext(input_model)[0] + "_gmm_binders_local_nomatrix.joblib"
             gmm_pigments = os.path.splitext(input_model)[0] + "_gmm_pigments_local_nomatrix.joblib"
-            cmd_gmm_binders = "python3 -m examples.model_assign_gmm -i " + input_model +  " --msi " + name_dir + " --names " + name_binders + " -o " + gmm_binders
-            cmd_gmm_pigments = "python3 -m examples.model_assign_gmm -i " + input_model +  " --msi " + name_dir + " --names " + name_pigments + " -o " + gmm_pigments
-            # subprocess.call(cmd_gmm_binders, shell=True)
-            # subprocess.call(cmd_gmm_pigments, shell=True)
+            if recompute_gmm:
+                cmd_gmm_binders = "python3 -m examples.model_assign_gmm -i " + input_model +  " --msi " + name_dir + " --names " + name_binders + " -o " + gmm_binders
+                cmd_gmm_pigments = "python3 -m examples.model_assign_gmm -i " + input_model +  " --msi " + name_dir + " --names " + name_pigments + " -o " + gmm_pigments
+
+                subprocess.call(cmd_gmm_binders, shell=True)
+                subprocess.call(cmd_gmm_pigments, shell=True)
         for key, name_test in test_datasets.items():
-            if key != "ModelsSalt" and key != "VonStuck" and key != "JoseSanchez#4CMC" and key != "JoseSanchez#4":
+            if key not in restrict_datasets:
                 continue
             print(key)
             # if key not in test_keys:
@@ -258,7 +263,7 @@ if is_test:
                     outdircurr += "train/"
                 os.makedirs(outdircurr, exist_ok=True)
                 out_dir = outdircurr + key + ".png"
-                if rank != 1:
+                if rank != "1":
                     out_dir = outdircurr + key + "_" + rank + ".png"
                 if i == 0:
                     cmd_test = "python3 -m examples.pls_test -i " + input_model + " -t " + name_test_escape + " -o " + out_dir + " --names " + name_binders + " --proba 0.95 --rank " + rank
@@ -287,9 +292,7 @@ if is_validate_prediction:
         name_model_file = os.path.basename(name_model)
         name_model_dir = os.path.splitext(name_model)[0] + os.path.sep
         input_model = name_model_dir + name_model_file
-        # os.makedirs(name_model_dir + "results/", exist_ok=True)
-        # os.makedirs(name_model_dir + "results/binders", exist_ok=True)
-        # os.makedirs(name_model_dir + "results/pigments", exist_ok=True)
+        os.makedirs(name_model_dir + "results/", exist_ok=True)
         names_datasets = " ".join([v.replace(" ", "\\ ") for v in train.values()])
         out_binders = name_model_dir + "results/train_stats_binders.xlsx"
         out_pigments = name_model_dir + "results/train_stats_pigments.xlsx"
@@ -307,7 +310,7 @@ if is_validate_prediction:
             cmd_binders  += " -n"
             cmd_pigments += " -n"
         print(cmd_binders)
-        # subprocess.call(cmd_binders, shell=True)
+        subprocess.call(cmd_binders, shell=True)
         print(cmd_pigments)
         subprocess.call(cmd_pigments, shell=True)
 
