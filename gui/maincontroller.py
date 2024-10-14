@@ -532,7 +532,6 @@ class MainController:
             imageview.image.peaks = peaks
             self.display_peaks_mean_spectrum(peaks)
             self.mainview.peakpickingview.label_peaks.setEnabled(True)
-            self.mainview.peakpickingview.label_peaks.setText(str(len(indices)) + " peaks found.")
             self.mainview.progressBar.setMaximum(100)
             self.mainview.hide_run()
         self.update_progressbar(0)
