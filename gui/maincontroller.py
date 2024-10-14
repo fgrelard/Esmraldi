@@ -552,7 +552,6 @@ class MainController:
             imageview.winPlot.setVisible(True)
             imageview.plot.setPoints(peaks, intensities, size=5, brush=pg.mkBrush("r"))
             self.mainview.peakpickingmeanspectrumview.label_peaks.setEnabled(True)
-            self.mainview.peakpickingmeanspectrumview.label_peaks.setText(str(len(peaks)) + " peaks found.")
             self.mainview.progressBar.setMaximum(100)
             self.mainview.hide_run()
         self.update_progressbar(0)
