@@ -144,7 +144,7 @@ for i, region_name in enumerate(region_names):
         stds[indices] = actual_stds
         n = np.repeat(len(indices_regions), len(curr_mzs))
     else:
-        curr_mzs, intensities, stds, n, medians, geomeans = sp.realign_mean_spectrum(mzs, curr_spectra[:, 1], curr_spectra[:, 0], step, is_ppm=True, return_stats=True)
+        curr_mzs, intensities, stds, n, medians, geomeans, curr_intensities = sp.realign_mean_spectrum(mzs, curr_spectra[:, 1], curr_spectra[:, 0], step, is_ppm=True, return_stats=True)
 
     # mean_spectra = sp.spectra_mean_centroided(curr_spectra, mzs)
     if i==0:

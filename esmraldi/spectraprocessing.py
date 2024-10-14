@@ -762,7 +762,7 @@ def realign_mean_spectrum(mzs, intensities, all_mzs, step=0.0005, is_ppm=False, 
             new_full.append(current_intensities)
         current_ind = next_ind
     if return_stats:
-        return np.array(new_mzs), np.array(new_intensities), np.array(new_stds), np.array(new_cardinals), np.array(new_medians), np.array(geomeans), np.array(current_intensities)
+        return np.array(new_mzs), np.array(new_intensities), np.array(new_stds), np.array(new_cardinals), np.array(new_medians), np.array(new_geomeans), np.array(current_intensities)
     return np.array(new_mzs), np.array(new_intensities)
 
 def realign_tree(spectra, mzs, mean_spectra, step=0.0005, is_ppm=False):
